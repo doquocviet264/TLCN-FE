@@ -12,7 +12,7 @@ const RecentPosts = () => {
   useEffect(() => {
     async function fetchBlogs() {
       try {
-        const res = await getBlogs({ limit: 5, sort: "-createdAt" });
+        const res = await getBlogs(1, 5);
         const publishedPosts = res.data
           .filter((b: any) => b.status === "published")
           .map(mapBlogToPost);

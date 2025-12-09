@@ -7,6 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 type SigninInput = {
   identifier: string;
   password: string;
+  rememberMe?: boolean;
 };
 
 type RegisterInput = {
@@ -20,7 +21,7 @@ type RegisterInput = {
 export const useSignin = () => {
   return useMutation({
     mutationFn: (input: SigninInput) =>
-      authApi.login(input.identifier, input.password),
+      authApi.login(input.identifier, input.password, input.rememberMe),
   });
 };
 

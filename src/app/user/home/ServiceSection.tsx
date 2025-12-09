@@ -4,9 +4,9 @@ import React from 'react';
 import Image from 'next/image';
 
 const services = [
-  { title: 'Tính thời tiết', description: 'Lorem ipsum dolor sit amet, adipisicing elit.', icon: '/weather.svg' },
-  { title: 'Hướng dẫn du lịch tốt nhất', description: 'Lorem ipsum dolor sit amet, adipisicing elit.', icon: '/guide.svg' },
-  { title: 'Mạng xã hội du lịch', description: 'Lorem ipsum dolor sit amet, adipisicing elit.', icon: '/social.svg' },
+  { title: 'Dự báo thời tiết', description: 'Cập nhật thông tin thời tiết điểm đến giúp bạn chuẩn bị hành lý phù hợp.', icon: '/weather.svg' },
+  { title: 'Hướng dẫn viên chuyên nghiệp', description: 'Đội ngũ hướng dẫn viên giàu kinh nghiệm, am hiểu văn hóa địa phương.', icon: '/guide.svg' },
+  { title: 'Cộng đồng du lịch', description: 'Kết nối với cộng đồng du lịch, chia sẻ kinh nghiệm và hình ảnh đẹp.', icon: '/social.svg' },
 ];
 
 const ServiceSection = () => {

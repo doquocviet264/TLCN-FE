@@ -38,14 +38,15 @@ export default function BlogSection() {
 
   const list: BlogPost[] = useMemo(() => {
     if (!data || !Array.isArray(data.data)) return [];
-    return data.data.map((blog: any) => ({
+    return data.data.map((blog: any, index: number) => ({
       _id: blog._id,
       slug: blog.slug || slugify(blog.title),
       title: blog.title || "Bài viết mới",
       // Đảm bảo luôn trả về string, không undefined
       excerpt: blog.summary || blog.content?.substring(0, 150) + "..." || "",
       image: blog.coverImageUrl || "/hot1.jpg",
-      featured: false,
+      // 2 bài đầu tiên là featured
+      featured: index < 2,
     }));
   }, [data]);
 

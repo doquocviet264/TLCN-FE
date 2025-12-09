@@ -1,11 +1,9 @@
 // /lib/auth/authApi.ts
 import axios from "axios";
 
-const API_URL =
-  (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api").replace(
-    /\/$/,
-    ""
-  );
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"
+).replace(/\/$/, "");
 
 const api = axios.create({
   baseURL: API_URL,
@@ -18,13 +16,34 @@ type VerifyOtpPayload =
 
 export const authApi = {
   // BE nhận identifier (email/username) + password
-  async login(identifier: string, password: string) {
-    const res = await api.post("/auth/login", { identifier, password });
+  async login(identifier: string, password: string, rememberMe?: boolean) {
+    const res = await api.post("/auth/login", {
+      identifier,
+      password,
+      rememberMe,
+    });
     const d = res.data ?? {};
     return {
       accessToken: d.accessToken ?? d.token ?? d.data?.accessToken ?? null,
       refreshToken: d.refreshToken ?? d.data?.refreshToken ?? null,
+      rememberToken: d.rememberToken ?? null,
+      user: d.user ?? null,
       raw: d,
+    };
+  },
+
+  // Đăng nhập bằng Remember Token (auto-login)
+  async loginWithRememberToken(email: string, rememberToken: string) {
+    const res = await api.post("/auth/login/remember", {
+      email,
+      rememberToken,
+    });
+    const d = res.data ?? {};
+    return {
+      accessToken: d.accessToken ?? null,
+      refreshToken: d.refreshToken ?? null,
+      rememberToken: d.rememberToken ?? null,
+      user: d.user ?? null,
     };
   },
 
@@ -67,7 +86,32 @@ export const authApi = {
     email: string,
     purpose: "register" | "verify" | "forgot_password"
   ) {
-    const res = await api.post("/auth/send-otp", { email, purpose });
+    const res = await api.post("/auth/resend-otp", { email, purpose });
+    return res.data;
+  },
+
+  // ===== Quên mật khẩu - Bước 1: Gửi OTP =====
+  async forgotPassword(email: string) {
+    const res = await api.post("/auth/forgot-password", { email });
+    return res.data;
+  },
+
+  // ===== Quên mật khẩu - Bước 2: Xác thực OTP =====
+  async verifyResetOtp(email: string, otp: string) {
+    const res = await api.post("/auth/forgot-password/verify-otp", {
+      email,
+      otp,
+    });
+    return res.data;
+  },
+
+  // ===== Quên mật khẩu - Bước 3: Đặt mật khẩu mới =====
+  async resetPassword(email: string, resetToken: string, newPassword: string) {
+    const res = await api.post("/auth/forgot-password/reset", {
+      email,
+      resetToken,
+      newPassword,
+    });
     return res.data;
   },
 
@@ -76,12 +120,13 @@ export const authApi = {
     const payload: VerifyOtpPayload = isEmail
       ? { otp, email: emailOrPhone }
       : { otp, phone: emailOrPhone };
-    const res = await api.post("/auth/verify-otp", payload);
+
+    const res = await api.post("/auth/verify", payload);
     return res.data;
   },
 
   // ===== Lấy profile user hiện tại =====
-    async getProfile(token: string) {
+  async getProfile(token: string) {
     const res = await api.get("/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
       params: { _ts: Date.now() },
@@ -92,15 +137,11 @@ export const authApi = {
     const u: any = raw?.user ?? raw ?? {};
 
     const first = u.firstName ?? u.given_name ?? u.givenName ?? "";
-    const last  = u.lastName  ?? u.family_name ?? u.familyName ?? "";
-    const fallbackFromEmail =
-      (u.email && String(u.email).split("@")[0]) || "";
+    const last = u.lastName ?? u.family_name ?? u.familyName ?? "";
+    const fallbackFromEmail = (u.email && String(u.email).split("@")[0]) || "";
 
     let fullName =
-      u.fullName ??
-      u.name ??
-      u.displayName ??
-      `${first} ${last}`.trim();
+      u.fullName ?? u.name ?? u.displayName ?? `${first} ${last}`.trim();
     if (!fullName) fullName = u.username || fallbackFromEmail || "User";
 
     // chọn avatar từ các field BE trả
@@ -125,31 +166,56 @@ export const authApi = {
       phoneNumbers: u.phoneNumbers ?? undefined,
 
       // 🔥 giữ tương thích cũ
-      avatar: avatarUrl,   // layout.tsx cần field này
-      avatarUrl,           // chỗ mới dùng field này
+      avatar: avatarUrl, // layout.tsx cần field này
+      avatarUrl, // chỗ mới dùng field này
 
       points: u.points ?? 0,
       memberStatus: u.memberStatus ?? "Thành viên",
     };
   },
-async uploadAvatar(file: File, token: string) {
-  const form = new FormData();
-  form.append("avatar", file);
+  async uploadAvatar(file: File, token: string) {
+    const form = new FormData();
+    form.append("avatar", file);
 
-  const res = await axios.post(
-    `${API_URL}/users/me/avatar`,
-    form,
-    {
+    const res = await axios.post(`${API_URL}/users/me/avatar`, form, {
       headers: {
         Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
+        // axios sẽ tự set Content-Type: multipart/form-data
       },
-    }
-  );
+    });
 
-  return res.data;
-}
-  // ===== Upload avatar cho user hiện tại =====
+    return res.data;
+  },
+
+  // ===== Upload avatar to Cloudinary =====
+  async uploadAvatarCloud(file: File, token: string) {
+    const form = new FormData();
+    form.append("avatar", file);
+
+    const res = await axios.post(`${API_URL}/users/me/avatarcloud`, form, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return res.data;
+  },
+
+  // ===== Update profile avatar URL (JSON) =====
+  async updateAvatarUrl(avatarUrl: string, token: string) {
+    const res = await axios.put(
+      `${API_URL}/users/me`,
+      { avatar: avatarUrl },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return res.data;
+  },
 };
 
 export default authApi;

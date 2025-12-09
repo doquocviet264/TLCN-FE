@@ -8,11 +8,10 @@ interface Props {
 
 
 const DestinationCard = ({ destination }: Props) => {
-  console.log("Destination object:", destination);
   const router = useRouter();
 
   const handleClick = () => {
-    router.push(`/user/destination/${destination._id}`);
+    router.push(`/user/destination/${(destination as any)._id || destination.id}`);
   };
 
   const imageUrl = destination.images?.[0] || "/image.svg";
@@ -45,9 +44,9 @@ const DestinationCard = ({ destination }: Props) => {
                   <i
                     key={index}
                     className={
-                      index + 1 <= Math.floor(destination.avgRating)
+                      index + 1 <= Math.floor(destination.avgRating ?? 0)
                         ? 'ri-star-fill'
-                        : index + 0.5 <= destination.avgRating
+                        : index + 0.5 <= (destination.avgRating ?? 0)
                           ? 'ri-star-half-line'
                           : 'ri-star-line'
                     }

@@ -24,10 +24,22 @@ export default function SlideshowLayout({
   return (
     <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden">
       {/* Bóng mờ */}
-      <div className="absolute w-[500px] h-[500px] bg-[var(--secondary)] opacity-50 blur-[250px]" style={{ top: "-220px", left: "-140px" }} />
-      <div className="absolute w-[500px] h-[500px] bg-[var(--primary)] opacity-50 blur-[250px]" style={{ top: "-230px", left: "1170px" }} />
-      <div className="absolute w-[500px] h-[500px] bg-[var(--primary)] opacity-50 blur-[250px]" style={{ top: "700px", left: "-60px" }} />
-      <div className="absolute w-[500px] h-[500px] bg-[var(--secondary)] opacity-50 blur-[250px]" style={{ top: "650px", left: "1160px" }} />
+      <div
+        className="absolute w-[500px] h-[500px] bg-[var(--secondary)] opacity-50 blur-[250px]"
+        style={{ top: "-220px", left: "-140px" }}
+      />
+      <div
+        className="absolute w-[500px] h-[500px] bg-[var(--primary)] opacity-50 blur-[250px]"
+        style={{ top: "-230px", left: "1170px" }}
+      />
+      <div
+        className="absolute w-[500px] h-[500px] bg-[var(--primary)] opacity-50 blur-[250px]"
+        style={{ top: "700px", left: "-60px" }}
+      />
+      <div
+        className="absolute w-[500px] h-[500px] bg-[var(--secondary)] opacity-50 blur-[250px]"
+        style={{ top: "650px", left: "1160px" }}
+      />
 
       {/* Layout chính */}
       <div className="w-full px-8 lg:px-12 xl:px-20 2xl:px-30">
@@ -39,7 +51,8 @@ export default function SlideshowLayout({
             }`}
           >
             {/* Logo thu nhỏ dần */}
-            <div className="relative 
+            <div
+              className="relative 
               w-[200px] h-[60px]   /* base */
               md:w-[260px] md:h-[80px] /* 768px */
               lg:w-[320px] lg:h-[90px] /* 1024px */
@@ -48,7 +61,7 @@ export default function SlideshowLayout({
             >
               <Image
                 src="/logo.png"
-                alt="Sài Gòn Đi"
+                alt="AHH Travel Logo"
                 fill
                 className="object-contain"
                 priority
@@ -64,7 +77,8 @@ export default function SlideshowLayout({
             }`}
           >
             {/* Hình thu nhỏ dần */}
-            <div className="
+            <div
+              className="
               relative 
               w-[320px] h-[450px]     /* base */
               md:w-[350px] md:h-[560px] /* 768px */

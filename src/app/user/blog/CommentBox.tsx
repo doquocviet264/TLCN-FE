@@ -8,8 +8,7 @@ const CommentBox = () => {
 
   const handleSubmit = () => {
     if (content.trim()) {
-      // Gửi bình luận ở đây
-      console.log('Gửi bình luận:', content);
+      // TODO: Implement comment submission
       setContent('');
     }
   };

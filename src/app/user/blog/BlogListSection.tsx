@@ -26,10 +26,7 @@ const BlogListSection = ({ activeCategoryKey }: BlogListSectionProps) => {
   useEffect(() => {
     async function fetchBlogs(page: number) {
       try {
-        const res = await getBlogs({
-          page,
-          limit: PAGE_SIZE,
-        });
+        const res = await getBlogs(page, PAGE_SIZE);
 
         let blogs: Post[] = res.data
           .filter((b: any) => b.status === "published")

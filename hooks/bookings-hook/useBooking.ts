@@ -21,7 +21,7 @@ export function useMyBookings(options?: { enabled?: boolean; staleTime?: number 
 export function useInitPayment(options?: { onError?: (err: unknown) => void }) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (code: string) => initBookingPayment(code),
+    mutationFn: ({ code, totalPrice }: { code: string; totalPrice: number }) => initBookingPayment(code, totalPrice),
     onSuccess: async (res) => {
       await qc.invalidateQueries({ queryKey: bookingKeys.mine() });
       const url = res?.payUrl ?? res?.deeplink;

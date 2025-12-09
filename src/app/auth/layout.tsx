@@ -9,10 +9,14 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "Xác thực | Sài Gòn Đi",
+  title: "Xác thực | AHH Travel",
 };
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="vi" className={inter.variable}>
       <body>{children}</body>

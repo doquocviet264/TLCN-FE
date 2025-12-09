@@ -1,8 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAuthStore } from "#/stores/auth";
-import { MessageCircle, Send, X, Minimize2, User, Clock } from "lucide-react";
+import useUser from "#/src/hooks/useUser";
+import { useChatStore } from "#/stores/chatStore";
+import {
+  MessageCircle,
+  Send,
+  X,
+  Minimize2,
+  Loader2,
+  Headset,
+  Trash2,
+  User,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import {
   startSupportChat,
   getSupportMessages,
@@ -11,121 +23,143 @@ import {
 } from "@/lib/chat/chatApi";
 
 export default function ChatBox() {
-  const [isOpen, setIsOpen] = useState(false);
+  // --- HOOKS ---
+  const { user, isAuthenticated, loading: authLoading } = useUser();
+  const { isOpen, openChat, closeChat, tourContext, clearTourContext } =
+    useChatStore();
+
+  // --- STATE ---
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [supportId, setSupportId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
   const [showStartForm, setShowStartForm] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const user = useAuthStore((s) => s.user);
-  const isLoggedIn = !!user;
 
+  // --- 1. SYNC USER INFO ---
   useEffect(() => {
-    const savedSupportId = localStorage.getItem("supportChatId");
-    if (savedSupportId) {
-      setSupportId(savedSupportId);
-      setShowStartForm(false);
-      loadMessages(savedSupportId);
+    if (isAuthenticated && user) {
+      setGuestName(user.fullName || "");
+      setGuestEmail(user.email || "");
+    }
+  }, [isAuthenticated, user]);
+
+  // --- 2. INIT & POLLING ---
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedSupportId = localStorage.getItem("supportChatId");
+      if (savedSupportId) {
+        setSupportId(savedSupportId);
+        setShowStartForm(false);
+        loadMessages(savedSupportId);
+      }
     }
   }, []);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    let interval: NodeJS.Timeout;
+    if (isOpen && supportId && !showStartForm) {
+      interval = setInterval(() => loadMessages(supportId, true), 3000);
+    }
+    return () => clearInterval(interval);
+  }, [isOpen, supportId, showStartForm]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  useEffect(() => {
+    if (isOpen && !isMinimized) {
+      setTimeout(
+        () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }),
+        100
+      );
+    }
+  }, [messages, isOpen, isMinimized]);
 
-  const loadMessages = async (sid: string) => {
+  // --- LOGIC: LOAD MESSAGES ---
+  const loadMessages = async (sid: string, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await getSupportMessages(sid);
-      setMessages(response.data);
-      if (!isOpen) {
-        const lastMsg = response.data[response.data.length - 1];
-        if (lastMsg?.fromRole === "admin") {
-          setUnreadCount((prev) => prev + 1);
+      setMessages((prev) => {
+        if (response.data.length > prev.length) {
+          if (!isOpen || isMinimized)
+            setUnreadCount((c) => c + (response.data.length - prev.length));
         }
-      }
+        return response.data;
+      });
     } catch (err: any) {
-      console.error("Error loading messages:", err);
-      if (err.response?.status === 404) {
-        localStorage.removeItem("supportChatId");
-        setSupportId(null);
-        setShowStartForm(true);
-      }
+      if (err.response?.status === 404) handleEndChat();
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
+  // --- LOGIC: START CHAT ---
   const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    let finalContent = newMessage.trim();
+    if (tourContext) {
+      finalContent = `[Quan tâm Tour: ${tourContext.title} - ${
+        tourContext.price
+      }]\n${newMessage.trim() || "Tôi muốn tư vấn về tour này"}`;
+    }
+    if (!finalContent) return;
 
     try {
       setSending(true);
-      const response = await startSupportChat({
-        content: newMessage.trim(),
-        name: isLoggedIn ? undefined : name,
-        email: isLoggedIn ? undefined : email,
-      });
+      const payload = {
+        content: finalContent,
+        name: isAuthenticated ? user?.fullName : guestName,
+        email: isAuthenticated ? user?.email : guestEmail,
+      };
 
+      const response = await startSupportChat(payload);
       setSupportId(response.supportId);
       localStorage.setItem("supportChatId", response.supportId);
       setMessages([response.firstMessage]);
       setNewMessage("");
       setShowStartForm(false);
+      clearTourContext();
     } catch (err: any) {
-      console.error("Error starting chat:", err);
-      alert(err.response?.data?.message || "Không thể bắt đầu chat");
+      alert(err.response?.data?.message || "Lỗi bắt đầu chat");
     } finally {
       setSending(false);
     }
   };
 
+  // --- LOGIC: SEND MESSAGE ---
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !supportId) return;
+    const tempContent = newMessage;
+    setNewMessage("");
 
     try {
-      setSending(true);
-      const response = await sendSupportMessage(supportId, {
-        content: newMessage.trim(),
-        name: isLoggedIn ? undefined : name,
-        email: isLoggedIn ? undefined : email,
+      await sendSupportMessage(supportId, {
+        content: tempContent.trim(),
+        name: isAuthenticated ? user?.fullName : guestName,
+        email: isAuthenticated ? user?.email : guestEmail,
       });
-
-      setMessages((prev) => [...prev, response.data]);
-      setNewMessage("");
+      loadMessages(supportId, true);
     } catch (err: any) {
-      console.error("Error sending message:", err);
-      alert(err.response?.data?.message || "Không thể gửi tin nhắn");
-    } finally {
-      setSending(false);
+      setNewMessage(tempContent);
+      alert("Gửi thất bại");
     }
   };
 
-  const handleOpen = () => {
-    setIsOpen(true);
-    setIsMinimized(false);
+  // --- UTILS ---
+  const handleEndChat = () => {
+    localStorage.removeItem("supportChatId");
+    setSupportId(null);
+    setMessages([]);
+    setShowStartForm(true);
     setUnreadCount(0);
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
-  };
-
-  const handleMinimize = () => {
-    setIsMinimized(true);
+    clearTourContext();
   };
 
   const formatTime = (dateStr: string) => {
@@ -135,213 +169,300 @@ export default function ChatBox() {
     });
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("vi-VN");
-  };
-
+  // --- RENDER ---
   return (
     <>
-      {/* Floating Button */}
-      {(!isOpen || isMinimized) && (
-        <button
-          onClick={handleOpen}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-50"
-        >
-          <MessageCircle className="w-6 h-6" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-              {unreadCount}
-            </span>
-          )}
-        </button>
-      )}
+      {/* FLOATING BUTTON */}
+      <AnimatePresence>
+        {(!isOpen || isMinimized) && (
+          <motion.button
+            initial={{ scale: 0, rotate: 180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0, rotate: -180 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => {
+              if (useChatStore.getState().isOpen) closeChat();
+              else openChat();
+              setIsMinimized(false);
+              setUnreadCount(0);
+            }}
+            className="fixed bottom-6 right-6 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 text-white shadow-xl shadow-blue-500/30 ring-2 ring-white/50"
+          >
+            <MessageCircle size={28} />
+            {unreadCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white animate-pulse">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
-      {/* Chat Box */}
-      {isOpen && !isMinimized && (
-        <div className="fixed bottom-6 right-6 w-96 bg-white rounded-lg shadow-2xl flex flex-col z-50 border border-gray-200">
-          {/* Header */}
-          <div className="bg-blue-600 text-white p-4 rounded-t-lg flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5" />
-              <div>
-                <h3 className="font-semibold">Hỗ trợ khách hàng</h3>
-                {supportId && (
-                  <p className="text-xs text-blue-100">ID: {supportId}</p>
-                )}
+      {/* CHAT WINDOW */}
+      <AnimatePresence>
+        {isOpen && !isMinimized && (
+          <motion.div
+            initial={{ opacity: 0, y: 100, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 100, scale: 0.9 }}
+            className="fixed bottom-5 right-5 z-[9999] flex h-[550px] w-[360px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:bottom-6 sm:right-6"
+          >
+            {/* HEADER */}
+            <div className="flex items-center justify-between bg-gradient-to-r from-blue-700 to-blue-500 px-4 py-3 text-white shadow-md z-10">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30">
+                  <Headset size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Hỗ trợ trực tuyến</h3>
+                  <div className="flex items-center gap-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                    </span>
+                    <span className="text-[11px] text-blue-100 font-medium">
+                      Thường trả lời ngay
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setIsMinimized(true)}
+                  className="rounded-full p-1.5 hover:bg-white/20"
+                >
+                  <Minimize2 size={18} />
+                </button>
+                <button
+                  onClick={closeChat}
+                  className="rounded-full p-1.5 hover:bg-white/20"
+                >
+                  <X size={18} />
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleMinimize}
-                className="hover:bg-blue-700 p-1 rounded transition-colors"
-              >
-                <Minimize2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleClose}
-                className="hover:bg-blue-700 p-1 rounded transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
 
-          {showStartForm ? (
-            // Start Chat Form
-            <div className="p-4 flex-1 overflow-y-auto">
-              <h4 className="font-semibold mb-3 text-gray-900">
-                Bắt đầu cuộc trò chuyện
-              </h4>
-              <form onSubmit={handleStartChat} className="space-y-3">
-                {!isLoggedIn && (
-                  <>
-                    <div>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Tên của bạn"
+            {/* BODY */}
+            <div className="flex-1 overflow-y-auto bg-slate-50 p-4 scrollbar-thin scrollbar-thumb-slate-300">
+              {showStartForm ? (
+                // FORM START (Giữ nguyên)
+                <div className="flex h-full flex-col space-y-4 pt-4">
+                  {tourContext ? (
+                    <div className="bg-white p-3 rounded-xl shadow-sm border border-blue-100 flex gap-3 animate-in slide-in-from-bottom-5">
+                      <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+                        <Image
+                          src={tourContext.image}
+                          alt={tourContext.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wider mb-0.5">
+                          Đang quan tâm
+                        </p>
+                        <h4 className="text-sm font-bold text-slate-800 line-clamp-1">
+                          {tourContext.title}
+                        </h4>
+                        <p className="text-xs text-orange-600 font-bold mt-1">
+                          {tourContext.price}
+                        </p>
+                      </div>
+                      <button
+                        onClick={clearTourContext}
+                        className="text-slate-400 hover:text-red-500 h-fit"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center space-y-2 mt-6">
+                      <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                        <MessageCircle size={28} />
+                      </div>
+                      <h4 className="text-lg font-bold text-slate-800">
+                        {isAuthenticated
+                          ? `Xin chào, ${user?.fullName.split(" ").pop()}!`
+                          : "Xin chào!"}
+                      </h4>
+                      <p className="text-xs text-slate-500 px-4">
+                        Chúng tôi có thể giúp gì cho bạn?
+                      </p>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleStartChat} className="space-y-3 pt-2">
+                    {!isAuthenticated && (
+                      <div className="space-y-3">
+                        <input
+                          required
+                          value={guestName}
+                          onChange={(e) => setGuestName(e.target.value)}
+                          placeholder="Họ và tên"
+                          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm shadow-sm focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                          required
+                          type="email"
+                          value={guestEmail}
+                          onChange={(e) => setGuestEmail(e.target.value)}
+                          placeholder="Email liên hệ"
+                          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm shadow-sm focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    )}
+                    <textarea
+                      required={!tourContext}
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder={
+                        tourContext
+                          ? "Nhập câu hỏi (tùy chọn)..."
+                          : "Bạn cần hỗ trợ gì?"
+                      }
+                      rows={3}
+                      className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm shadow-sm focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      disabled={sending}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 active:scale-95 disabled:opacity-70"
+                    >
+                      {sending ? (
+                        <Loader2 className="animate-spin" size={18} />
+                      ) : tourContext ? (
+                        "Gửi yêu cầu"
+                      ) : (
+                        "Bắt đầu Chat"
+                      )}
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                // === MESSAGE LIST (CẬP NHẬT LOGIC CHIA ROLE) ===
+                <div className="space-y-5 pb-2">
+                  {loading && messages.length === 0 && (
+                    <div className="flex h-full items-center justify-center">
+                      <Loader2
+                        className="animate-spin text-blue-500"
+                        size={30}
                       />
                     </div>
-                    <div>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Email"
-                      />
-                    </div>
-                  </>
-                )}
-                <div>
+                  )}
+                  {messages.length === 0 && !loading && (
+                    <p className="text-center text-xs text-slate-400 mt-10">
+                      Bắt đầu cuộc trò chuyện...
+                    </p>
+                  )}
+
+                  {messages.map((msg, idx) => {
+                    // Logic Role: Admin/Leader là Support (Trái), còn lại là Tôi (Phải)
+                    const isSupport =
+                      msg.fromRole === "admin" || msg.fromRole === "leader";
+                    const isMe = !isSupport;
+
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        key={msg._id || idx}
+                        className={`flex w-full ${
+                          isMe ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        {/* Avatar cho Support */}
+                        {isSupport && (
+                          <div className="mr-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 border border-blue-200 shadow-sm mt-1">
+                            <Headset size={14} />
+                          </div>
+                        )}
+
+                        <div
+                          className={`flex max-w-[75%] flex-col ${
+                            isMe ? "items-end" : "items-start"
+                          }`}
+                        >
+                          {/* Tên người gửi */}
+                          <span className="mb-1 ml-1 text-[10px] font-medium text-slate-400">
+                            {isSupport ? "Hỗ trợ viên" : "Bạn"}
+                          </span>
+
+                          {/* Bong bóng chat */}
+                          <div
+                            className={`relative rounded-2xl px-4 py-2.5 text-sm shadow-sm leading-relaxed ${
+                              isMe
+                                ? "rounded-tr-none bg-blue-600 text-white"
+                                : "rounded-tl-none bg-white text-slate-800 border border-slate-100"
+                            }`}
+                          >
+                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                          </div>
+
+                          {/* Thời gian */}
+                          <span
+                            className={`mt-1 px-1 text-[9px] ${
+                              isMe ? "text-blue-600/60" : "text-slate-400"
+                            }`}
+                          >
+                            {formatTime(msg.createdAt)}
+                          </span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+            </div>
+
+            {/* FOOTER */}
+            {!showStartForm && (
+              <div className="border-t border-slate-100 bg-white p-3 shadow-[0_-5px_10px_rgba(0,0,0,0.02)] z-10">
+                <form
+                  onSubmit={handleSendMessage}
+                  className="flex items-end gap-2 rounded-2xl bg-slate-50 px-3 py-2 ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-blue-500 transition-all"
+                >
                   <textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    rows={4}
-                    placeholder="Nhập câu hỏi..."
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={sending || !newMessage.trim()}
-                  className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 text-sm"
-                >
-                  {sending ? "Đang gửi..." : "Bắt đầu chat"}
-                </button>
-              </form>
-            </div>
-          ) : (
-            <>
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 h-96">
-                {loading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
-                  </div>
-                ) : messages.length === 0 ? (
-                  <div className="text-center py-8 text-sm text-gray-500">
-                    Chưa có tin nhắn
-                  </div>
-                ) : (
-                  messages.map((msg) => {
-                    const isFromMe =
-                      msg.fromRole === "user" || msg.fromRole === "guest";
-                    const isAdmin = msg.fromRole === "admin";
-
-                    return (
-                      <div
-                        key={msg._id}
-                        className={`flex ${
-                          isFromMe ? "justify-end" : "justify-start"
-                        }`}
-                      >
-                        <div
-                          className={`max-w-[75%] ${
-                            isFromMe
-                              ? "bg-blue-600 text-white"
-                              : isAdmin
-                              ? "bg-green-100 text-gray-900"
-                              : "bg-gray-100 text-gray-900"
-                          } rounded-lg p-3`}
-                        >
-                          {!isFromMe && (
-                            <div className="flex items-center gap-1 mb-1">
-                              <User className="w-3 h-3" />
-                              <span className="font-semibold text-xs">
-                                {msg.name || "Hỗ trợ"}
-                              </span>
-                              {isAdmin && (
-                                <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded">
-                                  Admin
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          <p className="text-sm whitespace-pre-wrap">
-                            {msg.content}
-                          </p>
-                          <div
-                            className={`flex items-center gap-1 mt-1 text-xs ${
-                              isFromMe ? "text-blue-100" : "text-gray-500"
-                            }`}
-                          >
-                            <Clock className="w-2.5 h-2.5" />
-                            <span>{formatTime(msg.createdAt)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input */}
-              <form
-                onSubmit={handleSendMessage}
-                className="border-t border-gray-200 p-3"
-              >
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage(e);
+                      }
+                    }}
                     placeholder="Nhập tin nhắn..."
+                    className="max-h-24 w-full resize-none bg-transparent py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+                    rows={1}
                   />
                   <button
                     type="submit"
-                    disabled={sending || !newMessage.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300"
+                    disabled={!newMessage.trim() || sending}
+                    className="mb-1 rounded-full bg-blue-600 p-2 text-white hover:bg-blue-700 disabled:bg-slate-300 active:scale-95"
                   >
-                    <Send className="w-4 h-4" />
+                    {sending ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Send size={16} />
+                    )}
                   </button>
-                </div>
-              </form>
-
-              {supportId && (
-                <div className="p-2 text-center border-t border-gray-200">
+                </form>
+                <div className="mt-2 flex justify-center">
                   <button
                     onClick={() => {
-                      localStorage.removeItem("supportChatId");
-                      setSupportId(null);
-                      setMessages([]);
-                      setShowStartForm(true);
+                      if (window.confirm("Kết thúc trò chuyện?"))
+                        handleEndChat();
                     }}
-                    className="text-xs text-gray-600 hover:text-gray-900"
+                    className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-red-500 transition-colors px-2 py-1"
                   >
-                    Bắt đầu cuộc trò chuyện mới
+                    <Trash2 size={12} /> Kết thúc
                   </button>
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -14,15 +14,10 @@ import {
 import { Toast, useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function BookingDetailPage({ params }: PageProps) {
+export default function BookingDetailPage() {
   const router = useRouter();
-  const { id } = params;
+  const params = useParams();
+  const id = params.id as string;
   const { toast, showSuccess, showError, hideToast } = useToast();
   const queryClient = useQueryClient();
 

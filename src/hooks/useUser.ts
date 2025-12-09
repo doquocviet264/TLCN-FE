@@ -1,50 +1,60 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/auth/authApi";
-import { User } from "@/types/user";
+// Import hàm lấy token từ file quản lý token của bạn
+import { getUserToken, clearAllTokens } from "@/lib/auth/tokenManager";
+
+export type UserProfile = {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  points?: number;
+  memberStatus?: string;
+  role?: string;
+  [key: string]: any;
+};
 
 const useUser = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
       setLoading(true);
-      const token = localStorage.getItem("token");
+
+      // 1. Dùng hàm getUserToken() từ tokenManager để lấy đúng key "accessToken"
+      const token = getUserToken();
 
       if (token) {
         try {
-          const userData = await authApi.getProfile(token);
-          const userProfile = userData?.user || userData; // Handle both {user: ...} and direct user object
+          // 2. Gọi API lấy thông tin
+          const userProfile = await authApi.getProfile(token);
 
-          // Standardize user ID to _id for consistency
-          if (userProfile && userProfile.userId && !userProfile._id) {
-            userProfile._id = userProfile.userId;
-          }
-          
-          if (userProfile && userProfile._id) { // Check for a valid user object
-            setUser(userProfile as User);
+          // 3. Kiểm tra id (vì authApi đã chuẩn hóa về 'id')
+          if (userProfile && userProfile.id) {
+            setUser(userProfile as UserProfile);
             setIsAuthenticated(true);
           } else {
-            // Token might be invalid/expired or data is not in expected format
-            localStorage.removeItem("token");
-            setUser(null);
-            setIsAuthenticated(false);
+            // Dữ liệu trả về không đúng cấu trúc mong đợi
+            throw new Error("Invalid user profile data");
           }
         } catch (error) {
           console.error("Failed to fetch user profile:", error);
-          // Handle error, e.g., token is invalid
-          localStorage.removeItem("token");
+
+          // 4. Nếu token lỗi/hết hạn, dùng clearAllTokens() để dọn dẹp sạch sẽ
+          clearAllTokens();
           setUser(null);
           setIsAuthenticated(false);
         }
       } else {
+        // Không có token
         setUser(null);
         setIsAuthenticated(false);
       }
+
       setLoading(false);
     };
 

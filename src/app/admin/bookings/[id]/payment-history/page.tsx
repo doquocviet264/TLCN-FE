@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useBookingPaymentHistory, useRefundBookingPayment } from "#/hooks/bookings-hook/useAdminBookings";
-import { 
-  ArrowLeft, 
-  DollarSign, 
+import { useRouter, useParams } from "next/navigation";
+import {
+  useBookingPaymentHistory,
+  useRefundBookingPayment,
+} from "#/hooks/bookings-hook/useAdminBookings";
+import {
+  ArrowLeft,
+  DollarSign,
   Clock,
   RefreshCw,
   Download,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 import { Toast, useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -23,25 +26,43 @@ const formatCurrency = (amount: number) => {
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
-  return date.toLocaleDateString("vi-VN") + " " + date.toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return (
+    date.toLocaleDateString("vi-VN") +
+    " " +
+    date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  );
 };
 
 const getPaymentStatusBadge = (amount: number, totalPrice: number) => {
   if (amount >= totalPrice) {
-    return <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">Đã thanh toán</span>;
+    return (
+      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">
+        Đã thanh toán
+      </span>
+    );
   } else if (amount > 0) {
-    return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold">Bán thành</span>;
+    return (
+      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-semibold">
+        Bán thành
+      </span>
+    );
   }
-  return <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">Chưa thanh toán</span>;
+  return (
+    <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">
+      Chưa thanh toán
+    </span>
+  );
 };
 
-export default function PaymentHistoryPage({ params }: { params: { id: string } }) {
+export default function PaymentHistoryPage() {
   const router = useRouter();
-  const { toast, showSuccess, showError } = useToast();
-  const { data, isLoading } = useBookingPaymentHistory(params.id);
+  const params = useParams();
+  const id = params.id as string;
+  const { toast, showSuccess, showError, hideToast } = useToast();
+  const { data, isLoading } = useBookingPaymentHistory(id);
   const refundMutation = useRefundBookingPayment();
 
   const [refundDialog, setRefundDialog] = useState<{
@@ -63,7 +84,7 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
       onConfirm: () => {
         refundMutation.mutate(
           {
-            id: params.id,
+            id: id,
             refundAmount: amount,
             reason: refundDialog.reason,
           },
@@ -92,16 +113,18 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
       ["Remaining", formatCurrency(data.booking.remaining)],
       [""],
       ["Date", "Provider", "Ref", "Amount", "Note"],
-      ...data.paymentHistory.map(p => [
+      ...data.paymentHistory.map((p) => [
         formatDate(p.at),
         p.provider,
         p.ref,
         formatCurrency(p.amount),
-        p.note || ""
-      ])
+        p.note || "",
+      ]),
     ];
 
-    const csvContent = csv.map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+    const csvContent = csv
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\n");
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -113,8 +136,16 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
-      <Toast {...toast} />
-      <ConfirmDialog {...confirmDialog} onCancel={() => setConfirmDialog(null)} />
+      <Toast {...toast} onClose={hideToast} />
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={true}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
 
       {/* Header */}
       <div className="mb-8">
@@ -141,7 +172,10 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
                   Lịch sử thanh toán
                 </h1>
                 <p className="text-gray-400">
-                  Booking: <span className="font-mono text-blue-400">{data.booking.code}</span>
+                  Booking:{" "}
+                  <span className="font-mono text-blue-400">
+                    {data.booking.code}
+                  </span>
                 </p>
               </div>
               <button
@@ -157,7 +191,9 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
               <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <p className="text-gray-400 text-sm">Phương thức</p>
-                <p className="text-white font-semibold mt-1">{data.booking.paymentMethod}</p>
+                <p className="text-white font-semibold mt-1">
+                  {data.booking.paymentMethod}
+                </p>
               </div>
               <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <p className="text-gray-400 text-sm">Tổng giá</p>
@@ -173,9 +209,13 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
               </div>
               <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <p className="text-gray-400 text-sm">Còn thiếu</p>
-                <p className={`font-semibold text-lg mt-1 ${
-                  data.booking.remaining > 0 ? "text-yellow-400" : "text-green-400"
-                }`}>
+                <p
+                  className={`font-semibold text-lg mt-1 ${
+                    data.booking.remaining > 0
+                      ? "text-yellow-400"
+                      : "text-green-400"
+                  }`}
+                >
                   {formatCurrency(data.booking.remaining)}
                 </p>
               </div>
@@ -184,9 +224,14 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
             {/* Status Bar */}
             <div className="mt-8 bg-slate-800 rounded-lg p-4 border border-slate-700">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-gray-400 text-sm font-medium">Tiến độ thanh toán</p>
+                <p className="text-gray-400 text-sm font-medium">
+                  Tiến độ thanh toán
+                </p>
                 <p className="text-white font-semibold">
-                  {Math.round((data.booking.paidAmount / data.booking.totalPrice) * 100)}%
+                  {Math.round(
+                    (data.booking.paidAmount / data.booking.totalPrice) * 100
+                  )}
+                  %
                 </p>
               </div>
               <div className="w-full bg-slate-700 h-3 rounded-full overflow-hidden">
@@ -244,20 +289,26 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
                             {formatDate(payment.at)}
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              payment.provider === "refund"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}>
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-semibold ${
+                                payment.provider === "refund"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-blue-100 text-blue-800"
+                              }`}
+                            >
                               {payment.provider}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-gray-300 font-mono text-sm">
                             {payment.ref}
                           </td>
-                          <td className={`px-6 py-4 text-right font-semibold ${
-                            payment.amount < 0 ? "text-red-400" : "text-emerald-400"
-                          }`}>
+                          <td
+                            className={`px-6 py-4 text-right font-semibold ${
+                              payment.amount < 0
+                                ? "text-red-400"
+                                : "text-emerald-400"
+                            }`}
+                          >
                             {payment.amount < 0 ? "-" : "+"}
                             {formatCurrency(Math.abs(payment.amount))}
                           </td>
@@ -268,7 +319,10 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                        <td
+                          colSpan={5}
+                          className="px-6 py-8 text-center text-gray-400"
+                        >
                           Không có lịch sử giao dịch
                         </td>
                       </tr>
@@ -282,12 +336,18 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
             {data.booking.remaining > 0 && (
               <div className="mt-8 bg-yellow-900/20 border border-yellow-700 rounded-lg p-6">
                 <div className="flex items-start gap-4">
-                  <AlertCircle className="text-yellow-500 mt-1 flex-shrink-0" size={20} />
+                  <AlertCircle
+                    className="text-yellow-500 mt-1 flex-shrink-0"
+                    size={20}
+                  />
                   <div className="flex-1">
-                    <h3 className="text-yellow-200 font-semibold mb-2">Hoàn tiền</h3>
+                    <h3 className="text-yellow-200 font-semibold mb-2">
+                      Hoàn tiền
+                    </h3>
                     <p className="text-yellow-100/80 text-sm mb-4">
-                      Booking này vẫn còn thiếu {formatCurrency(data.booking.remaining)}.
-                      Bạn có thể hoàn lại một phần hoặc toàn bộ số tiền đã thanh toán.
+                      Booking này vẫn còn thiếu{" "}
+                      {formatCurrency(data.booking.remaining)}. Bạn có thể hoàn
+                      lại một phần hoặc toàn bộ số tiền đã thanh toán.
                     </p>
                     <button
                       onClick={() => setRefundDialog({ visible: true })}
@@ -322,7 +382,9 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
                   onChange={(e) =>
                     setRefundDialog({
                       ...refundDialog,
-                      amount: e.target.value ? parseInt(e.target.value) : undefined,
+                      amount: e.target.value
+                        ? parseInt(e.target.value)
+                        : undefined,
                     })
                   }
                   placeholder="Nhập số tiền"
@@ -331,7 +393,9 @@ export default function PaymentHistoryPage({ params }: { params: { id: string } 
               </div>
 
               <div>
-                <label className="block text-sm text-gray-300 mb-2">Lý do hoàn</label>
+                <label className="block text-sm text-gray-300 mb-2">
+                  Lý do hoàn
+                </label>
                 <textarea
                   value={refundDialog.reason || ""}
                   onChange={(e) =>

@@ -8,18 +8,20 @@ import { Post } from "@/types/blog";
 
 export default function FeaturedPost({ posts }: { posts?: Post[] }) {
   const [current, setCurrent] = useState(0);
+  const postsLength = posts?.length || 0;
+
+  useEffect(() => {
+    if (postsLength === 0) return;
+    const interval = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % postsLength);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [postsLength]);
 
   // Guard against undefined or empty posts
   if (!posts || posts.length === 0) {
     return null;
   }
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % posts.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [posts.length]);
 
   const post = posts[current];
   const dateObj = new Date(post.date);

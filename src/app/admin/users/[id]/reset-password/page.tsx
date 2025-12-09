@@ -1,21 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { resetUserPassword } from "@/lib/admin/usersApi";
 import { validatePassword } from "@/utils/validation";
 import { Toast, useToast } from "@/components/ui/Toast";
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function ResetPasswordPage({ params }: PageProps) {
-  const { id } = params;
+export default function ResetPasswordPage() {
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
   const { toast, showSuccess, showError, hideToast } = useToast();
 
   const [formData, setFormData] = useState({

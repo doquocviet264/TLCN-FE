@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import {
   updateUser,
@@ -11,15 +11,10 @@ import {
 import { validateEmail, validateRequired } from "@/utils/validation";
 import { Toast, useToast } from "@/components/ui/Toast";
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function UserEditPage({ params }: PageProps) {
+export default function UserEditPage() {
   const router = useRouter();
-  const { id } = params;
+  const params = useParams();
+  const id = params.id as string;
   const { toast, showSuccess, showError, hideToast } = useToast();
 
   const [formData, setFormData] = useState({

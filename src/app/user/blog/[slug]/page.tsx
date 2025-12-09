@@ -15,7 +15,7 @@ import { dataReviews } from "@/data/dataReviews";
 import { blogApi } from "@/lib/blog/blogApi";
 
 interface BlogDetailPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 // helper nhỏ: bỏ tag HTML để lấy plain text
@@ -29,7 +29,7 @@ export async function generateMetadata({
   params,
 }: BlogDetailPageProps): Promise<Metadata> {
   try {
-    const slug = params.slug;
+    const { slug } = await params;
     const post = await blogApi.getBlogBySlug(slug);
 
     // Lấy description: ưu tiên text trong content, fallback summary / excerpt
@@ -78,7 +78,7 @@ export async function generateMetadata({
 
 export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
   try {
-    const { slug } = params;
+    const { slug } = await params;
     const post = await blogApi.getBlogBySlug(slug);
 
     if (!post) {

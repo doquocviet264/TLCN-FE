@@ -5,13 +5,17 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import React, { useMemo } from "react";
 import { useEffect } from "react";
-
+import { useChatStore } from "#/stores/chatStore";
 // Optional: npm i framer-motion
 import { motion } from "framer-motion";
 
 import { useGetTourById } from "#/hooks/tours-hook/useTourDetail";
 import { useGetTours } from "#/hooks/tours-hook/useTours";
+import { useGetTourReviews, useCreateReview } from "#/hooks/reviews-hook/useReviews";
+import { useAuthStore } from "#/stores/auth";
+import { getUserToken } from "@/lib/auth/tokenManager";
 import CardHot from "@/components/cards/CardHot";
+import { toast } from "react-hot-toast";
 
 /* ============ helpers ============ */
 const toNum = (v?: number | string) => {
@@ -178,6 +182,18 @@ export default function TourDetailPage() {
   const { data: tour, isLoading, isError } = useGetTourById(id);
   const { data: recRaw } = useGetTours();
 
+  // Reviews
+  const { data: reviewsData, isLoading: reviewsLoading } = useGetTourReviews(id);
+  const createReviewMutation = useCreateReview();
+  const [reviewRating, setReviewRating] = React.useState(5);
+  const [reviewComment, setReviewComment] = React.useState("");
+  const [submittingReview, setSubmittingReview] = React.useState(false);
+
+  // Auth
+  const { token } = useAuthStore();
+  const accessToken = token?.accessToken || getUserToken();
+  const isLoggedIn = !!accessToken;
+
   const priceAdult = toNum(tour?.priceAdult);
   const priceChild = toNum(tour?.priceChild);
 
@@ -204,7 +220,18 @@ export default function TourDetailPage() {
   }, [recRaw, tour]);
 
   const days = extractDays(tour?.time);
-
+  const { openChat } = useChatStore();
+  const tourImage =
+    tour?.images?.[0] || tour?.image || tour?.cover || "/hot1.jpg";
+  const tourPrice = priceAdult ? vnd(priceAdult) : "Liên hệ";
+  const handleConsult = () => {
+    openChat({
+      id: String(tour?._id || id),
+      title: tour?.title || "Tour du lịch",
+      image: tourImage,
+      price: tourPrice,
+    });
+  };
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center bg-white">
@@ -398,7 +425,7 @@ export default function TourDetailPage() {
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h5 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
                     <svg
-                      className="h-6 w-6 text-emerald-600"
+                      className="h-6 w-6 text-[var(--primary)]"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -411,17 +438,20 @@ export default function TourDetailPage() {
                     Bao gồm
                   </h5>
                   <ul className="space-y-2 text-[15px] text-slate-800">
-                    {[
-                      "Đón & trả khách",
-                      "1 bữa ăn mỗi ngày",
-                      "Tối du thuyền & sự kiện âm nhạc",
-                      "Tham quan các điểm nổi bật",
-                      "Nước đóng chai trên xe",
-                      "Xe du lịch hạng sang",
-                    ].map((txt) => (
-                      <li key={txt} className="flex items-start gap-2">
+                    {(Array.isArray((tour as any).includes) && (tour as any).includes.length > 0
+                      ? (tour as any).includes
+                      : [
+                          "Xe đưa đón theo chương trình",
+                          "Khách sạn tiêu chuẩn",
+                          "Các bữa ăn theo chương trình",
+                          "Hướng dẫn viên nhiệt tình",
+                          "Vé tham quan các điểm",
+                          "Bảo hiểm du lịch",
+                        ]
+                    ).map((txt: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-2">
                         <svg
-                          className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600"
+                          className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--primary)]"
                           viewBox="0 0 20 20"
                           fill="currentColor"
                         >
@@ -453,15 +483,17 @@ export default function TourDetailPage() {
                     Không bao gồm
                   </h5>
                   <ul className="space-y-2 text-[15px] text-slate-600">
-                    {[
-                      "Tiền boa",
-                      "Đón/trả tại khách sạn",
-                      "Bữa trưa & đồ uống",
-                      "Nâng cấp dịch vụ",
-                      "Dịch vụ bổ sung",
-                      "Bảo hiểm",
-                    ].map((txt) => (
-                      <li key={txt} className="flex items-start gap-2">
+                    {(Array.isArray((tour as any).excludes) && (tour as any).excludes.length > 0
+                      ? (tour as any).excludes
+                      : [
+                          "Chi phí cá nhân",
+                          "Tiền tip cho HDV và tài xế",
+                          "Đồ uống trong bữa ăn",
+                          "Phụ thu phòng đơn",
+                          "Các dịch vụ không nêu trong chương trình",
+                        ]
+                    ).map((txt: string, idx: number) => (
+                      <li key={idx} className="flex items-start gap-2">
                         <svg
                           className="mt-0.5 h-5 w-5 flex-shrink-0 text-slate-500"
                           viewBox="0 0 20 20"
@@ -498,90 +530,255 @@ export default function TourDetailPage() {
                   Khám phá từng ngày trong hành trình của bạn
                 </p>
                 <DaysAccordion
-                  items={Array.from({ length: days }).map((_, i) => ({
-                    title: `Ngày ${i + 1} – ${
-                      tour.destination ?? tour.title ?? "Hành trình"
-                    }`,
-                    content: (
-                      <ul className="space-y-2">
-                        {[
-                          "Đón khách • Check-in • Khởi hành",
-                          "Tham quan điểm chính trong ngày",
-                          "Ăn trưa/ăn tối tại nhà hàng địa phương",
-                          "Về khách sạn nghỉ đêm",
-                        ].map((txt) => (
-                          <li key={txt} className="flex items-start gap-2">
-                            <svg
-                              className="mt-1 h-5 w-5 flex-shrink-0 text-emerald-600"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            <span>{txt}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ),
-                  }))}
+                  items={
+                    Array.isArray(tour.itinerary) && tour.itinerary.length > 0
+                      ? tour.itinerary.map((day: any, i: number) => ({
+                          title: day.title || `Ngày ${i + 1} – ${tour.destination ?? "Hành trình"}`,
+                          content: (
+                            <div className="prose prose-slate max-w-none text-[15px]">
+                              {day.description ? (
+                                <div dangerouslySetInnerHTML={{ __html: day.description }} />
+                              ) : Array.isArray(day.activities) && day.activities.length > 0 ? (
+                                <ul className="space-y-2">
+                                  {day.activities.map((act: string, idx: number) => (
+                                    <li key={idx} className="flex items-start gap-2">
+                                      <svg className="mt-1 h-5 w-5 flex-shrink-0 text-[var(--primary)]" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                      </svg>
+                                      <span>{act}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-slate-500">Chi tiết sẽ được cập nhật.</p>
+                              )}
+                            </div>
+                          ),
+                        }))
+                      : Array.from({ length: days }).map((_, i) => ({
+                          title: `Ngày ${i + 1} – ${tour.destination ?? tour.title ?? "Hành trình"}`,
+                          content: (
+                            <ul className="space-y-2">
+                              {[
+                                "Đón khách • Check-in • Khởi hành",
+                                "Tham quan điểm chính trong ngày",
+                                "Ăn trưa/ăn tối tại nhà hàng địa phương",
+                                "Về khách sạn nghỉ đêm",
+                              ].map((txt) => (
+                                <li key={txt} className="flex items-start gap-2">
+                                  <svg className="mt-1 h-5 w-5 flex-shrink-0 text-[var(--primary)]" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                  <span>{txt}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ),
+                        }))
+                  }
                 />
               </div>
 
-              {/* Reviews (view) — bạn có thể thay bằng component thực tế */}
+              {/* Reviews List */}
               <div
                 id="partials_reviews"
                 className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
               >
-                <h3 className="mb-2 text-2xl font-bold text-slate-900">
-                  Đánh giá
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-2xl font-bold text-slate-900">
+                    Đánh giá
+                  </h3>
+                  {reviewsData && reviewsData.total > 0 && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <svg
+                            key={i}
+                            className={`h-5 w-5 ${
+                              i < Math.round(reviewsData.averageRating)
+                                ? "text-amber-500"
+                                : "text-slate-300"
+                            }`}
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                      </div>
+                      <span className="text-sm font-medium text-slate-700">
+                        {reviewsData.averageRating.toFixed(1)} ({reviewsData.total} đánh giá)
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <p className="text-sm text-slate-600 mb-4">
                   Tổng hợp cảm nhận từ khách hàng đã trải nghiệm.
                 </p>
-                {/* TODO: render danh sách review thực tế */}
-                <div className="rounded-xl border border-slate-200 p-4 text-sm text-slate-600">
-                  Chưa có đánh giá. Hãy là người đầu tiên!
-                </div>
+
+                {reviewsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="h-8 w-8 animate-spin rounded-full border-3 border-slate-200 border-t-[var(--primary)]" />
+                  </div>
+                ) : reviewsData && reviewsData.data.length > 0 ? (
+                  <div className="space-y-4">
+                    {reviewsData.data.map((review) => (
+                      <div
+                        key={review._id}
+                        className="rounded-xl border border-slate-200 p-4"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-slate-100">
+                            {review.userId?.avatarUrl ? (
+                              <Image
+                                src={review.userId.avatarUrl}
+                                alt={review.userId.fullName || "User"}
+                                width={40}
+                                height={40}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-sm font-bold text-slate-500">
+                                {(review.userId?.fullName || review.userId?.username || "U")[0].toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <h5 className="font-semibold text-slate-900">
+                                {review.userId?.fullName || review.userId?.username || "Khách hàng"}
+                              </h5>
+                              <span className="text-xs text-slate-500">
+                                {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex items-center gap-1">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <svg
+                                  key={i}
+                                  className={`h-4 w-4 ${
+                                    i < review.rating ? "text-amber-500" : "text-slate-300"
+                                  }`}
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              ))}
+                            </div>
+                            {review.comment && (
+                              <p className="mt-2 text-sm text-slate-600">{review.comment}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-slate-200 p-4 text-sm text-slate-600">
+                    Chưa có đánh giá. Hãy là người đầu tiên!
+                  </div>
+                )}
               </div>
 
-              {/* Review form (placeholder UI) */}
+              {/* Review Form */}
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h3 className="mb-4 text-2xl font-bold text-slate-900">
                   Thêm đánh giá
                 </h3>
-                <div className="mb-3 text-sm text-slate-600">Đánh giá:</div>
-                <div className="mb-5 flex gap-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <button
-                      key={i}
-                      className="h-8 w-8 rounded-full bg-amber-50 text-amber-600 ring-1 ring-amber-200 hover:bg-amber-100"
+
+                {!isLoggedIn ? (
+                  <div className="rounded-xl bg-slate-50 p-4 text-center">
+                    <p className="text-sm text-slate-600 mb-3">
+                      Vui lòng đăng nhập để đánh giá tour này
+                    </p>
+                    <Link
+                      href="/login"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-white shadow hover:brightness-105"
                     >
-                      ★
-                    </button>
-                  ))}
-                </div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Nội dung
-                </label>
-                <textarea
-                  className="w-full rounded-xl border border-slate-300 p-3 focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                  rows={4}
-                  placeholder="Chia sẻ trải nghiệm của bạn…"
-                />
-                <button className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-white shadow hover:brightness-105">
-                  Gửi đánh giá
-                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
-                    <path
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      d="M13 7l5 5-5 5M6 12h12"
+                      Đăng nhập
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-3 text-sm text-slate-600">Đánh giá của bạn:</div>
+                    <div className="mb-5 flex gap-2">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setReviewRating(i + 1)}
+                          className={`h-10 w-10 rounded-full text-xl transition-all ${
+                            i < reviewRating
+                              ? "bg-amber-100 text-amber-500 ring-2 ring-amber-300"
+                              : "bg-slate-100 text-slate-400 ring-1 ring-slate-200 hover:bg-amber-50 hover:text-amber-400"
+                          }`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                      <span className="ml-2 flex items-center text-sm text-slate-600">
+                        {reviewRating}/5 sao
+                      </span>
+                    </div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Nội dung (tùy chọn)
+                    </label>
+                    <textarea
+                      className="w-full rounded-xl border border-slate-300 p-3 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                      rows={4}
+                      placeholder="Chia sẻ trải nghiệm của bạn…"
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      disabled={submittingReview}
                     />
-                  </svg>
-                </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!id) return;
+                        setSubmittingReview(true);
+                        try {
+                          await createReviewMutation.mutateAsync({
+                            tourId: id,
+                            rating: reviewRating,
+                            comment: reviewComment.trim() || undefined,
+                          });
+                          toast.success("Đánh giá của bạn đã được gửi!");
+                          setReviewComment("");
+                          setReviewRating(5);
+                        } catch (err: any) {
+                          const msg = err?.response?.data?.message || err?.message || "Không thể gửi đánh giá";
+                          toast.error(msg);
+                        } finally {
+                          setSubmittingReview(false);
+                        }
+                      }}
+                      disabled={submittingReview}
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2.5 text-white shadow hover:brightness-105 disabled:opacity-60"
+                    >
+                      {submittingReview ? (
+                        <>
+                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Đang gửi...
+                        </>
+                      ) : (
+                        <>
+                          Gửi đánh giá
+                          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                            <path
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              d="M13 7l5 5-5 5M6 12h12"
+                            />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                    <p className="mt-3 text-xs text-slate-500">
+                      * Bạn cần hoàn thành tour để có thể đánh giá
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
@@ -701,6 +898,27 @@ export default function TourDetailPage() {
                       </svg>
                     </span>
                     <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-500 group-hover:translate-x-full" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConsult}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-emerald-100 bg-emerald-50 px-6 py-3 text-lg font-bold text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-100 active:scale-[0.99]"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5"
+                    >
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    Tư vấn ngay
                   </button>
 
                   <p className="mt-4 text-center text-xs text-slate-500">

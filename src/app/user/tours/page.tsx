@@ -138,14 +138,11 @@ export default function ToursPage() {
         maxPrice: filters.maxPrice ? parseInt(filters.maxPrice, 10) : undefined,
       });
 
-      console.log("🎯 Tours response:", res);
-
       setTours(res.data || []);
       setTotal(res.total || 0);
       const limit = res.limit || PER_PAGE;
       setTotalPages(Math.max(1, Math.ceil((res.total || 0) / limit)));
-    } catch (err: any) {
-      console.error("❌ Error fetching tours:", err);
+    } catch {
       setError("Không thể tải dữ liệu tour");
       setTours([]);
       setTotal(0);

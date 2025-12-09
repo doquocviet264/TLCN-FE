@@ -2,10 +2,10 @@ import axiosInstance from "@/lib/axiosInstance";
 import axios from "axios";
 import { getAdminToken, setAdminToken } from "@/lib/auth/tokenManager";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
 export const adminApi = axios.create({
-  baseURL: `${BASE_URL}/api`,
+  baseURL: BASE_URL, // baseURL đã gồm /api rồi từ NEXT_PUBLIC_API_URL
   timeout: 15_000,
 });
 
@@ -14,9 +14,19 @@ adminApi.interceptors.request.use((cfg) => {
   if (token) {
     cfg.headers = cfg.headers ?? {};
     cfg.headers.Authorization = `Bearer ${token}`;
-    console.log("🔐 AdminApi Request:", cfg.method?.toUpperCase(), cfg.url, "with token:", token.substring(0, 20) + "...");
+    console.log(
+      "🔐 AdminApi Request:",
+      cfg.method?.toUpperCase(),
+      cfg.url,
+      "with token:",
+      token.substring(0, 20) + "..."
+    );
   } else {
-    console.warn("⚠️ AdminApi Request WITHOUT token:", cfg.method?.toUpperCase(), cfg.url);
+    console.warn(
+      "⚠️ AdminApi Request WITHOUT token:",
+      cfg.method?.toUpperCase(),
+      cfg.url
+    );
   }
   return cfg;
 });
@@ -35,16 +45,32 @@ adminApi.interceptors.response.use(
   }
 );
 export type AdminLoginBody = { identifier: string; password: string };
-export type AdminLoginResp = { accessToken?: string; token?: string; admin: { id: string; name?: string; fullName?: string; email?: string; username?: string } };
+export type AdminLoginResp = {
+  accessToken?: string;
+  token?: string;
+  admin: {
+    id: string;
+    name?: string;
+    fullName?: string;
+    email?: string;
+    username?: string;
+  };
+};
 
 export async function adminLogin(body: AdminLoginBody) {
   console.log("🔑 Admin Login attempt:", body.identifier);
-  const { data } = await axiosInstance.post<AdminLoginResp>("/admin/login", body);
+  const { data } = await axiosInstance.post<AdminLoginResp>(
+    "/admin/login",
+    body
+  );
   // Backend trả về `token` hoặc `accessToken`
   const token = data.token || data.accessToken;
   if (token) {
     setAdminToken(token);
-    console.log("✅ Admin Login SUCCESS, token saved:", token.substring(0, 20) + "...");
+    console.log(
+      "✅ Admin Login SUCCESS, token saved:",
+      token.substring(0, 20) + "..."
+    );
   } else {
     console.error("❌ Admin Login: No token in response", data);
   }
@@ -59,20 +85,27 @@ export async function getDashboardStats() {
     console.log("✅ Dashboard stats fetched");
     return data;
   } catch (error: any) {
-    console.error("❌ Failed to fetch dashboard stats:", error.response?.data || error.message);
+    console.error(
+      "❌ Failed to fetch dashboard stats:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 }
 
 /** Tours đang/chuẩn bị chạy cho dashboard */
 export async function getOngoingTours() {
-  const response = await adminApi.get<{ total: number; data: any[] }>("/admin/tours/ongoing");
+  const response = await adminApi.get<{ total: number; data: any[] }>(
+    "/admin/tours/ongoing"
+  );
   return response.data?.data ?? [];
 }
 
 /** Gán/cập nhật leader cho tour */
 export async function setTourLeader(tourId: string, leaderId: string | null) {
-  const { data } = await adminApi.patch(`/admin/tours/${tourId}/leader`, { leaderId });
+  const { data } = await adminApi.patch(`/admin/tours/${tourId}/leader`, {
+    leaderId,
+  });
   return data;
 }
 
@@ -96,14 +129,25 @@ export type Expense = {
 };
 
 export async function getExpenses(tourId: string) {
-  const { data } = await adminApi.get<Expense[]>(`/admin/tours/${tourId}/expenses`);
+  const { data } = await adminApi.get<Expense[]>(
+    `/admin/tours/${tourId}/expenses`
+  );
   return data ?? [];
 }
-export async function addExpense(tourId: string, payload: Omit<Expense, "_id">) {
-  const { data } = await adminApi.post(`/admin/tours/${tourId}/expenses`, payload);
+export async function addExpense(
+  tourId: string,
+  payload: Omit<Expense, "_id">
+) {
+  const { data } = await adminApi.post(
+    `/admin/tours/${tourId}/expenses`,
+    payload
+  );
   return data;
 }
-export async function updateExpense(expenseId: string, patch: Partial<Expense>) {
+export async function updateExpense(
+  expenseId: string,
+  patch: Partial<Expense>
+) {
   const { data } = await adminApi.patch(`/admin/expenses/${expenseId}`, patch);
   return data;
 }
@@ -179,7 +223,9 @@ export async function getAllToursAdmin(params?: {
   destination?: string;
   search?: string;
 }) {
-  const { data } = await adminApi.get<ToursListResponse>("/tours/admin", { params });
+  const { data } = await adminApi.get<ToursListResponse>("/tours/admin", {
+    params,
+  });
   return data;
 }
 
@@ -191,18 +237,30 @@ export async function getTourByIdAdmin(tourId: string) {
 
 /** Tạo tour mới */
 export async function createTourAdmin(payload: TourInput) {
-  const { data } = await adminApi.post<{ message: string; tour: TourResponse }>("/tours", payload);
+  const { data } = await adminApi.post<{ message: string; tour: TourResponse }>(
+    "/tours",
+    payload
+  );
   return data;
 }
 
 /** Cập nhật tour */
-export async function updateTourAdmin(tourId: string, payload: Partial<TourInput>) {
-  const { data } = await adminApi.put<{ message: string; tour: TourResponse }>(`/tours/${tourId}`, payload);
+export async function updateTourAdmin(
+  tourId: string,
+  payload: Partial<TourInput>
+) {
+  const { data } = await adminApi.put<{ message: string; tour: TourResponse }>(
+    `/tours/${tourId}`,
+    payload
+  );
   return data;
 }
 
 /** Xóa tour */
 export async function deleteTourAdmin(tourId: string) {
-  const { data } = await adminApi.delete<{ message: string; tour: TourResponse }>(`/tours/${tourId}`);
+  const { data } = await adminApi.delete<{
+    message: string;
+    tour: TourResponse;
+  }>(`/tours/${tourId}`);
   return data;
 }

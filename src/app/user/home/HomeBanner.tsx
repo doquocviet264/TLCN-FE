@@ -14,18 +14,21 @@ const HomeBanner = () => {
       title: "TOUR MIỀN TÂY 2 NGÀY 1 ĐÊM",
       desc: "Tiền Giang – Mỹ Tho – Bến Tre – Cần Thơ",
       price: "1.550.000 VNĐ",
+      href: "/user/destination?destination=mien-tay",
     },
     {
       image: "/banner3.jpg",
       title: "Tour trọn gói hấp dẫn",
       desc: "Tận hưởng kỳ nghỉ theo cách của bạn",
       price: "Giá ưu đãi hấp dẫn",
+      href: "/user/destination",
     },
     {
       image: "/banner4.jpg",
       title: "Đặt tour dễ dàng – Đi ngay hôm nay",
       desc: "Nhanh chóng, tiện lợi và an toàn",
       price: "Liên hệ để biết thêm",
+      href: "/user/destination",
     },
   ];
 
@@ -59,9 +62,12 @@ const HomeBanner = () => {
                     Giá: {slide.price}
                   </p>
                 )}
-                <Button className="mt-4 px-6 py-3 text-lg font-bold bg-white text-black hover:bg-yellow-300 animate-fadeInUp">
+                <a
+                  href={slide.href}
+                  className="mt-4 inline-block px-6 py-3 text-lg font-bold bg-white text-black hover:bg-yellow-300 animate-fadeInUp rounded-lg transition-colors"
+                >
                   ĐẶT NGAY
-                </Button>
+                </a>
               </div>
             </div>
           </SwiperSlide>

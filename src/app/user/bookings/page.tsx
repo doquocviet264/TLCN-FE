@@ -44,7 +44,7 @@ export default function MyBookingsPage() {
   });
 
   const [activeTab, setActiveTab] = React.useState<BookingTab>("all");
-  const list: any[] = Array.isArray(data?.data) ? data!.data : data ?? [];
+  const list: any[] = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
 
   const filtered = React.useMemo(() => {
     if (activeTab === "all") return list;
@@ -139,7 +139,6 @@ function BookingRow({
     {};
   const title = tour?.title ?? "Tour";
   const image = pickTourImage(tour);
-  console.log("--- FINAL TOUR OBJECT IN BOOKINGROW ---", tour);
   const total = Number(booking?.totalPrice || 0);
   const paid = Number(booking?.paidAmount || 0);
   const remain = Math.max(0, total - paid);

@@ -13,7 +13,7 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: 'Sài Gòn Đi',
+  title: 'AHH Travel - Khám phá Việt Nam cùng chúng tôi',
   description: 'Khám phá – Check-in – Viết blog tại TP.HCM',
 };
 

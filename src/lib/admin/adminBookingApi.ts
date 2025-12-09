@@ -6,6 +6,7 @@ export interface PaymentRef {
   ref: string;
   amount: number;
   at: string;
+  note?: string;
 }
 
 export interface BookingData {
@@ -145,7 +146,9 @@ export const deleteAdminBooking = async (id: string): Promise<void> => {
 /**
  * Get booking by code
  */
-export const getAdminBookingByCode = async (code: string): Promise<BookingData> => {
+export const getAdminBookingByCode = async (
+  code: string
+): Promise<BookingData> => {
   try {
     console.log("📊 Fetching booking by code:", code);
     const response = await adminApi.get(`/admin/bookings/code/${code}`);
@@ -263,7 +266,9 @@ export const getPaymentStatistics = async (
     if (endDate) params.append("endDate", endDate);
 
     const response = await adminApi.get(
-      `/admin/bookings/stats/payments${params.toString() ? "?" + params.toString() : ""}`
+      `/admin/bookings/stats/payments${
+        params.toString() ? "?" + params.toString() : ""
+      }`
     );
     console.log("✅ Payment statistics fetched");
     return response.data;
@@ -291,7 +296,9 @@ export const getBookingPaymentHistory = async (
 }> => {
   try {
     console.log("📜 Fetching payment history for booking:", id);
-    const response = await adminApi.get(`/admin/bookings/${id}/payment-history`);
+    const response = await adminApi.get(
+      `/admin/bookings/${id}/payment-history`
+    );
     console.log("✅ Payment history fetched");
     return response.data;
   } catch (error: any) {
@@ -305,7 +312,8 @@ export async function adminListBookings(params: {
   tourId?: string;
   status?: "p" | "c" | "x" | "f";
   deposit?: "paid" | "unpaid";
-  page?: number; limit?: number;
+  page?: number;
+  limit?: number;
 }) {
   return getAdminBookings({
     page: params.page,
@@ -320,7 +328,13 @@ export async function adminConfirmTour(tourId: string) {
   return data;
 }
 
-export async function adminMarkPaid(code: string, payload: { amount: number; ref?: string }) {
-  const { data } = await adminApi.post(`/admin/bookings/${encodeURIComponent(code)}/mark-paid`, payload);
+export async function adminMarkPaid(
+  code: string,
+  payload: { amount: number; ref?: string }
+) {
+  const { data } = await adminApi.post(
+    `/admin/bookings/${encodeURIComponent(code)}/mark-paid`,
+    payload
+  );
   return data;
 }

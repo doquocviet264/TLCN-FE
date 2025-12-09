@@ -201,31 +201,22 @@ export async function initSepayPayment(
   bookingCode: string,
   totalPrice: number
 ) {
-  console.log("initSepayPayment called with:", bookingCode, totalPrice);
-  // Thay thế "/payment/sepay/create" bằng endpoint API thực tế của bạn cho Sepay
-  const { data } = await axiosInstance.post("/payment/sepay/create", {
-    code: bookingCode,
-    amount: totalPrice,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  console.log("initSepayPayment response data:", data);
+  const { data } = await axiosInstance.post(
+    "/payment/sepay/create",
+    { code: bookingCode, amount: totalPrice },
+    { headers: { "Content-Type": "application/json" } }
+  );
   return data;
 }
-// đảm bảo axiosInstance đã set Content-Type: application/json
+
 export async function initBookingPayment(
   bookingCode: string,
   totalPrice: number
 ) {
-  console.log("initBookingPayment called with:", bookingCode, totalPrice);
-  const { data } = await axiosInstance.post("/payment/vnpay/create", {
-    code: bookingCode,
-    amount: totalPrice,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  console.log("initBookingPayment response data:", data);
+  const { data } = await axiosInstance.post(
+    "/payment/vnpay/create",
+    { code: bookingCode, amount: totalPrice },
+    { headers: { "Content-Type": "application/json" } }
+  );
   return data;
 }

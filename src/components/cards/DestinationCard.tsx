@@ -38,7 +38,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
       {/* Content Area */}
       <div className="flex flex-1 flex-col p-4">
         {/* Title */}
-        <h3 className="mb-2 line-clamp-2 text-lg font-bold leading-tight text-slate-800 group-hover:text-emerald-600 transition-colors">
+        <h3 className="mb-2 line-clamp-2 text-lg font-bold leading-tight text-slate-800 group-hover:text-[var(--primary)] transition-colors">
           <Link href={href} title={title}>
             {title}
           </Link>
@@ -62,7 +62,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
           {/* 👇 Nút Đặt Tour chuyển hướng theo href */}
           <Link
             href={href}
-            className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 shadow-sm shadow-emerald-200"
+            className="rounded-full bg-[var(--primary)] px-5 py-2 text-sm font-semibold text-white transition-colors hover:opacity-90 shadow-sm"
           >
             Đặt Tour
           </Link>

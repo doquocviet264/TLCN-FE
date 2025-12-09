@@ -17,40 +17,44 @@ import {
   Filter,
   Info,
   XCircle,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import VnpayPayButton from "@/app/user/checkout/VnpayPayButton";
 
 type BookingStatus = "p" | "c" | "x" | "f";
 
 const statusMap: Record<
   BookingStatus,
-  { label: string; color: string; bg: string; dot: string }
+  { label: string; color: string; bg: string; icon: any }
 > = {
   p: {
     label: "Chờ thanh toán",
-    color: "text-amber-700",
-    bg: "bg-amber-50 border-amber-200",
-    dot: "bg-amber-500",
+    color: "text-amber-600",
+    bg: "bg-amber-50 border-amber-100",
+    icon: Clock,
   },
   c: {
     label: "Đã xác nhận",
-    color: "text-emerald-700",
-    bg: "bg-emerald-50 border-emerald-200",
-    dot: "bg-emerald-500",
+    color: "text-emerald-600",
+    bg: "bg-emerald-50 border-emerald-100",
+    icon: CheckCircle2,
   },
   x: {
     label: "Đã hủy",
-    color: "text-red-700",
-    bg: "bg-red-50 border-red-200",
-    dot: "bg-red-500",
+    color: "text-red-600",
+    bg: "bg-red-50 border-red-100",
+    icon: XCircle,
   },
   f: {
     label: "Hoàn thành",
-    color: "text-blue-700",
-    bg: "bg-blue-50 border-blue-200",
-    dot: "bg-blue-500",
+    color: "text-blue-600",
+    bg: "bg-blue-50 border-blue-100",
+    icon: CheckCircle2,
   },
 };
 
@@ -77,9 +81,10 @@ function formatDate(dateStr?: string | null) {
 }
 
 function formatPrice(price: number) {
-  return new Intl.NumberFormat("vi-VN").format(price) + " VNĐ";
+  return new Intl.NumberFormat("vi-VN").format(price) + " đ";
 }
 
+// ... (Giữ nguyên hàm getPaymentText logic cũ nhưng format lại string nếu cần) ...
 function getPaymentText(b: MyBookingItem) {
   const {
     totalPrice,
@@ -88,43 +93,42 @@ function getPaymentText(b: MyBookingItem) {
     depositPaid,
     requireFullPayment,
   } = b;
-
   if (!totalPrice) return "Chưa có thông tin tổng tiền";
-
   const remaining = Math.max(totalPrice - paidAmount, 0);
   const percent =
     totalPrice > 0
       ? Math.min(100, Math.round((paidAmount / totalPrice) * 100))
       : 0;
 
-  if (b.bookingStatus === "x") {
+  if (b.bookingStatus === "x")
     return `Đã hủy · Đã thanh toán: ${formatPrice(paidAmount)}`;
-  }
-
-  if (percent >= 100) {
-    return `Đã thanh toán đủ (${formatPrice(paidAmount)})`;
-  }
-
-  if (depositPaid && depositAmount > 0) {
+  if (percent >= 100) return `Đã thanh toán đủ (${formatPrice(paidAmount)})`;
+  if (depositPaid && depositAmount > 0)
     return `Đã cọc ${formatPrice(depositAmount)} · Còn lại ${formatPrice(
       remaining
     )}`;
-  }
-
-  if (requireFullPayment) {
-    return `Yêu cầu thanh toán đủ trước ngày khởi hành · Còn lại ${formatPrice(
-      remaining
-    )}`;
-  }
-
-  if (paidAmount > 0) {
+  if (requireFullPayment)
+    return `Yêu cầu thanh toán đủ · Còn lại ${formatPrice(remaining)}`;
+  if (paidAmount > 0)
     return `Đã thanh toán ${formatPrice(paidAmount)} · Còn lại ${formatPrice(
       remaining
     )}`;
-  }
-
   return "Chưa thanh toán";
 }
+
+// Animation Variants
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
 
 export default function HistoryPage() {
   const [bookings, setBookings] = useState<MyBookingItem[]>([]);
@@ -150,14 +154,12 @@ export default function HistoryPage() {
       return;
     }
     fetchBookings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, page]);
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
       setError("");
-      setSuccess("");
 
       const response = await getMyBookings(page, 10);
       if (response?.data) {
@@ -165,20 +167,17 @@ export default function HistoryPage() {
         setTotalPages(Math.ceil(response.total / response.limit) || 1);
       }
     } catch (err: any) {
-      console.error("❌ Error fetching bookings:", err);
+      console.error("Error fetching bookings:", err);
       setError(
-        err?.response?.data?.message ||
-          "Không thể tải lịch sử booking, vui lòng thử lại."
+        err?.response?.data?.message || "Không thể tải lịch sử booking."
       );
     } finally {
       setLoading(false);
-      setCancelingCode(null);
     }
   };
 
   const handleCancelConfirm = async () => {
     if (!cancelTarget) return;
-
     const code = cancelTarget.code;
     try {
       setError("");
@@ -188,17 +187,14 @@ export default function HistoryPage() {
       const res = await cancelBooking(code);
       if (res?.ok) {
         setSuccess("Huỷ booking thành công.");
-        setCancelTarget(null); // đóng popup
-        await fetchBookings(); // reload list
+        setCancelTarget(null);
+        await fetchBookings();
       } else {
         setError("Không thể huỷ booking. Vui lòng thử lại.");
       }
     } catch (err: any) {
-      console.error("❌ Error cancel booking:", err);
-      setError(
-        err?.response?.data?.message ||
-          "Không thể huỷ booking. Vui lòng thử lại."
-      );
+      console.error("Error cancel booking:", err);
+      setError(err?.response?.data?.message || "Không thể huỷ booking.");
     } finally {
       setCancelingCode(null);
     }
@@ -209,7 +205,6 @@ export default function HistoryPage() {
       statusFilter === "all"
         ? bookings
         : bookings.filter((b) => b.bookingStatus === statusFilter);
-
     return [...list].sort((a, b) => {
       const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -227,23 +222,20 @@ export default function HistoryPage() {
         start >= now && (b.bookingStatus === "p" || b.bookingStatus === "c")
       );
     }).length;
-
     const totalPaid = bookings.reduce((sum, b) => sum + (b.paidAmount || 0), 0);
-
     return { total, upcoming, totalPaid };
   }, [bookings]);
 
-  // Loading skeleton (rút gọn cho đỡ dài)
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="h-10 w-40 bg-slate-200 rounded mb-6 animate-pulse" />
+      <div className="min-h-screen bg-slate-50 py-10 px-4">
+        <div className="max-w-5xl mx-auto space-y-6">
+          <div className="h-20 bg-slate-200 rounded-xl animate-pulse" />
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-32 bg-white border border-slate-100 rounded-2xl shadow-sm animate-pulse"
+                className="h-40 bg-white rounded-2xl animate-pulse"
               />
             ))}
           </div>
@@ -253,409 +245,304 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
-      {/* Header */}
-      <div className="border-b border-slate-200 bg-white/80 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-4 py-5 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
-              Lịch sử đặt tour
-            </h1>
-            <p className="text-slate-500 mt-1 text-sm md:text-base">
-              Theo dõi hành trình, thanh toán và quản lý huỷ tour của bạn
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {user?.avatar && (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-600">
+      {/* HEADER SECTION */}
+      <div className="bg-blue-950 pt-10 pb-20 px-4">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-white">
+          <div className="flex items-center gap-4">
+            <div className="relative">
               <Image
-                src={user.avatar}
+                src={user?.avatar || "/default-avatar.png"}
                 alt="Avatar"
-                width={44}
-                height={44}
-                className="rounded-full object-cover border border-slate-200"
+                width={64}
+                height={64}
+                className="rounded-full object-cover border-2 border-orange-500 shadow-lg"
               />
-            )}
-            <div className="text-right">
-              <p className="text-sm font-medium text-slate-900">
-                {user?.fullName ?? "Khách hàng"}
+              <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-4 h-4 rounded-full border-2 border-blue-950" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">
+                Chào, {user?.fullName || "Bạn"}!
+              </h1>
+              <p className="text-blue-200 text-sm">Thành viên AHH Travel</p>
+            </div>
+          </div>
+
+          {/* Stats Cards Small */}
+          <div className="flex gap-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 px-5 border border-white/10 text-center">
+              <p className="text-xs text-blue-200 uppercase tracking-wider">
+                Tổng booking
               </p>
-              <p className="text-xs text-slate-500">
-                {user?.memberStatus || "Thành viên SaiGondi"}
+              <p className="text-xl font-bold text-orange-400">{stats.total}</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 px-5 border border-white/10 text-center">
+              <p className="text-xs text-blue-200 uppercase tracking-wider">
+                Sắp đi
+              </p>
+              <p className="text-xl font-bold text-emerald-400">
+                {stats.upcoming}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-6xl mx-auto px-4 py-6 md:py-8 space-y-6">
-        {/* Thông báo lỗi / thành công */}
-        {error && (
-          <div className="bg-red-50/90 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-start gap-2 text-sm">
-            <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-        {success && (
-          <div className="bg-emerald-50/90 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl flex items-start gap-2 text-sm">
-            <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>{success}</span>
-          </div>
-        )}
+      {/* CONTENT SECTION (Negative Margin to pull up) */}
+      <div className="max-w-6xl mx-auto px-4 -mt-10 pb-20">
+        {/* Filter Tabs */}
+        <div className="bg-white p-2 rounded-2xl shadow-lg border border-slate-100 flex flex-wrap gap-2 mb-8 overflow-x-auto no-scrollbar">
+          {statusFilters.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setStatusFilter(f.key)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+                statusFilter === f.key
+                  ? "bg-blue-950 text-white shadow-md"
+                  : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
-        {/* Chưa có booking */}
-        {!error && bookings.length === 0 && (
-          <div className="text-center py-16">
-            <div className="w-24 h-24 mx-auto mb-6 bg-slate-100 rounded-full flex items-center justify-center shadow-inner">
-              <Calendar className="w-12 h-12 text-slate-400" />
+        {/* Notifications */}
+        <AnimatePresence>
+          {(error || success) && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={`mb-6 p-4 rounded-xl flex items-center gap-3 border ${
+                error
+                  ? "bg-red-50 border-red-200 text-red-700"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-700"
+              }`}
+            >
+              {error ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
+              <span className="font-medium">{error || success}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Booking List */}
+        {filteredBookings.length === 0 ? (
+          <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-slate-100">
+            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+              <Calendar size={32} />
             </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
-              Bạn chưa có booking nào
+            <h3 className="text-lg font-bold text-slate-800 mb-2">
+              Chưa có booking nào
             </h3>
             <p className="text-slate-500 mb-6">
-              Bắt đầu hành trình khám phá những điểm đến tuyệt vời cùng
-              SaiGondi.
+              Bạn chưa có chuyến đi nào ở trạng thái này.
             </p>
             <Link
-              href="/user/destination"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
+              href="/tours"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-orange-600 text-white rounded-full font-bold shadow-lg shadow-orange-500/30 hover:bg-orange-700 transition-all"
             >
-              Khám phá tour
-              <ChevronRight className="ml-2 w-4 h-4" />
+              Đặt tour ngay <ChevronRight size={16} />
             </Link>
           </div>
-        )}
+        ) : (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-6"
+          >
+            {filteredBookings.map((booking) => {
+              const statusMeta = statusMap[booking.bookingStatus];
+              const StatusIcon = statusMeta.icon;
+              const isCanceling = cancelingCode === booking.code;
 
-        {/* Có booking */}
-        {bookings.length > 0 && (
-          <>
-            {/* Summary + Filter */}
-            <div className="grid grid-cols-1 md:grid-cols-[2fr,3fr] gap-4 md:gap-6">
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-                  <p className="text-xs text-slate-500 mb-1">Tổng số booking</p>
-                  <p className="text-2xl font-semibold text-slate-900">
-                    {stats.total}
-                  </p>
-                </div>
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-                  <p className="text-xs text-slate-500 mb-1">
-                    Chuyến sắp khởi hành
-                  </p>
-                  <p className="text-2xl font-semibold text-blue-600">
-                    {stats.upcoming}
-                  </p>
-                </div>
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-                  <p className="text-xs text-slate-500 mb-1">Đã thanh toán</p>
-                  <p className="text-base font-semibold text-emerald-600">
-                    {formatPrice(stats.totalPaid)}
-                  </p>
-                </div>
-              </div>
+              return (
+                <motion.div
+                  key={booking.code}
+                  variants={itemVariants}
+                  className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden group"
+                >
+                  <div className="flex flex-col md:flex-row">
+                    {/* Image */}
+                    <div className="w-full md:w-64 h-48 md:h-auto relative shrink-0">
+                      <Image
+                        src={booking.tourImage || "/hot1.jpg"}
+                        alt={booking.tourTitle || "Tour"}
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute top-3 left-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${statusMeta.bg} ${statusMeta.color}`}
+                        >
+                          <StatusIcon size={12} /> {statusMeta.label}
+                        </span>
+                      </div>
+                    </div>
 
-              {/* Filter */}
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-slate-500" />
-                    <p className="text-sm font-medium text-slate-800">
-                      Lọc theo trạng thái
-                    </p>
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    {filteredBookings.length} kết quả
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {statusFilters.map((f) => (
-                    <button
-                      key={f.key}
-                      type="button"
-                      onClick={() => setStatusFilter(f.key)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        statusFilter === f.key
-                          ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* List bookings */}
-            <div className="space-y-4 md:space-y-5 mt-2">
-              {filteredBookings.map((booking) => {
-                const statusMeta = statusMap[booking.bookingStatus];
-                const total = booking.totalPrice || 0;
-                const paid = booking.paidAmount || 0;
-                const percent =
-                  total > 0
-                    ? Math.min(100, Math.round((paid / total) * 100))
-                    : 0;
-
-                const isCanceling = cancelingCode === booking.code;
-
-                return (
-                  <div
-                    key={booking.code}
-                    className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow"
-                  >
-                    <div className="p-4 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6">
-                      {/* Thumbnail */}
-                      {booking.tourImage && (
-                        <div className="relative w-full md:w-56 h-40 md:h-32 flex-shrink-0">
-                          <Image
-                            src={booking.tourImage}
-                            alt={booking.tourTitle || "Tour"}
-                            fill
-                            className="rounded-xl object-cover"
-                          />
-                          <div className="absolute inset-0 rounded-xl ring-1 ring-black/5" />
-                          {booking.tourDestination && (
-                            <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              <span className="line-clamp-1">
-                                {booking.tourDestination}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Info */}
-                      <div className="flex-1 flex flex-col justify-between gap-3">
-                        <div>
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div>
-                              <h3 className="text-base md:text-lg font-semibold text-slate-900 line-clamp-2">
-                                {booking.tourTitle || "Tour không xác định"}
-                              </h3>
-                              <p className="text-xs text-slate-500 mt-1">
-                                Mã booking:{" "}
-                                <span className="font-mono text-slate-800">
-                                  {booking.code}
-                                </span>
-                              </p>
-                              {booking.phoneNumber && (
-                                <p className="text-[11px] text-slate-400 mt-0.5">
-                                  Liên hệ: {booking.fullName} ·{" "}
-                                  {booking.phoneNumber}
-                                </p>
-                              )}
-                            </div>
-                            <span
-                              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${statusMeta.bg} ${statusMeta.color}`}
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`}
-                              />
-                              {statusMeta.label}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3 text-xs md:text-sm text-slate-600">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 flex-shrink-0" />
-                              <span>
-                                {booking.startDate || booking.endDate
-                                  ? `${formatDate(
-                                      booking.startDate || booking.endDate
-                                    )}${
-                                      booking.endDate
-                                        ? ` - ${formatDate(booking.endDate)}`
-                                        : ""
-                                    }`
-                                  : "Ngày khởi hành: Chưa xác định"}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Users className="w-4 h-4 flex-shrink-0" />
-                              <span>
-                                {booking.numAdults} người lớn
-                                {booking.numChildren > 0 &&
-                                  `, ${booking.numChildren} trẻ em`}
-                              </span>
-                            </div>
-
-                            {booking.time && (
-                              <div className="flex items-center gap-2">
-                                <Info className="w-4 h-4 flex-shrink-0" />
-                                <span className="line-clamp-1">
-                                  Thời lượng: {booking.time}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Payment row */}
-                        <div className="pt-3 md:pt-4 border-t border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <CreditCard className="w-4 h-4 text-slate-500" />
-                              <span className="text-sm text-slate-500">
-                                Tổng tiền:
-                              </span>
-                              <span className="text-base font-semibold text-slate-900">
-                                {formatPrice(booking.totalPrice)}
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-500">
-                              {getPaymentText(booking)}
+                    {/* Content */}
+                    <div className="flex-1 p-5 md:p-6 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="text-lg font-bold text-blue-950 line-clamp-2 pr-4">
+                            {booking.tourTitle}
+                          </h3>
+                          <div className="text-right shrink-0">
+                            <p className="text-lg font-bold text-orange-600">
+                              {formatPrice(booking.totalPrice)}
                             </p>
-                            {booking.paymentMethod && (
-                              <p className="text-[11px] text-slate-400">
-                                Phương thức thanh toán:{" "}
-                                {booking.paymentMethod.toUpperCase()}
-                              </p>
-                            )}
-                            {booking.totalPrice > 0 && (
-                              <div className="w-full max-w-xs mt-1">
-                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-emerald-500"
-                                    style={{ width: `${percent}%` }}
-                                  />
-                                </div>
-                                <p className="mt-0.5 text-[11px] text-slate-400">
-                                  Đã thanh toán {percent}% giá trị booking
-                                </p>
-                              </div>
-                            )}
                           </div>
+                        </div>
 
-                          <div className="flex flex-wrap items-center gap-2 md:gap-3 justify-end">
-                            <span className="text-xs text-slate-400">
-                              Đặt ngày: {formatDate(booking.createdAt)}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6 text-sm text-slate-500 mb-4">
+                          <div className="flex items-center gap-2">
+                            <Calendar size={16} className="text-slate-400" />
+                            <span>{formatDate(booking.startDate)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users size={16} className="text-slate-400" />
+                            <span>
+                              {booking.numAdults} người lớn,{" "}
+                              {booking.numChildren} trẻ em
                             </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin size={16} className="text-slate-400" />
+                            <span className="truncate">
+                              {booking.tourDestination}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CreditCard size={16} className="text-slate-400" />
+                            <span className="text-orange-600 font-medium">
+                              {getPaymentText(booking)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
 
-                            {/* Chỉ cho phép thanh toán & huỷ khi đang pending */}
-                            {booking.bookingStatus === "p" && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => setCancelTarget(booking)}
-                                  disabled={isCanceling}
-                                  className={`inline-flex items-center gap-1 px-4 py-2 border border-red-200 text-red-600 rounded-full text-xs md:text-sm font-medium hover:bg-red-50 transition-colors ${
-                                    isCanceling
-                                      ? "opacity-70 cursor-not-allowed"
-                                      : ""
-                                  }`}
-                                >
-                                  <XCircle className="w-3 h-3" />
-                                  Huỷ tour
-                                </button>
+                      {/* Actions */}
+                      <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                        <span className="text-xs text-slate-400 font-mono">
+                          #{booking.code}
+                        </span>
 
-                                {/* VNPay: nút thanh toán với loader riêng */}
+                        <div className="flex items-center gap-3">
+                          {booking.bookingStatus === "p" && (
+                            <>
+                              <button
+                                onClick={() => setCancelTarget(booking)}
+                                disabled={isCanceling}
+                                className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                Huỷ tour
+                              </button>
+                              {/* Nút thanh toán VNPay */}
+                              <div className="scale-95">
                                 <VnpayPayButton
                                   bookingCode={booking.code}
-                                  label="Thanh toán ngay"
+                                  label="Thanh toán"
                                 />
-                              </>
-                            )}
-
-                            <Link
-                              href={`/user/booking/${booking.code}`}
-                              className="px-4 py-2 border border-slate-200 text-slate-700 rounded-full hover:bg-slate-50 transition-colors text-xs md:text-sm font-medium"
-                            >
-                              Chi tiết
-                            </Link>
-                          </div>
+                              </div>
+                            </>
+                          )}
+                          <Link
+                            href={`/user/booking/${booking.code}`}
+                            className="px-5 py-2 rounded-lg bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200 transition-colors"
+                          >
+                            Chi tiết
+                          </Link>
                         </div>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center mt-6 md:mt-8">
-                <div className="inline-flex items-center gap-2 bg-white rounded-full border border-slate-200 p-1 shadow-sm">
-                  {Array.from({ length: totalPages }).map((_, i) => {
-                    const pageNum = i + 1;
-                    const isActive = page === pageNum;
-                    return (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        onClick={() => setPage(pageNum)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                          isActive
-                            ? "bg-slate-900 text-white"
-                            : "text-slate-600 hover:bg-slate-100"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-10 flex justify-center gap-2">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i + 1)}
+                className={`w-10 h-10 rounded-full font-bold text-sm transition-all ${
+                  page === i + 1
+                    ? "bg-blue-950 text-white shadow-lg"
+                    : "bg-white text-slate-600 border border-slate-200 hover:border-orange-500"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Popup xác nhận huỷ */}
-      {cancelTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 relative animate-fadeIn">
-            <div className="absolute -top-4 right-6 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shadow">
-              <XCircle className="w-5 h-5 text-red-500" />
-            </div>
-
-            <h2 className="text-lg font-semibold text-slate-900 mb-1">
-              Bạn muốn huỷ tour này?
-            </h2>
-            <p className="text-sm text-slate-600 mb-4">
-              <span className="font-medium">{cancelTarget.tourTitle}</span>
-              <br />
-              Mã booking: <span className="font-mono">{cancelTarget.code}</span>
-            </p>
-
-            <div className="text-xs bg-slate-50 p-3 rounded-xl text-slate-500 mb-5">
-              <p>• Ngày đi: {formatDate(cancelTarget.startDate)}</p>
-              <p>
-                • Số khách: {cancelTarget.numAdults} người lớn
-                {cancelTarget.numChildren > 0
-                  ? `, ${cancelTarget.numChildren} trẻ em`
-                  : ""}
-              </p>
-              <p>• Tổng tiền: {formatPrice(cancelTarget.totalPrice)}</p>
-              <p className="mt-1 text-[11px] text-red-400">
-                Lưu ý: Huỷ tour không thể khôi phục.
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setCancelTarget(null)}
-                className="px-4 py-2 rounded-full border border-slate-200 text-slate-700 text-sm hover:bg-slate-100"
-              >
-                Đóng
-              </button>
-
-              <button
-                onClick={handleCancelConfirm}
-                disabled={cancelingCode === cancelTarget.code}
-                className="px-4 py-2 rounded-full bg-red-500 text-white text-sm font-medium hover:bg-red-600 disabled:opacity-50"
-              >
-                {cancelingCode === cancelTarget.code
-                  ? "Đang huỷ..."
-                  : "Xác nhận huỷ"}
-              </button>
-            </div>
+      {/* CANCEL MODAL */}
+      <AnimatePresence>
+        {cancelTarget && (
+          <div className="fixed inset-0 z-[99] flex items-center justify-center p-4 bg-blue-950/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="bg-red-50 p-6 border-b border-red-100 flex gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0 text-red-500">
+                  <AlertCircle size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-red-900">
+                    Huỷ đặt tour?
+                  </h3>
+                  <p className="text-sm text-red-700 mt-1">
+                    Hành động này không thể hoàn tác. Bạn chắc chắn muốn huỷ?
+                  </p>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="bg-slate-50 p-4 rounded-xl mb-6 text-sm text-slate-600 space-y-2">
+                  <p>
+                    <span className="font-semibold text-slate-800">Tour:</span>{" "}
+                    {cancelTarget.tourTitle}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">Mã:</span>{" "}
+                    {cancelTarget.code}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-800">
+                      Ngày đi:
+                    </span>{" "}
+                    {formatDate(cancelTarget.startDate)}
+                  </p>
+                </div>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setCancelTarget(null)}
+                    className="px-5 py-2.5 rounded-xl text-slate-600 font-bold hover:bg-slate-100 transition-colors"
+                  >
+                    Không, quay lại
+                  </button>
+                  <button
+                    onClick={handleCancelConfirm}
+                    disabled={cancelingCode === cancelTarget.code}
+                    className="px-5 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg shadow-red-500/30 transition-all disabled:opacity-70"
+                  >
+                    {cancelingCode ? "Đang xử lý..." : "Xác nhận huỷ"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

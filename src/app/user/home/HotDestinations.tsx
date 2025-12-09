@@ -94,7 +94,7 @@ const HotDestinations = () => {
 
         <Swiper
           modules={[Autoplay]}
-          autoplay={{ delay: 1000, disableOnInteraction: false }}
+          autoplay={{ delay: 4000, disableOnInteraction: false }}
           loop
           grabCursor
           spaceBetween={16}

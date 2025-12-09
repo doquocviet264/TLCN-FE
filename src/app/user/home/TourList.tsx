@@ -27,9 +27,9 @@ function Skeleton() {
   );
 }
 
-const HotDestinations = () => {
-  // Lấy 100 tour để đủ dữ liệu thống kê
-  const { data, isLoading, isError } = useGetTours(1, 100);
+const DestinationList = () => {
+  // Lấy 50 tour để đủ dữ liệu thống kê (giảm từ 100)
+  const { data, isLoading, isError } = useGetTours(1, 50);
   const list = data?.data ?? [];
 
   // Logic gom nhóm (Grouping)
@@ -100,7 +100,7 @@ const HotDestinations = () => {
 
         <Swiper
           modules={[Autoplay]}
-          autoplay={{ delay: 1000, disableOnInteraction: false }}
+          autoplay={{ delay: 4000, disableOnInteraction: false }}
           loop={groups.length > 4}
           grabCursor
           spaceBetween={16}
@@ -141,4 +141,4 @@ const HotDestinations = () => {
   );
 };
 
-export default HotDestinations;
+export default DestinationList;

@@ -48,7 +48,7 @@ export const pickBookingImage = (b: any): string => {
   }
 
   // ✅ Nếu không có images → thử các trường khác có khả năng chứa ảnh
-  const candidates: (string | undefined)[] = [
+  const candidates = [
     tour?.cover,
     tour?.image,
     tour?.banner,
@@ -58,7 +58,7 @@ export const pickBookingImage = (b: any): string => {
     b?.cover,
   ].filter((v): v is string => typeof v === "string" && v.trim() !== "");
 
-  if (candidates.length > 0) return candidates[0];
+  if (candidates.length > 0) return candidates[0] as string;
 
   // ✅ Nếu vẫn không có → quét toàn object tìm URL có đuôi ảnh
   const allValues: string[] = [

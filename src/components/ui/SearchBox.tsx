@@ -15,7 +15,7 @@ const slugify = (s: string) =>
   (s || "")
     .toLowerCase()
     .normalize("NFD")
-    // @ts-ignore
+    // @ts-expect-error - Unicode property escapes
     .replace(/\p{Diacritic}/gu, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
@@ -37,8 +37,11 @@ const SearchBox = () => {
       qs.set("q", where.trim()); // ví dụ "Thanh Hoá"
       qs.set("destination", slugify(where)); // => "thanh-hoa"
     }
+    if (fromPlace.trim()) {
+      qs.set("fromPlace", fromPlace.trim()); // Nơi khởi hành
+    }
     if (date) qs.set("from", date);
-    // Tuỳ backend, có thể thêm budgetMin/Max…
+    if (guests > 1) qs.set("guests", String(guests)); // Số khách
 
     router.push(`/user/destination?${qs.toString()}`);
   };

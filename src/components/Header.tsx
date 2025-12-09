@@ -4,7 +4,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, LogOut, User, History, BookOpen } from "lucide-react";
+import {
+  ChevronDown,
+  LogOut,
+  User,
+  History,
+  BookOpen,
+  Menu,
+  X,
+} from "lucide-react";
 import Button from "@/components/ui/Button";
 import { useEffect, useRef, useState } from "react";
 import { authApi } from "@/lib/auth/authApi";
@@ -32,6 +40,7 @@ export default function Header() {
   const [points, setPoints] = useState(0);
 
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const avatarRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -129,10 +138,12 @@ export default function Header() {
 
   const navItems = [
     { label: "Trang chủ", href: "/" },
-    { label: "Tour", href: "/user/tours" },
+    // { label: "Tour", href: "/user/tours" },
     { label: "Điểm đến", href: "/user/destination" },
     { label: "Bài viết", href: "/user/blog" },
+    { label: "Hành trình", href: "/user/map" },
     { label: "Giới thiệu", href: "/user/about" },
+    { label: "Liên hệ", href: "/user/contact" },
   ];
 
   const isActive = (href: string) =>
@@ -157,12 +168,21 @@ export default function Header() {
   return (
     <header className="bg-white shadow-sm w-full z-50">
       <div className="max-w-screen-2xl mx-auto px-5 lg:px-14 py-4 flex items-center gap-3">
+        {/* Mobile Menu Button */}
+        <button
+          className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <Image src="/Logo.png" alt="Logo" width={140} height={140} />
         </Link>
 
-        {/* Navigation */}
+        {/* Navigation - Desktop */}
         <nav className="hidden md:flex flex-1 justify-center space-x-6 text-base">
           {navItems.map((item) => (
             <Link
@@ -241,6 +261,37 @@ export default function Header() {
           )}
         </div>
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-white border-t shadow-lg">
+          <nav className="flex flex-col px-5 py-4 space-y-2">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`py-3 px-4 rounded-lg transition ${
+                  isActive(item.href)
+                    ? "bg-[var(--primary)] text-white font-bold"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+            {!isLoggedIn && (
+              <Link
+                href="/auth/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-3 px-4 mt-2 rounded-lg bg-[var(--primary)] text-white text-center font-semibold"
+              >
+                Đăng nhập / Đăng ký
+              </Link>
+            )}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

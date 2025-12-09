@@ -7,41 +7,40 @@ import { BsChatDots } from 'react-icons/bs';
 const qnaData = [
   {
     id: 1,
-    title: '“Xin kinh nghiệm Xuyên Việt 30 ngày”',
+    title: '"Xin kinh nghiệm Xuyên Việt 30 ngày"',
     description:
       'Mình dự kiến giữa tháng 04 này làm chuyến xuyên Việt: gửi xe từ TP.HCM ra Hà Nội rồi đi cung Đông Bắc – Tây Bắc, vòng về chạy xe vào lại HCM.',
-    author: 'Nguyễn Văn A',
-    source: 'Google',
+    author: 'Minh Tuấn',
+    source: 'Facebook',
     image: '/city-2.svg',
   },
   {
     id: 2,
-    title: '“Xin kinh nghiệm Xuyên Việt 30 ngày”',
+    title: '"Đà Lạt mùa nào đẹp nhất?"',
     description:
-      'Mình dự kiến giữa tháng 04 này làm chuyến xuyên Việt: gửi xe từ TP.HCM ra Hà Nội rồi đi cung Đông Bắc – Tây Bắc, vòng về chạy xe vào lại HCM.',
-    author: 'Nguyễn Văn A',
+      'Mình muốn đi Đà Lạt nhưng chưa biết nên đi tháng mấy. Nghe nói mùa hoa dã quỳ và mùa mai anh đào rất đẹp, mọi người tư vấn giúp mình với!',
+    author: 'Thu Hà',
     source: 'Google',
     image: '/city-2.svg',
   },
   {
     id: 3,
-    title: '“Xin kinh nghiệm Xuyên Việt 30 ngày”',
+    title: '"Tour miền Tây 3N2Đ nên đi những đâu?"',
     description:
-      'Mình dự kiến giữa tháng 04 này làm chuyến xuyên Việt: gửi xe từ TP.HCM ra Hà Nội rồi đi cung Đông Bắc – Tây Bắc, vòng về chạy xe vào lại HCM.',
-    author: 'Nguyễn Văn A',
-    source: 'Google',
+      'Nhóm mình 6 người muốn đi miền Tây 3 ngày 2 đêm, xuất phát từ Sài Gòn. Các bạn có gợi ý lịch trình và địa điểm nên ghé không?',
+    author: 'Hoàng Nam',
+    source: 'TripAdvisor',
     image: '/city-2.svg',
   },
   {
     id: 4,
-    title: '“Xin kinh nghiệm Xuyên Việt 30 ngày”',
+    title: '"Phú Quốc hay Côn Đảo cho kỳ nghỉ 5 ngày?"',
     description:
-      'Mình dự kiến giữa tháng 04 này làm chuyến xuyên Việt: gửi xe từ TP.HCM ra Hà Nội rồi đi cung Đông Bắc – Tây Bắc, vòng về chạy xe vào lại HCM.',
-    author: 'Nguyễn Văn A',
+      'Hai vợ chồng mình có 5 ngày nghỉ, đang phân vân giữa Phú Quốc và Côn Đảo. Ai đã đi rồi cho mình xin ý kiến với ạ!',
+    author: 'Lan Anh',
     source: 'Google',
     image: '/city-2.svg',
   },
-  // … thêm các item khác
 ];
 
 export default function QNASection() {

@@ -9,12 +9,14 @@ import { FaFacebookF, FaApple } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useRegister } from "#/hooks/auth-hook/useAuth";
+// Nếu bạn có cài thư viện toast (vd: react-hot-toast), hãy import vào đây
+import { toast } from "react-hot-toast";
 
 export default function RegisterPage() {
   const router = useRouter();
 
-  const [userName, setUserName] = useState(""); // Tên
-  const [fullName, setFullName] = useState(""); // Họ và tên lót
+  const [userName, setUserName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -25,15 +27,16 @@ export default function RegisterPage() {
   const [agree, setAgree] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [apiError, setApiError] = useState("");
+
   const { mutate: registerMutate, isPending } = useRegister();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isPending) return; // chặn double-submit
+    if (isPending) return;
 
     const newErrors: { [key: string]: string } = {};
 
-    // Enhanced validation
+    // --- Validation Logic (Giữ nguyên) ---
     if (!fullName.trim()) {
       newErrors.fullName = "Vui lòng nhập họ và tên";
     } else if (fullName.trim().length < 2) {
@@ -45,7 +48,7 @@ export default function RegisterPage() {
     } else if (userName.trim().length < 3) {
       newErrors.userName = "Username phải có ít nhất 3 ký tự";
     } else if (!/^[a-zA-Z0-9_]+$/.test(userName.trim())) {
-      newErrors.userName = "Username chỉ được chứa chữ cái, số và dấu gạch dưới";
+      newErrors.userName = "Username chỉ chứa chữ, số và gạch dưới";
     }
 
     if (!email.trim()) {
@@ -56,14 +59,34 @@ export default function RegisterPage() {
 
     if (!phone.trim()) {
       newErrors.phone = "Vui lòng nhập số điện thoại";
-    } else if (!/^[0-9]{10,11}$/.test(phone.trim().replace(/\s/g, ""))) {
-      newErrors.phone = "Số điện thoại phải có 10-11 chữ số";
+    } else if (!/^(?:\+?84|0)(?:3|5|7|8|9)\d{8}$/.test(phone.trim().replace(/\s/g, ""))) {
+      // Đồng bộ với Backend regex VN: +84/0 + đầu số 3/5/7/8/9 + 8 số
+      newErrors.phone = "Số điện thoại VN không hợp lệ (VD: 0912345678)";
     }
 
     if (!password.trim()) {
       newErrors.password = "Vui lòng nhập mật khẩu";
-    } else if (password.trim().length < 6) {
-      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
+    } else {
+      // Đồng bộ với Backend passwordValidator
+      const pwdErrors: string[] = [];
+      if (password.length < 8) {
+        pwdErrors.push("ít nhất 8 ký tự");
+      }
+      if (!/[a-z]/.test(password)) {
+        pwdErrors.push("1 chữ thường");
+      }
+      if (!/[A-Z]/.test(password)) {
+        pwdErrors.push("1 chữ hoa");
+      }
+      if (!/[0-9]/.test(password)) {
+        pwdErrors.push("1 chữ số");
+      }
+      if (!/[!@#$%^&*(),.?":{}|<>_\-+=~`[\]\\;/]/.test(password)) {
+        pwdErrors.push("1 ký tự đặc biệt");
+      }
+      if (pwdErrors.length > 0) {
+        newErrors.password = `Mật khẩu cần có: ${pwdErrors.join(", ")}`;
+      }
     }
 
     if (!confirmPassword.trim()) {
@@ -78,6 +101,7 @@ export default function RegisterPage() {
     if (Object.keys(newErrors).length > 0) return;
 
     setApiError("");
+
     const input = {
       fullName: fullName.trim(),
       username: userName.trim(),
@@ -85,18 +109,28 @@ export default function RegisterPage() {
       phoneNumber: phone.trim(),
       password: password.trim(),
     };
+
     registerMutate(input, {
-      onSuccess: (data) => {
+      onSuccess: (data: any) => {
         console.log("Đăng ký thành công", data);
         setApiError("");
-        // Redirect to login page after successful registration
-        router.push("/auth/login?message=Đăng ký thành công! Vui lòng đăng nhập.");
+
+        const emailParam = encodeURIComponent(email);
+
+        // Hiển thị toast phù hợp với message từ Backend
+        if (data?.message?.includes("chưa kích hoạt")) {
+          toast.success("Đã gửi lại mã OTP mới. Vui lòng kiểm tra email!");
+        } else {
+          toast.success("Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP.");
+        }
+
+        // Chuyển hướng sang trang nhập OTP
+        router.push(`/auth/otp?email=${emailParam}`);
       },
       onError: (error: any) => {
         let errorMessage = "Đăng ký thất bại";
         if (error.response?.data?.message) {
           errorMessage = error.response.data.message;
-          // Handle specific error messages
           if (errorMessage.includes("email already exists")) {
             errorMessage = "Email đã được sử dụng";
           } else if (errorMessage.includes("username already exists")) {
@@ -106,12 +140,14 @@ export default function RegisterPage() {
         setApiError(errorMessage);
       },
     });
-
   };
 
-  // Handler tạm cho social (đổi sang route OAuth thực tế của bạn)
   const startOAuth = (provider: "facebook" | "google" | "apple") => {
-    router.push(`/api/auth/${provider}`);
+    // Đảm bảo đường dẫn này đúng với Backend của bạn
+    // Thường là http://localhost:4000/api/auth/google
+    const API_URL =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+    window.location.href = `${API_URL}/auth/${provider}`;
   };
 
   return (
@@ -124,7 +160,9 @@ export default function RegisterPage() {
       </p>
 
       {apiError && (
-        <p className="text-[var(--warning)] text-sm mb-3">{apiError}</p>
+        <p className="text-[var(--warning)] text-sm mb-3 bg-red-50 p-2 rounded border border-red-200">
+          {apiError}
+        </p>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5 pt-5">
@@ -136,10 +174,14 @@ export default function RegisterPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              className={errors.fullName ? "input-error" : ""}
+              className={
+                errors.fullName ? "border-red-500 focus:ring-red-500" : ""
+              }
             />
             {errors.fullName && (
-              <p className="text-[var(--warning)] text-sm">{errors.fullName}</p>
+              <p className="text-[var(--warning)] text-xs mt-1">
+                {errors.fullName}
+              </p>
             )}
           </div>
           <div>
@@ -149,10 +191,14 @@ export default function RegisterPage() {
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               required
-              className={errors.userName ? "input-error" : ""}
+              className={
+                errors.userName ? "border-red-500 focus:ring-red-500" : ""
+              }
             />
             {errors.userName && (
-              <p className="text-[var(--warning)] text-sm">{errors.userName}</p>
+              <p className="text-[var(--warning)] text-xs mt-1">
+                {errors.userName}
+              </p>
             )}
           </div>
         </div>
@@ -165,10 +211,14 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className={errors.email ? "input-error" : ""}
+              className={
+                errors.email ? "border-red-500 focus:ring-red-500" : ""
+              }
             />
             {errors.email && (
-              <p className="text-[var(--warning)] text-sm">{errors.email}</p>
+              <p className="text-[var(--warning)] text-xs mt-1">
+                {errors.email}
+              </p>
             )}
           </div>
           <div>
@@ -178,10 +228,14 @@ export default function RegisterPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               required
-              className={errors.phone ? "input-error" : ""}
+              className={
+                errors.phone ? "border-red-500 focus:ring-red-500" : ""
+              }
             />
             {errors.phone && (
-              <p className="text-[var(--warning)] text-sm">{errors.phone}</p>
+              <p className="text-[var(--warning)] text-xs mt-1">
+                {errors.phone}
+              </p>
             )}
           </div>
         </div>
@@ -193,18 +247,21 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className={errors.password ? "input-error" : ""}
+            className={
+              errors.password ? "border-red-500 focus:ring-red-500" : ""
+            }
           />
           <button
             type="button"
-            aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            className="absolute right-3 top-[42px] text-gray-500 hover:text-gray-700"
           >
             {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
           </button>
           {errors.password && (
-            <p className="text-[var(--warning)] text-sm">{errors.password}</p>
+            <p className="text-[var(--warning)] text-xs mt-1">
+              {errors.password}
+            </p>
           )}
         </div>
 
@@ -215,22 +272,19 @@ export default function RegisterPage() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            className={errors.confirmPassword ? "input-error" : ""}
+            className={
+              errors.confirmPassword ? "border-red-500 focus:ring-red-500" : ""
+            }
           />
           <button
             type="button"
-            aria-label={
-              showConfirmPassword
-                ? "Ẩn xác thực mật khẩu"
-                : "Hiện xác thực mật khẩu"
-            }
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            className="absolute right-3 top-[42px] text-gray-500 hover:text-gray-700"
           >
             {showConfirmPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
           </button>
           {errors.confirmPassword && (
-            <p className="text-[var(--error)] text-sm">
+            <p className="text-[var(--warning)] text-xs mt-1">
               {errors.confirmPassword}
             </p>
           )}
@@ -242,31 +296,43 @@ export default function RegisterPage() {
             id="terms"
             checked={agree}
             onChange={() => setAgree(!agree)}
-            className="w-4 h-4 rounded border-gray-300"
+            className="w-4 h-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)]"
             required
           />
-          <label htmlFor="terms" className="text-sm text-gray-600">
+          <label
+            htmlFor="terms"
+            className="text-sm text-gray-600 select-none cursor-pointer"
+          >
             Tôi đã đọc các điều khoản và điều kiện
           </label>
         </div>
         {errors.agree && (
-          <p className="text-[var(--warning)] text-sm">{errors.agree}</p>
+          <p className="text-[var(--warning)] text-xs">{errors.agree}</p>
         )}
 
-        {/* Quan trọng: Button của bạn phải forward prop `type` xuống <button> */}
         <Button
           type="submit"
           variant="primary"
-          className="w-full mt-4"
+          className="w-full mt-4 h-12 text-base font-bold transition-all hover:shadow-lg"
           disabled={isPending}
         >
-          {isPending ? "Đang đăng ký..." : "ĐĂNG KÝ"}
+          {isPending ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              Đang xử lý...
+            </span>
+          ) : (
+            "ĐĂNG KÝ"
+          )}
         </Button>
       </form>
 
       <p className="text-sm mt-6 text-gray-600 text-center">
         Bạn đã có tài khoản?{" "}
-        <a href="/auth/login" className="text-[var(--primary)] hover:underline">
+        <a
+          href="/auth/login"
+          className="text-[var(--primary)] font-bold hover:underline"
+        >
           Đăng nhập ngay
         </a>
       </p>
@@ -277,21 +343,21 @@ export default function RegisterPage() {
         <hr className="flex-1 border-gray-300" />
       </div>
 
-      <div className="flex justify-center mt-8 space-x-4">
+      <div className="flex justify-center mt-6 space-x-4">
         <Button
           variant="outline-primary"
           type="button"
-          aria-label="Đăng ký bằng Facebook"
           onClick={() => startOAuth("facebook")}
+          className="w-14 h-14 rounded-full flex items-center justify-center p-0 border-gray-200 hover:bg-blue-50 hover:border-blue-200 transition-colors"
         >
-          <FaFacebookF className="text-[var(--primary)] text-xl" />
+          <FaFacebookF className="text-[#1877F2] text-xl" />
         </Button>
 
         <Button
           variant="outline-primary"
           type="button"
-          aria-label="Đăng ký bằng Google"
           onClick={() => startOAuth("google")}
+          className="w-14 h-14 rounded-full flex items-center justify-center p-0 border-gray-200 hover:bg-red-50 hover:border-red-200 transition-colors"
         >
           <FcGoogle className="text-xl" />
         </Button>
@@ -299,8 +365,8 @@ export default function RegisterPage() {
         <Button
           variant="outline-primary"
           type="button"
-          aria-label="Đăng ký bằng Apple"
           onClick={() => startOAuth("apple")}
+          className="w-14 h-14 rounded-full flex items-center justify-center p-0 border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
         >
           <FaApple className="text-black text-xl" />
         </Button>

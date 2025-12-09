@@ -27,7 +27,13 @@ export default function LeadersTable({ leaders }: LeadersTableProps) {
     message: string;
     action: () => void;
     type?: "danger" | "warning";
-  }>({ isOpen: false, title: "", message: "", action: () => {}, type: "warning" });
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    action: () => {},
+    type: "warning",
+  });
 
   // Update leader mutation
   const updateMutation = useMutation({
@@ -39,7 +45,8 @@ export default function LeadersTable({ leaders }: LeadersTableProps) {
       showSuccess("Cập nhật lãnh đạo thành công!");
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || "Không thể cập nhật lãnh đạo";
+      const message =
+        error.response?.data?.message || "Không thể cập nhật lãnh đạo";
       showError(message);
     },
   });
@@ -61,7 +68,9 @@ export default function LeadersTable({ leaders }: LeadersTableProps) {
 
   const handleSelectLeader = (id: string) => {
     setSelectedLeaders((prev) =>
-      prev.includes(id) ? prev.filter((leaderId) => leaderId !== id) : [...prev, id]
+      prev.includes(id)
+        ? prev.filter((leaderId) => leaderId !== id)
+        : [...prev, id]
     );
   };
 
@@ -104,26 +113,37 @@ export default function LeadersTable({ leaders }: LeadersTableProps) {
                 <input
                   type="checkbox"
                   checked={
-                    leaders.length > 0 && selectedLeaders.length === leaders.length
+                    leaders.length > 0 &&
+                    selectedLeaders.length === leaders.length
                   }
                   onChange={handleSelectAll}
                   className="w-4 h-4 rounded accent-emerald-600"
                 />
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Họ tên</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                Họ tên
+              </th>
               <th className="px-4 py-3 text-left font-semibold text-slate-700">
                 Tài khoản
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                Email
+              </th>
               <th className="px-4 py-3 text-left font-semibold text-slate-700">
                 Điện thoại
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Địa chỉ</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Trạng thái</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                Địa chỉ
+              </th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                Trạng thái
+              </th>
               <th className="px-4 py-3 text-left font-semibold text-slate-700">
                 Ngày tạo
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-700">Hành động</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">
+                Hành động
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -154,10 +174,15 @@ export default function LeadersTable({ leaders }: LeadersTableProps) {
                     {leader.email}
                   </a>
                 </td>
-                <td className="px-4 py-3 text-slate-700">{leader.phoneNumber || "-"}</td>
+                <td className="px-4 py-3 text-slate-700">
+                  {leader.phoneNumber || "-"}
+                </td>
                 <td className="px-4 py-3 text-slate-700">
                   {leader.address ? (
-                    <span title={leader.address} className="truncate block max-w-xs">
+                    <span
+                      title={leader.address}
+                      className="truncate block max-w-xs"
+                    >
                       {leader.address}
                     </span>
                   ) : (
@@ -215,11 +240,13 @@ export default function LeadersTable({ leaders }: LeadersTableProps) {
 
       {/* Leader Form Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-96 overflow-y-auto">
-            <div className="sticky top-0 bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center">
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center z-10">
               <h2 className="text-xl font-bold text-slate-900">
-                {editingLeader ? "Cập nhật thông tin lãnh đạo" : "Tạo lãnh đạo mới"}
+                {editingLeader
+                  ? "Cập nhật thông tin lãnh đạo"
+                  : "Tạo lãnh đạo mới"}
               </h2>
               <button
                 onClick={() => {

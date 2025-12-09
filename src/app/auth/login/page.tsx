@@ -12,6 +12,7 @@ import { useSignin } from "#/hooks/auth-hook/useAuth";
 import { useAuthStore } from "#/stores/auth";
 import { setUserToken, setRefreshToken } from "@/lib/auth/tokenManager";
 import { debugTokenAndUser } from "@/lib/auth/tokenDebug";
+import { authApi } from "@/lib/auth/authApi";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,12 +30,18 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
 
   useEffect(() => {
+    // Xóa password cũ nếu có (migration từ code cũ - không an toàn)
+    localStorage.removeItem("remember_password");
+
+    // Kiểm tra Remember Token để auto-login
     const rememberedEmail = localStorage.getItem("remember_email");
-    const rememberedPassword = localStorage.getItem("remember_password");
-    if (rememberedEmail && rememberedPassword) {
+    const rememberedToken = localStorage.getItem("remember_token");
+
+    if (rememberedEmail && rememberedToken) {
       setEmail(rememberedEmail);
-      setPassword(rememberedPassword);
       setRememberMe(true);
+      // Thử auto-login với remember token
+      handleAutoLogin(rememberedEmail, rememberedToken);
     }
 
     // Check for success message from registration
@@ -45,12 +52,50 @@ export default function LoginPage() {
       setTimeout(() => setSuccessMessage(""), 5000);
     }
   }, [searchParams]);
+
+  // Auto-login với Remember Token
+  const handleAutoLogin = async (email: string, token: string) => {
+    try {
+      const data = await authApi.loginWithRememberToken(email, token);
+
+      // Lưu tokens mới
+      setToken({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+      setUserToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
+
+      // Cập nhật remember token mới (rotation)
+      if (data.rememberToken) {
+        localStorage.setItem("remember_token", data.rememberToken);
+      }
+
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          fullName: data.user.fullName,
+          username: data.user.username,
+          email: data.user.email,
+          phone: data.user.phone,
+          avatar: data.user.avatar,
+          points: data.user.points,
+          memberStatus: data.user.memberStatus,
+        });
+        setUserId(data.user.id);
+      }
+
+      router.replace("/");
+    } catch (error) {
+      // Token hết hạn hoặc không hợp lệ -> xóa và yêu cầu đăng nhập lại
+      localStorage.removeItem("remember_email");
+      localStorage.removeItem("remember_token");
+      console.log("Auto-login failed, please login manually");
+    }
+  };
   const { mutate: signinMutate, isPending } = useSignin();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setApiError("");
 
-    const input = { identifier: email, password: password };
+    const input = { identifier: email, password: password, rememberMe: rememberMe };
     signinMutate(input, {
       onSuccess: (data: any) => {
         console.log("Đăng nhập thành công");
@@ -58,7 +103,7 @@ export default function LoginPage() {
         setToken({ accessToken: data.accessToken, refreshToken: data.refreshToken });
         setUserToken(data.accessToken);
         setRefreshToken(data.refreshToken);
-        
+
         // Save user info to store
         if (data.user) {
           setUser({
@@ -73,21 +118,21 @@ export default function LoginPage() {
           });
           setUserId(data.user.id);
         }
-        
+
         debugTokenAndUser.logAuthStateChange("Login.onSuccess", {
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
           userId: data.user?.id,
         });
         debugTokenAndUser.logUserInfoDisplay("Login.userInfo", data.user);
-        
-        // Save remember me preferences
-        if (rememberMe) {
+
+        // Lưu Remember Token (an toàn - không phải password)
+        if (rememberMe && data.rememberToken) {
           localStorage.setItem("remember_email", email);
-          localStorage.setItem("remember_password", password);
+          localStorage.setItem("remember_token", data.rememberToken);
         } else {
           localStorage.removeItem("remember_email");
-          localStorage.removeItem("remember_password");
+          localStorage.removeItem("remember_token");
         }
 
         // Redirect to home page for customers
