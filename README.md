@@ -1,6 +1,6 @@
 # 🏙️ AHH TRAVEL
 
-# 🏙️ AHH TRAVEL – Ứng dụng du lịch Sài Gòn
+# 🏙️ AHH TRAVEL – Ứng dụng du lịch tại Việt Nam
 
 Website đặt tour và khám phá địa điểm du lịch của **AHH Travel**, xây dựng với **Next.js + TypeScript + Supabase + MongoDB + Node.js**.  
 Hệ thống gồm **Frontend (Next.js)** và **Backend (API riêng)** có phân quyền **Admin / User** rõ ràng.
