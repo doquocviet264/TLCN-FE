@@ -123,6 +123,10 @@ export interface Post {
   viewCount: number;
 
   // Trạng thái
-  status: "pending" | "approved" | "hidden" | "deleted";
+  status: "pending" | "approved" | "hidden" | "deleted" | "draft" | "published";
 
+  // Rating (optional, for admin blogs)
+  ratingAvg?: number;
+  ratingCount?: number;
+  comments?: BlogComment[];
 }

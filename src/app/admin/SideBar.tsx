@@ -58,6 +58,14 @@ const navLinks: NavLink[] = [
     category: "content",
   },
 
+  // Vouchers
+  {
+    display: "Vouchers",
+    path: "/admin/vouchers",
+    icon: <i className="ri-coupon-line"></i>,
+    category: "operations",
+  },
+
   // Leaders
   {
     display: "Leader",
@@ -120,7 +128,7 @@ const SideBar = () => {
     <div className="flex h-full flex-col">
       {/* Logo Section */}
       <div className="border-b border-slate-200 px-6 py-6">
-        <img src="/logo.svg" alt="Logo" className="h-10 w-auto" />
+        <img src="/logo.png" alt="Logo" className="h-10 w-auto" />
       </div>
 
       {/* Navigation */}

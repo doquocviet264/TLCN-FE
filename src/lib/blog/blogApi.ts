@@ -1,4 +1,3 @@
-// /lib/blog/blogApi.ts
 import axiosInstance from "@/lib/axiosInstance";
 
 /* ===== Types ===== */
@@ -19,19 +18,17 @@ export type BlogSummary = {
     name?: string;
     avatar?: string;
   };
-  rating?: number;        // trung bình
+  rating?: number; // trung bình
   commentsCount?: number;
 };
+
 export type BlogContentBlock = {
   type: "text" | "image" | "video" | "html";
   value: string;
 };
 
 export type BlogDetail = BlogSummary & {
-  // BE hiện tại đang trả content là HTML string
-  // nhưng mình vẫn cho phép mảng block để sau này dễ nâng cấp
   content?: string | BlogContentBlock[];
-
   summary?: string;
   coverImageUrl?: string;
   ratingAvg?: number;
@@ -42,8 +39,7 @@ export type BlogDetail = BlogSummary & {
   locationDetail?: string;
 };
 
-
-// ✅ Đổi tên cho thống nhất: BlogsResponse
+// Đổi tên cho thống nhất
 export type BlogsResponse = {
   data: BlogSummary[];
   total: number;
@@ -76,7 +72,6 @@ export type BlogCommentsResponse = {
 
 /* ===== API ===== */
 
-// ✅ getBlogs dùng đúng kiểu BlogsResponse
 export const getBlogs = async (
   page = 1,
   limit = 9,
@@ -96,28 +91,93 @@ export const getBlogs = async (
     ...raw,
     data: raw.data.map((b: any) => ({
       ...b,
-      // chuẩn hoá cho FE
       excerpt: b.excerpt ?? b.summary ?? "",
       cover: b.cover ?? b.coverImageUrl ?? b.thumbnail,
     })),
   };
 };
 
-export const getComments = async (slug: string): Promise<BlogCommentsResponse> => {
-  const res = await axiosInstance.get<BlogCommentsResponse>(
-    `/blog/${slug}/comments`
-  );
-  return res.data;
-  
+// ✅ Normalize comment để luôn có userName, userAvatar, userId chuẩn
+export const getComments = async (
+  slug: string
+): Promise<BlogCommentsResponse> => {
+  // dùng any vì đôi khi BE trả array, đôi khi object
+  const res = await axiosInstance.get<any>(`/blog/${slug}/comments`);
+  const data = res.data;
+  console.log("Raw API comments:", data);
+
+  const rawComments = Array.isArray(data) ? data : data?.comments || [];
+
+  const normalizedComments: BlogComment[] = rawComments.map((comment: any) => {
+    let userObj: any = null;
+    let userIdValue: string | undefined;
+
+    // Trường hợp BE populate userId thành object user
+    if (comment.userId && typeof comment.userId === "object") {
+      userObj = comment.userId;
+      userIdValue = comment.userId._id || comment.userId.id;
+    } else {
+      userIdValue = comment.userId;
+    }
+
+    if (!userObj) {
+      userObj = comment.user || comment.author || {};
+    }
+
+    const userName =
+      comment.userName ||
+      userObj.fullName ||
+      userObj.name ||
+      userObj.username ||
+      userObj.email ||
+      "Người dùng";
+
+    const userAvatar =
+      comment.userAvatar ||
+      userObj.avatar ||
+      userObj.avatarUrl ||
+      userObj.photo ||
+      userObj.image ||
+      "";
+
+    const mapped: BlogComment = {
+      id: comment.id || comment._id,
+      userId: userIdValue,
+      userName,
+      userAvatar,
+      content: comment.content,
+      rating: comment.rating,
+      createdAt: comment.createdAt,
+      updatedAt: comment.updatedAt,
+      isOwner: Boolean(comment.isOwner),
+    };
+
+    console.log("Mapped comment:", mapped);
+    return mapped;
+  });
+
+  return {
+    ratingAvg: data.ratingAvg ?? data.rating ?? undefined,
+    ratingCount: data.ratingCount ?? normalizedComments.length,
+    comments: normalizedComments,
+  };
 };
 
 const createComment = async (
   slug: string,
   body: { rating: number; content: string }
 ): Promise<BlogComment> => {
+  const validRating = Math.min(Math.max(Math.floor(body.rating), 1), 5);
+
+  const payload = {
+    content: body.content,
+    rating: validRating,
+  };
+
+  console.log("Creating comment with payload:", payload);
   const res = await axiosInstance.post<BlogComment>(
     `/blog/${slug}/comments`,
-    body
+    payload
   );
   return res.data;
 };
@@ -134,7 +194,10 @@ const updateComment = async (
   return res.data;
 };
 
-const deleteComment = async (slug: string, commentId: string): Promise<void> => {
+const deleteComment = async (
+  slug: string,
+  commentId: string
+): Promise<void> => {
   await axiosInstance.delete(`/blog/${slug}/comments/${commentId}`);
 };
 

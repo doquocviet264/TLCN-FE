@@ -382,10 +382,10 @@ export default function AboutPage() {
                       fb: "https://facebook.com/whuq394",
                     },
                     {
-                      name: "BAO NGAN",
+                      name: "TRINH NGOC HIEU",
                       role: "Co-Founder & COO",
-                      img: "/clients/assets/images/team/guide-ngan.jpg",
-                      fb: "#",
+                      img: "/hieu.jpg",
+                      fb: "https://www.facebook.com/hieu.779761",
                     },
                   ].map((member, idx) => (
                     <motion.div

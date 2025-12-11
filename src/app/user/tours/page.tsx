@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Search,
@@ -28,7 +28,7 @@ interface TourFilters {
 // Số tour mỗi trang
 const PER_PAGE = 12;
 
-export default function ToursPage() {
+function ToursPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -555,5 +555,20 @@ export default function ToursPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ToursPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600 mx-auto" />
+          <p className="mt-4 text-slate-600">Đang tải...</p>
+        </div>
+      </div>
+    }>
+      <ToursPageContent />
+    </Suspense>
   );
 }

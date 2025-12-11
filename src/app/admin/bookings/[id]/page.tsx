@@ -98,7 +98,7 @@ export default function BookingDetailPage() {
 
   const getStatusBadge = (status: "p" | "c" | "x") => {
     const statusMap: Record<"p" | "c" | "x", { label: string; color: string }> = {
-      p: { label: "Chờ xác nhận", color: "bg-yellow-100 text-yellow-800" },
+      p: { label: "Chờ thanh toán", color: "bg-yellow-100 text-yellow-800" },
       c: { label: "Đã xác nhận", color: "bg-green-100 text-green-800" },
       x: { label: "Đã hủy", color: "bg-red-100 text-red-800" },
     };
@@ -369,13 +369,13 @@ export default function BookingDetailPage() {
                     </>
                   )}
 
-                  {(booking.paymentMethod === "manual" || booking.paymentMethod === "cod") && 
-                   booking.paidAmount < booking.totalPrice && (
+                  {/* Nút xác nhận thanh toán - hiện khi còn tiền chưa trả và đơn chưa bị hủy */}
+                  {booking.bookingStatus !== "x" && booking.paidAmount < booking.totalPrice && (
                     <button
                       onClick={() =>
                         handleConfirmAction(
-                          "Đánh dấu đã thanh toán",
-                          "Bạn có chắc chắn đã nhận được thanh toán cho đơn này?",
+                          "Xác nhận thanh toán",
+                          `Xác nhận khách hàng đã thanh toán ${formatCurrency(booking.totalPrice - booking.paidAmount)}?`,
                           () => {
                             setActiveAction("payment");
                             paymentMutation.mutate();
@@ -385,7 +385,27 @@ export default function BookingDetailPage() {
                       disabled={activeAction === "payment"}
                       className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
                     >
-                      {activeAction === "payment" ? "Đang xử lý..." : "Đánh dấu đã thanh toán"}
+                      {activeAction === "payment" ? "Đang xử lý..." : "Xác nhận thanh toán"}
+                    </button>
+                  )}
+
+                  {/* Nút xác nhận đặt cọc - hiện khi chưa đặt cọc */}
+                  {booking.bookingStatus === "p" && !booking.depositPaid && booking.paidAmount === 0 && (
+                    <button
+                      onClick={() =>
+                        handleConfirmAction(
+                          "Xác nhận đặt cọc",
+                          `Xác nhận khách hàng đã đặt cọc ${formatCurrency(booking.depositAmount || 0)}?`,
+                          () => {
+                            setActiveAction("deposit");
+                            paymentMutation.mutate();
+                          }
+                        )
+                      }
+                      disabled={activeAction === "deposit"}
+                      className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition disabled:opacity-50"
+                    >
+                      {activeAction === "deposit" ? "Đang xử lý..." : "Xác nhận đặt cọc"}
                     </button>
                   )}
 

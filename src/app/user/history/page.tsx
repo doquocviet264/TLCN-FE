@@ -448,7 +448,7 @@ export default function HistoryPage() {
                             </>
                           )}
                           <Link
-                            href={`/user/booking/${booking.code}`}
+                            href={`/user/bookings/${booking.code}`}
                             className="px-5 py-2 rounded-lg bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200 transition-colors"
                           >
                             Chi tiết

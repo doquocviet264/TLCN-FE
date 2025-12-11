@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import CardHot from "@/components/cards/CardHot";
@@ -128,7 +127,7 @@ const TourSkeleton = () => (
   </div>
 );
 
-export default function DestinationPage() {
+function DestinationPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -442,5 +441,21 @@ export default function DestinationPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+// Wrapper với Suspense để tránh lỗi useSearchParams
+export default function DestinationPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600 mx-auto" />
+          <p className="mt-4 text-slate-600">Đang tải...</p>
+        </div>
+      </div>
+    }>
+      <DestinationPageContent />
+    </Suspense>
   );
 }

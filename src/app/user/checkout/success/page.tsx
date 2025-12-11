@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -11,7 +12,7 @@ import VnpayPayButton from "@/app/user/checkout/VnpayPayButton";
  * Đọc bookingId & email từ query:
  *   /user/checkout/success?bookingId=BK123&email=a@b.com
  */
-export default function BookingSuccessPage() {
+function BookingSuccessPageContent() {
   const searchParams = useSearchParams();
 
   const bookingId = searchParams.get("bookingId");
@@ -107,6 +108,14 @@ export default function BookingSuccessPage() {
         </motion.div>
       </div>
     </main>
+  );
+}
+
+export default function BookingSuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BookingSuccessPageContent />
+    </Suspense>
   );
 }
 

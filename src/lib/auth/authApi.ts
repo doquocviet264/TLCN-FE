@@ -216,6 +216,22 @@ export const authApi = {
 
     return res.data;
   },
+
+  // ===== Update user profile =====
+  async updateProfile(data: Record<string, any>, token: string) {
+    const res = await axios.put(
+      `${API_URL}/users/me`,
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return res.data;
+  },
 };
 
 export default authApi;

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,7 +18,38 @@ const vnd = (n?: number) =>
         .replace(/\s?₫$/, " VND")
     : "—";
 
+/* ===========================================================
+ * Loading Fallback
+ * ===========================================================
+ */
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="text-center">
+        <div className="mx-auto h-14 w-14 animate-spin rounded-full border-4 border-purple-200 border-t-purple-600" />
+        <p className="mt-4 text-slate-600">Đang tải mã QR thanh toán…</p>
+      </div>
+    </div>
+  );
+}
+
+/* ===========================================================
+ * PAGE WRAPPER (with Suspense for useSearchParams)
+ * ===========================================================
+ */
 export default function SepayQRPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <SepayQRContent />
+    </Suspense>
+  );
+}
+
+/* ===========================================================
+ * SEPAY QR CONTENT
+ * ===========================================================
+ */
+function SepayQRContent() {
   const search = useSearchParams();
   const router = useRouter();
 

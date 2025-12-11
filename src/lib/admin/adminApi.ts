@@ -264,3 +264,33 @@ export async function deleteTourAdmin(tourId: string) {
   }>(`/tours/${tourId}`);
   return data;
 }
+
+/** Xác nhận tour (chuyển status sang confirmed) */
+export async function confirmTourAdmin(tourId: string) {
+  const { data } = await adminApi.put<{ message: string; tour: TourResponse }>(
+    `/tours/${tourId}`,
+    { status: "confirmed" }
+  );
+  return data;
+}
+
+/** Đóng tour (chuyển status sang closed) */
+export async function closeTourAdmin(tourId: string) {
+  const { data } = await adminApi.put<{ message: string; tour: TourResponse }>(
+    `/tours/${tourId}`,
+    { status: "closed" }
+  );
+  return data;
+}
+
+/** Cập nhật trạng thái tour */
+export async function updateTourStatusAdmin(
+  tourId: string,
+  status: "pending" | "confirmed" | "in_progress" | "completed" | "closed"
+) {
+  const { data } = await adminApi.put<{ message: string; tour: TourResponse }>(
+    `/tours/${tourId}`,
+    { status }
+  );
+  return data;
+}

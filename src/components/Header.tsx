@@ -155,6 +155,7 @@ export default function Header() {
     { name: "Hồ sơ cá nhân", href: "/user/profile", icon: User },
     { name: "Lịch sử đặt tour", href: "/user/history", icon: History },
     { name: "Blog của tôi", href: "/user/blog", icon: BookOpen },
+    { name: "Vouchers", href: "/user/vouchers", icon: BookOpen },
   ];
 
   const handleLogout = () => {

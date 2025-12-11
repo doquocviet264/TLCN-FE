@@ -14,6 +14,7 @@ import {
   FaGift,
 } from "react-icons/fa";
 import { checkinApi } from "@/lib/checkin/checkinApi";
+import { voucherApi } from "@/lib/voucher/voucherApi";
 import { useAuthStore } from "#/stores/auth";
 import { VIETNAM_PATHS, MAP_VIEWBOX } from "./VietnamMapPaths"; // Import file data
 
@@ -54,6 +55,7 @@ export default function VietnamJourneyMap() {
     code: string;
     description: string;
   } | null>(null);
+  const [showManualSuccess, setShowManualSuccess] = useState(false);
 
   const [isDragging, setIsDragging] = useState(false);
   const [lastPos, setLastPos] = useState<{ x: number; y: number } | null>(null);
@@ -66,36 +68,63 @@ export default function VietnamJourneyMap() {
       .toLowerCase()
       .trim();
 
+  // Helper: Lưu/lấy manual provinces từ localStorage
+  const MANUAL_STORAGE_KEY = "ahh_manual_provinces";
+
+  const getStoredManualProvinces = (): Set<string> => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const stored = localStorage.getItem(MANUAL_STORAGE_KEY);
+      if (stored) {
+        const arr = JSON.parse(stored);
+        return new Set(arr.map((p: string) => normalize(p)));
+      }
+    } catch (e) {
+      console.error("Error reading manual provinces:", e);
+    }
+    return new Set();
+  };
+
+  const saveManualProvince = (provinceName: string) => {
+    try {
+      const current = getStoredManualProvinces();
+      current.add(normalize(provinceName));
+      localStorage.setItem(MANUAL_STORAGE_KEY, JSON.stringify(Array.from(current)));
+    } catch (e) {
+      console.error("Error saving manual province:", e);
+    }
+  };
+
   // 1. FETCH DATA
-  // 1. FETCH DATA (SỬA LẠI ĐOẠN NÀY)
   useEffect(() => {
     const fetchJourney = async () => {
       if (!user) return;
       try {
         // Gọi API lấy danh sách tỉnh đã đi
         const res = await checkinApi.getUserJourney();
+        console.log("Dữ liệu từ Server:", res);
 
-        console.log("Dữ liệu từ Server:", res); // <-- Bật cái này lên để debug xem API trả về gì
+        // Lấy manual provinces từ localStorage
+        const storedManual = getStoredManualProvinces();
 
-        const provinces = new Set<string>();
+        const tourProvinces = new Set<string>();
+        const manualProvinces = new Set<string>();
 
-        // API trả về object dạng: { total: 5, provinces: ["Hà Nội", "Lào Cai"], manualProvinces: [...] }
+        // API trả về: { total: 5, provinces: ["Hà Nội", "Lào Cai"] }
         if (res.provinces && Array.isArray(res.provinces)) {
           res.provinces.forEach((p: string) => {
-            // Chuẩn hóa tên (bỏ dấu, thường) để khớp với SVG
-            provinces.add(normalize(p));
+            const normalizedName = normalize(p);
+            // Nếu tỉnh này có trong localStorage manual -> đưa vào manual
+            if (storedManual.has(normalizedName)) {
+              manualProvinces.add(normalizedName);
+            } else {
+              // Còn lại là qua tour
+              tourProvinces.add(normalizedName);
+            }
           });
         }
 
-        setVisitedProvinces(provinces); // Cập nhật State -> Map sẽ tự tô màu Xanh
-
-        // Load tỉnh đánh dấu thủ công
-        const manualProvinces = new Set<string>();
-        if (res.manualProvinces && Array.isArray(res.manualProvinces)) {
-          res.manualProvinces.forEach((p: string) => {
-            manualProvinces.add(normalize(p));
-          });
-        }
+        setVisitedProvinces(tourProvinces);
         setManualVisitedProvinces(manualProvinces);
       } catch (error) {
         console.error("Lỗi tải hành trình:", error);
@@ -133,11 +162,16 @@ export default function VietnamJourneyMap() {
       // Lấy voucherCode từ response của server, nếu lỗi thì fallback mã tạm
       const backendVoucher =
         res.voucherCode ||
-        `VN-${normalize(selectedProvince).substring(0, 3).toUpperCase()}-2024`;
+        `VN-${normalize(selectedProvince).substring(0, 3).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+
+      const voucherDescription = `Voucher giảm 10% cho chuyến đi tiếp theo đến ${selectedProvince}!`;
+
+      // 5. LƯU VOUCHER VÀO LOCAL STORAGE (để hiển thị ở Kho Voucher)
+      voucherApi.saveCheckinVoucher(backendVoucher, selectedProvince, voucherDescription);
 
       setEarnedVoucher({
         code: backendVoucher,
-        description: `Voucher giảm 10% cho chuyến đi tiếp theo đến ${selectedProvince}!`,
+        description: voucherDescription,
       });
 
       setShowVoucher(true);
@@ -168,8 +202,11 @@ export default function VietnamJourneyMap() {
 
     setIsLoadingAction(true);
     try {
-      // Gọi API đánh dấu thủ công (không nhận voucher)
+      // Gọi API đánh dấu thủ công
       await checkinApi.manualMarkProvince(selectedProvince);
+
+      // Lưu vào localStorage để phân biệt với tour check-in
+      saveManualProvince(selectedProvince);
 
       // Tô màu xanh dương cho tỉnh đánh dấu thủ công
       setManualVisitedProvinces((prev) =>
@@ -184,12 +221,32 @@ export default function VietnamJourneyMap() {
         colors: ["#3b82f6", "#60a5fa", "#93c5fd"],
       });
 
+      // Hiện thông báo thành công
+      setShowManualSuccess(true);
+      setTimeout(() => setShowManualSuccess(false), 2000);
+
       setSelectedProvince(null);
     } catch (error: any) {
       console.error("Lỗi đánh dấu thủ công:", error);
       const msg =
         error.response?.data?.message || "Đánh dấu thất bại. Vui lòng thử lại!";
-      alert(msg);
+
+      // Nếu đã check-in rồi, vẫn đánh dấu là manual trong localStorage
+      if (msg.includes("đã check-in") || msg.includes("đã đánh dấu")) {
+        saveManualProvince(selectedProvince);
+        setManualVisitedProvinces((prev) =>
+          new Set(prev).add(normalize(selectedProvince))
+        );
+        // Xóa khỏi visited (tour) nếu có
+        setVisitedProvinces((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(normalize(selectedProvince));
+          return newSet;
+        });
+        setSelectedProvince(null);
+      } else {
+        alert(msg);
+      }
     } finally {
       setIsLoadingAction(false);
     }
@@ -447,6 +504,26 @@ export default function VietnamJourneyMap() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Manual Success Toast */}
+      <AnimatePresence>
+        {showManualSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9999] bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3"
+          >
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+              <FaCheck size={20} />
+            </div>
+            <div>
+              <p className="font-bold">Đã đánh dấu thành công!</p>
+              <p className="text-sm text-blue-100">Địa điểm đã được thêm vào bản đồ</p>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </section>

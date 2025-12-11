@@ -1,7 +1,7 @@
 // /app/user/blog/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,7 +10,7 @@ import { Search } from "lucide-react";
 
 const PER_PAGE = 9;
 
-export default function BlogListPage() {
+function BlogListPageContent() {
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -259,5 +259,13 @@ export default function BlogListPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function BlogListPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BlogListPageContent />
+    </Suspense>
   );
 }

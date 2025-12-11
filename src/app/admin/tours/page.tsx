@@ -2,10 +2,19 @@
 
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAllToursAdmin, deleteTourAdmin } from '@/lib/admin/adminApi';
+import { getAllToursAdmin, deleteTourAdmin, updateTourStatusAdmin } from '@/lib/admin/adminApi';
 import { Toast, useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import Link from "next/link";
+
+// Format VND currency
+const formatVND = (amount: number) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
 
 const Page = () => {
   const queryClient = useQueryClient()
@@ -13,11 +22,13 @@ const Page = () => {
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; tourId: string; tourTitle: string }>({
-    isOpen: false,
-    tourId: '',
-    tourTitle: ''
-  })
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    action: () => void;
+    type?: "danger" | "warning";
+  }>({ isOpen: false, title: '', message: '', action: () => {}, type: 'warning' })
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["adminTours", page, searchTerm, statusFilter],
@@ -34,23 +45,35 @@ const Page = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminTours'] })
       showSuccess('Xóa tour thành công!')
-      setConfirmDelete({ isOpen: false, tourId: '', tourTitle: '' })
+      setConfirmDialog(d => ({ ...d, isOpen: false }))
     },
     onError: (error: any) => {
       showError(error.response?.data?.message || 'Không thể xóa tour')
-      setConfirmDelete({ isOpen: false, tourId: '', tourTitle: '' })
+      setConfirmDialog(d => ({ ...d, isOpen: false }))
     }
   })
 
-  const handleDelete = (tourId: string, tourTitle: string) => {
-    setConfirmDelete({ isOpen: true, tourId, tourTitle })
-  }
-
-  const confirmDeleteAction = () => {
-    if (confirmDelete.tourId) {
-      deleteMutation.mutate(confirmDelete.tourId)
+  // Mutation cập nhật trạng thái tour
+  const statusMutation = useMutation({
+    mutationFn: ({ tourId, status }: { tourId: string; status: "pending" | "confirmed" | "in_progress" | "completed" | "closed" }) =>
+      updateTourStatusAdmin(tourId, status),
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: ['adminTours'] })
+      const messages: Record<string, string> = {
+        confirmed: 'Tour đã được xác nhận khởi hành!',
+        closed: 'Tour đã được đóng!',
+        pending: 'Tour đã chuyển về trạng thái chờ duyệt!',
+        in_progress: 'Tour đã bắt đầu!',
+        completed: 'Tour đã hoàn thành!',
+      }
+      showSuccess(messages[status] || 'Cập nhật trạng thái thành công!')
+      setConfirmDialog(d => ({ ...d, isOpen: false }))
+    },
+    onError: (error: any) => {
+      showError(error.response?.data?.message || 'Không thể cập nhật trạng thái')
+      setConfirmDialog(d => ({ ...d, isOpen: false }))
     }
-  }
+  })
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -202,11 +225,11 @@ const Page = () => {
                         )}
                       </td>
                       <td className="px-4 py-4 text-sm">
-                        <div className="text-slate-700">
-                          NL: {tour.priceAdult ? tour.priceAdult.toLocaleString() : '0'}đ
+                        <div className="text-slate-700 font-medium">
+                          NL: {formatVND(tour.priceAdult || 0)}
                         </div>
                         <div className="text-xs text-slate-500 mt-1">
-                          TE: {tour.priceChild ? tour.priceChild.toLocaleString() : '0'}đ
+                          TE: {formatVND(tour.priceChild || 0)}
                         </div>
                       </td>
                       <td className="px-4 py-4">
@@ -214,23 +237,115 @@ const Page = () => {
                           {getStatusText(tour.status)}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-sm text-slate-700">
-                        {tour.current_guests || 0}/{tour.quantity || 0}
+                      <td className="px-4 py-4 text-sm">
+                        <div className="text-slate-700">
+                          <span className="font-medium">{tour.current_guests || 0}</span>
+                          <span className="text-slate-400">/{tour.quantity || 0}</span>
+                        </div>
+                        {tour.min_guests && (
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            Min: {tour.min_guests}
+                            {(tour.current_guests || 0) >= tour.min_guests && (
+                              <span className="text-green-600 ml-1">✓</span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex gap-2 justify-center">
+                        <div className="flex gap-1 justify-center flex-wrap">
+                          {/* Nút xem chi tiết/sửa */}
                           <Link
                             href={`/admin/tours/edit/${tour._id}`}
-                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
-                            title="Chỉnh sửa"
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            title="Xem/Sửa"
                           >
                             <i className="ri-pencil-line text-lg"></i>
                           </Link>
+
+                          {/* Nút xác nhận tour - chỉ hiện khi pending và đủ khách */}
+                          {tour.status === "pending" && (
+                            <button
+                              onClick={() => setConfirmDialog({
+                                isOpen: true,
+                                title: "Xác nhận khởi hành tour",
+                                message: `Xác nhận tour "${tour.title}" sẽ khởi hành? Hiện có ${tour.current_guests || 0}/${tour.min_guests || 0} khách.`,
+                                action: () => statusMutation.mutate({ tourId: tour._id, status: "confirmed" }),
+                                type: "warning"
+                              })}
+                              disabled={statusMutation.isPending}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition disabled:opacity-50"
+                              title="Xác nhận khởi hành"
+                            >
+                              <i className="ri-check-double-line text-lg"></i>
+                            </button>
+                          )}
+
+                          {/* Nút bắt đầu tour - chỉ hiện khi confirmed */}
+                          {tour.status === "confirmed" && (
+                            <button
+                              onClick={() => setConfirmDialog({
+                                isOpen: true,
+                                title: "Bắt đầu tour",
+                                message: `Tour "${tour.title}" bắt đầu khởi hành?`,
+                                action: () => statusMutation.mutate({ tourId: tour._id, status: "in_progress" }),
+                                type: "warning"
+                              })}
+                              disabled={statusMutation.isPending}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition disabled:opacity-50"
+                              title="Bắt đầu tour"
+                            >
+                              <i className="ri-play-circle-line text-lg"></i>
+                            </button>
+                          )}
+
+                          {/* Nút hoàn thành tour - chỉ hiện khi in_progress */}
+                          {tour.status === "in_progress" && (
+                            <button
+                              onClick={() => setConfirmDialog({
+                                isOpen: true,
+                                title: "Hoàn thành tour",
+                                message: `Tour "${tour.title}" đã hoàn thành?`,
+                                action: () => statusMutation.mutate({ tourId: tour._id, status: "completed" }),
+                                type: "warning"
+                              })}
+                              disabled={statusMutation.isPending}
+                              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition disabled:opacity-50"
+                              title="Hoàn thành tour"
+                            >
+                              <i className="ri-checkbox-circle-line text-lg"></i>
+                            </button>
+                          )}
+
+                          {/* Nút đóng tour - hiện khi pending hoặc completed */}
+                          {(tour.status === "pending" || tour.status === "completed") && (
+                            <button
+                              onClick={() => setConfirmDialog({
+                                isOpen: true,
+                                title: "Đóng tour",
+                                message: `Đóng tour "${tour.title}"? Tour sẽ không còn nhận đặt chỗ.`,
+                                action: () => statusMutation.mutate({ tourId: tour._id, status: "closed" }),
+                                type: "danger"
+                              })}
+                              disabled={statusMutation.isPending}
+                              className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition disabled:opacity-50"
+                              title="Đóng tour"
+                            >
+                              <i className="ri-close-circle-line text-lg"></i>
+                            </button>
+                          )}
+
+                          {/* Nút xóa */}
                           <button
-                            onClick={() => handleDelete(tour._id, tour.title)}
+                            onClick={() => setConfirmDialog({
+                              isOpen: true,
+                              title: "Xóa tour",
+                              message: `Xóa tour "${tour.title}"? Hành động này không thể hoàn tác.`,
+                              action: () => deleteMutation.mutate(tour._id),
+                              type: "danger"
+                            })}
                             disabled={deleteMutation.isPending}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-                            title="Xóa"
+                            className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                            title="Xóa tour"
                           >
                             <i className="ri-delete-bin-6-line text-lg"></i>
                           </button>
@@ -289,16 +404,18 @@ const Page = () => {
       {/* Toast */}
       <Toast {...toast} onClose={hideToast} />
 
-      {/* Confirm Delete Dialog */}
+      {/* Confirm Dialog */}
       <ConfirmDialog
-        isOpen={confirmDelete.isOpen}
-        title="Xác nhận xóa"
-        message={`Bạn có chắc chắn muốn xóa tour "${confirmDelete.tourTitle}" không? Hành động này không thể hoàn tác.`}
-        confirmText="Xóa"
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText="Xác nhận"
         cancelText="Hủy"
-        type="danger"
-        onConfirm={confirmDeleteAction}
-        onCancel={() => setConfirmDelete({ isOpen: false, tourId: '', tourTitle: '' })}
+        type={confirmDialog.type}
+        onConfirm={() => {
+          confirmDialog.action();
+        }}
+        onCancel={() => setConfirmDialog(d => ({ ...d, isOpen: false }))}
       />
     </div>
   )

@@ -87,7 +87,7 @@ export const checkinApi = {
     return res.data.data;
   },
 
-  // 6. Đánh dấu thủ công (KHÔNG nhận voucher)
+  // 6. Đánh dấu thủ công (KHÔNG nhận voucher - gọi cùng API nhưng FE xử lý khác)
   manualMarkProvince: async (provinceName: string) => {
     const token = localStorage.getItem("accessToken");
     const payload = {
@@ -96,12 +96,14 @@ export const checkinApi = {
       note: `Tự đánh dấu ${provinceName} - không qua tour`,
     };
 
-    const res = await axios.post(`${API_URL}/checkins/manual`, payload, {
+    // Gọi cùng API /checkins nhưng với type khác để phân biệt
+    const res = await axios.post(`${API_URL}/checkins`, payload, {
       headers: {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
       },
     });
-    return res.data;
+    // Trả về nhưng đánh dấu là manual để FE không hiện voucher popup
+    return { ...res.data, isManual: true };
   },
 };

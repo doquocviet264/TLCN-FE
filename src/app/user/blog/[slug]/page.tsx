@@ -4,11 +4,9 @@ import type { Metadata } from "next";
 import Image from "next/image";
 
 import BlogDetail from "../BlogDetail";
-import FeaturedBloggers from "../FeaturedBloggers";
 import RecentPosts from "../RecentPosts";
 import PopularPostsSection from "../../home/TourList";
-import ReviewSection from "../ReviewSection";
-import CommentBox from "../CommentBox";
+import BlogCommentsSection from "../BlogCommentsSection";
 import SocialShare from "../SocialShare";
 
 import { dataReviews } from "@/data/dataReviews";
@@ -37,7 +35,7 @@ export async function generateMetadata({
 
     if (Array.isArray(post.content)) {
       const firstBlock =
-        post.content.find((b) => b.type === "text" || b.type === "html")
+        post.content.find((b: any) => b.type === "text" || b.type === "html")
           ?.value ?? "";
       rawText = stripHtml(firstBlock);
     } else if (typeof post.content === "string") {
@@ -141,21 +139,13 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
                 <SocialShare />
               </div>
 
-              <div className="mt-10">
-                <ReviewSection reviews={dataReviews} />
-              </div>
-
-              <div className="mt-8">
-                <CommentBox />
-              </div>
+              <BlogCommentsSection slug={slug} />
             </div>
 
             {/* Sidebar */}
             <aside className="w-full flex-[0.3] px-4 pb-4 md:px-6 md:pb-6 lg:max-w-xs lg:pl-4 lg:pr-8 lg:pb-8 xl:px-0">
               <RecentPosts />
-              <div className="mt-6">
-                <FeaturedBloggers />
-              </div>
+              <div className="mt-6"></div>
             </aside>
           </div>
 

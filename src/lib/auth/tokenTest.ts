@@ -123,20 +123,20 @@ export const testTokenStorage = {
   },
 
   // Test 6: Run all tests
-  runAllTests: async () => {
+  runAllTests: async function() {
     console.clear();
     console.log("🧪 Running all token & storage tests...\n");
-    
-    this.checkStorage();
+
+    testTokenStorage.checkStorage();
     console.log("\n---\n");
-    
-    this.decodeJWT();
+
+    testTokenStorage.decodeJWT();
     console.log("\n---\n");
-    
-    await this.checkZustandStore();
+
+    await testTokenStorage.checkZustandStore();
     console.log("\n---\n");
-    
-    await this.simulateHeaderFetch();
+
+    await testTokenStorage.simulateHeaderFetch();
     console.log("\n✅ All tests completed");
   },
 };

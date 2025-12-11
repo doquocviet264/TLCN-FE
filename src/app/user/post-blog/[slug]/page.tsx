@@ -206,8 +206,10 @@ export default function BlogDetailPage() {
 
         {/* Content */}
         <section className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur">
-          {blog.content && blog.content.length > 0 ? (
+          {blog.content && Array.isArray(blog.content) && blog.content.length > 0 ? (
             blog.content.map((b, i) => renderBlock(b, i))
+          ) : typeof blog.content === "string" && blog.content ? (
+            <div className="prose prose-slate max-w-none" dangerouslySetInnerHTML={{ __html: blog.content }} />
           ) : (
             <p className="text-sm text-slate-600">
               Bài viết này chưa có nội dung chi tiết.

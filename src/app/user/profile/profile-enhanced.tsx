@@ -73,20 +73,32 @@ export default function ProfilePage() {
   }, [accessToken, router]);
 
   const fetchProfile = async () => {
+    if (!accessToken) return;
     try {
       setLoading(true);
       const response = await authApi.getProfile(accessToken);
       console.log("👤 Profile data:", response);
       
       // Use stored user data first, then API data
-      const profileData = {
-        ...response.user,
-        ...user,
-        totalBookings: response.totalBookings || 0,
-        totalBlogs: response.totalBlogs || 0,
-        joinedDate: response.joinedDate || response.user?.createdAt
+      const res = response as any;
+      const u = user as any;
+      const profileData: UserProfile = {
+        _id: res.id || res._id || u?._id || "",
+        fullName: res.fullName || u?.fullName || "",
+        email: res.email || u?.email || "",
+        phone: res.phone || u?.phone || "",
+        avatar: res.avatar || res.avatarUrl || u?.avatar,
+        gender: res.gender || u?.gender,
+        dateOfBirth: res.dob || u?.dateOfBirth,
+        address: res.address || u?.address,
+        city: res.city || u?.city,
+        points: res.points || u?.points || 0,
+        memberStatus: res.memberStatus || u?.memberStatus,
+        totalBookings: res.totalBookings || 0,
+        totalBlogs: res.totalBlogs || 0,
+        joinedDate: res.joinedDate || res.createdAt
       };
-      
+
       setProfile(profileData);
       setFormData({
         fullName: profileData.fullName || "",
@@ -106,12 +118,13 @@ export default function ProfilePage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const response = await authApi.updateProfile(formData, accessToken);
+      if (!accessToken) return;
+      await authApi.updateProfile(formData, accessToken);
       
       // Update both local state and Zustand store
       const updatedProfile = { ...profile, ...formData };
       setProfile(updatedProfile as UserProfile);
-      setUser(updatedProfile);
+      setUser(updatedProfile as any);
       
       setEditMode(false);
       alert("Cập nhật thông tin thành công!");

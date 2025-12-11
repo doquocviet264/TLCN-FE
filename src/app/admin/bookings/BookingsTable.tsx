@@ -4,10 +4,15 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { BookingData, updateBookingStatus, deleteAdminBooking } from "@/lib/admin/adminBookingApi";
+import {
+  BookingData,
+  updateBookingStatus,
+  deleteAdminBooking,
+  updateBookingPaymentStatus
+} from "@/lib/admin/adminBookingApi";
 
 const statusLabels: Record<"p" | "c" | "x", string> = {
-  p: "Chờ xác nhận",
+  p: "Chờ thanh toán",
   c: "Đã xác nhận",
   x: "Đã hủy",
 };
@@ -16,6 +21,15 @@ const statusBadgeClass: Record<"p" | "c" | "x", string> = {
   p: "bg-yellow-100 text-yellow-800",
   c: "bg-green-100 text-green-800",
   x: "bg-red-100 text-red-800",
+};
+
+// Format VND currency
+const formatVND = (amount: number) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(amount);
 };
 
 // Simple date formatter
@@ -74,6 +88,22 @@ export default function BookingsTable({ bookings }: BookingsTableProps) {
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : "Không thể xóa đơn đặt tour";
+      showError(message);
+      setConfirmDialog((d) => ({ ...d, isOpen: false }));
+    },
+  });
+
+  // Mutation xác nhận thanh toán thủ công
+  const paymentMutation = useMutation({
+    mutationFn: ({ id, amount }: { id: string; amount?: number }) =>
+      updateBookingPaymentStatus(id, "mark_paid", amount, "manual"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminBookings"] });
+      showSuccess("Xác nhận thanh toán thành công!");
+      setConfirmDialog((d) => ({ ...d, isOpen: false }));
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : "Không thể xác nhận thanh toán";
       showError(message);
       setConfirmDialog((d) => ({ ...d, isOpen: false }));
     },
@@ -179,15 +209,25 @@ export default function BookingsTable({ bookings }: BookingsTableProps) {
                 <div>{booking.numAdults} người lớn</div>
                 <div className="text-gray-600">{booking.numChildren} trẻ em</div>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                ${booking.totalPrice.toFixed(2)}
+              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <div className="font-medium text-gray-900">
+                  {formatVND(booking.totalPrice)}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Đã trả: <span className="text-green-600 font-medium">{formatVND(booking.paidAmount || 0)}</span>
+                </div>
+                {(booking.totalPrice - (booking.paidAmount || 0)) > 0 && (
+                  <div className="text-xs text-orange-600 mt-0.5">
+                    Còn lại: {formatVND(booking.totalPrice - (booking.paidAmount || 0))}
+                  </div>
+                )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <div className="font-medium text-gray-900">
-                  ${booking.depositAmount.toFixed(2)}
+                  {formatVND(booking.depositAmount || 0)}
                 </div>
                 <div className={`text-xs mt-1 ${booking.depositPaid ? "text-green-600" : "text-red-600"}`}>
-                  {booking.depositPaid ? "✓ Đã thanh toán" : "✗ Chưa thanh toán"}
+                  {booking.depositPaid ? "✓ Đã đặt cọc" : "✗ Chưa đặt cọc"}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
@@ -205,61 +245,88 @@ export default function BookingsTable({ bookings }: BookingsTableProps) {
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <div className="flex gap-2">
                   <button
-                    title="Xem/Sửa"
+                    title="Xem chi tiết"
                     onClick={() => window.location.href = `/admin/bookings/${booking._id}`}
-                    className="text-emerald-600 hover:text-emerald-800"
+                    className="text-blue-600 hover:text-blue-800"
                   >
-                    <i className="ri-pencil-line text-lg"></i>
+                    <i className="ri-eye-line text-lg"></i>
                   </button>
-                  {booking.bookingStatus === "p" && (
-                    <>
-                      <button
-                        title="Xác nhận"
-                        onClick={() =>
-                          setConfirmDialog({
-                            isOpen: true,
-                            title: "Xác nhận đơn đặt tour",
-                            message: "Bạn có chắc chắn muốn xác nhận đơn đặt tour này?",
-                            action: () => statusMutation.mutate({ id: booking._id, status: "c" }),
-                            type: "warning",
-                          })
-                        }
-                        disabled={statusMutation.isPending}
-                        className="text-green-600 hover:text-green-800 disabled:opacity-50"
-                      >
-                        <i className="ri-check-line text-lg"></i>
-                      </button>
-                      <button
-                        title="Hủy"
-                        onClick={() =>
-                          setConfirmDialog({
-                            isOpen: true,
-                            title: "Hủy đơn đặt tour",
-                            message: "Bạn có chắc chắn muốn hủy đơn đặt tour này?",
-                            action: () => statusMutation.mutate({ id: booking._id, status: "x" }),
-                            type: "danger",
-                          })
-                        }
-                        disabled={statusMutation.isPending}
-                        className="text-red-500 hover:text-red-700 disabled:opacity-50"
-                      >
-                        <i className="ri-close-line text-lg"></i>
-                      </button>
-                    </>
+
+                  {/* Nút xác nhận thanh toán - hiện khi còn tiền chưa trả */}
+                  {booking.bookingStatus !== "x" && (booking.totalPrice - (booking.paidAmount || 0)) > 0 && (
+                    <button
+                      title="Xác nhận thanh toán"
+                      onClick={() => {
+                        const remaining = booking.totalPrice - (booking.paidAmount || 0);
+                        setConfirmDialog({
+                          isOpen: true,
+                          title: "Xác nhận thanh toán",
+                          message: `Xác nhận khách hàng ${booking.fullName} đã thanh toán ${formatVND(remaining)}? Đơn sẽ được chuyển sang trạng thái "Đã xác nhận".`,
+                          action: () => paymentMutation.mutate({ id: booking._id, amount: remaining }),
+                          type: "warning",
+                        });
+                      }}
+                      disabled={paymentMutation.isPending}
+                      className="text-emerald-600 hover:text-emerald-800 disabled:opacity-50"
+                    >
+                      <i className="ri-money-dollar-circle-line text-lg"></i>
+                    </button>
                   )}
+
+                  {/* Nút xác nhận cọc - hiện khi chưa đặt cọc */}
+                  {booking.bookingStatus === "p" && !booking.depositPaid && (
+                    <button
+                      title="Xác nhận đặt cọc"
+                      onClick={() =>
+                        setConfirmDialog({
+                          isOpen: true,
+                          title: "Xác nhận đặt cọc",
+                          message: `Xác nhận khách hàng ${booking.fullName} đã đặt cọc ${formatVND(booking.depositAmount || 0)}?`,
+                          action: () => paymentMutation.mutate({ id: booking._id, amount: booking.depositAmount }),
+                          type: "warning",
+                        })
+                      }
+                      disabled={paymentMutation.isPending}
+                      className="text-amber-600 hover:text-amber-800 disabled:opacity-50"
+                    >
+                      <i className="ri-wallet-3-line text-lg"></i>
+                    </button>
+                  )}
+
+                  {/* Nút hủy đơn - chỉ hiện khi đang pending */}
+                  {booking.bookingStatus === "p" && (
+                    <button
+                      title="Hủy đơn"
+                      onClick={() =>
+                        setConfirmDialog({
+                          isOpen: true,
+                          title: "Hủy đơn đặt tour",
+                          message: `Bạn có chắc chắn muốn hủy đơn ${booking.code}? Slot sẽ được hoàn trả.`,
+                          action: () => statusMutation.mutate({ id: booking._id, status: "x" }),
+                          type: "danger",
+                        })
+                      }
+                      disabled={statusMutation.isPending}
+                      className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                    >
+                      <i className="ri-close-circle-line text-lg"></i>
+                    </button>
+                  )}
+
+                  {/* Nút xóa */}
                   <button
-                    title="Xoá"
+                    title="Xoá vĩnh viễn"
                     onClick={() =>
                       setConfirmDialog({
                         isOpen: true,
                         title: "Xóa đơn đặt tour",
-                        message: "Bạn có chắc chắn muốn xóa đơn đặt tour này? Hành động này không thể hoàn tác.",
+                        message: `Xóa đơn ${booking.code}? Hành động này không thể hoàn tác.`,
                         action: () => deleteMutation.mutate(booking._id),
                         type: "danger",
                       })
                     }
                     disabled={deleteMutation.isPending}
-                    className="text-gray-600 hover:text-gray-800 disabled:opacity-50"
+                    className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
                   >
                     <i className="ri-delete-bin-6-line text-lg"></i>
                   </button>

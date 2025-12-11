@@ -1,7 +1,7 @@
 // /app/auth/login/page.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -14,7 +14,7 @@ import { setUserToken, setRefreshToken } from "@/lib/auth/tokenManager";
 import { debugTokenAndUser } from "@/lib/auth/tokenDebug";
 import { authApi } from "@/lib/auth/authApi";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -243,5 +243,13 @@ export default function LoginPage() {
         </Button>
       </div>
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

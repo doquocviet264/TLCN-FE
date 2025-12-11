@@ -5,7 +5,11 @@ import axiosInstance from "@/lib/axiosInstance";
 export type PaymentMethod =
   | "office-payment"
   | "vnpay-payment"
-  | "sepay-payment";
+  | "sepay-payment"
+  | "momo"
+  | "vnpay"
+  | "manual"
+  | "cod";
 
 export type CreateBookingBody = {
   tourId: string;
@@ -20,6 +24,19 @@ export type CreateBookingBody = {
   couponCode?: string | null;
   paymentMethod: PaymentMethod;
   paymentType: "full" | "deposit" | "office";
+};
+
+// Backend format (internal use)
+type BackendBookingBody = {
+  tourId: string;
+  numAdults: number;
+  numChildren: number;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  address?: string;
+  paymentMethod?: string;
+  note?: string;
 };
 
 export type CreateBookingResponse = {
@@ -62,6 +79,7 @@ export type MyBookingItem = {
   address?: string;
 
   paymentMethod?: string;
+  paymentType?: "full" | "deposit" | "office";
   paymentRefs?: PaymentRef[];
 
   bookingStatus: "p" | "c" | "x" | "f";
@@ -171,6 +189,68 @@ export async function getMyBookings(
     params: { page, limit },
   });
   return adaptMyBookings(data);
+}
+
+/* ================= Get Booking Detail ================= */
+export async function getBookingByCode(code: string): Promise<MyBookingItem> {
+  let res;
+  try {
+    // Try /bookings/me/{code} first
+    const response = await axiosInstance.get(
+      `/bookings/me/${encodeURIComponent(code)}`
+    );
+    res = response.data;
+  } catch (err: any) {
+    // Fallback to /bookings/{code}
+    if (err?.response?.status === 404) {
+      const response = await axiosInstance.get(
+        `/bookings/${encodeURIComponent(code)}`
+      );
+      res = response.data;
+    } else {
+      throw err;
+    }
+  }
+
+  // Handle both wrapped and unwrapped responses
+  const bookingData = res?.data ?? res;
+
+  return {
+    code: bookingData.code ?? "",
+    tourId: bookingData.tourId ?? bookingData.tour?._id ?? "",
+    tourTitle: bookingData.tour?.title ?? bookingData.tourTitle,
+    tourImage: bookingData.tour?.images?.[0] ?? bookingData.tourImage,
+    tourDestination:
+      bookingData.tour?.destination ?? bookingData.tourDestination,
+    time: bookingData.tour?.time ?? bookingData.time,
+    startDate: bookingData.tour?.startDate ?? bookingData.startDate,
+    endDate: bookingData.tour?.endDate ?? bookingData.endDate,
+
+    numAdults: Number(bookingData.numAdults ?? 0),
+    numChildren: Number(bookingData.numChildren ?? 0),
+
+    totalPrice: Number(bookingData.totalPrice ?? 0),
+    paidAmount: Number(bookingData.paidAmount ?? 0),
+    depositAmount: Number(bookingData.depositAmount ?? 0),
+    depositPaid: Boolean(bookingData.depositPaid),
+    requireFullPayment: bookingData.requireFullPayment,
+
+    fullName: bookingData.fullName ?? bookingData.contact?.fullName,
+    email: bookingData.email ?? bookingData.contact?.email,
+    phoneNumber: bookingData.phoneNumber ?? bookingData.contact?.phone,
+    address: bookingData.address ?? bookingData.contact?.address,
+
+    paymentMethod: bookingData.paymentMethod,
+    paymentType: bookingData.paymentType,
+    paymentRefs: Array.isArray(bookingData.paymentRefs)
+      ? bookingData.paymentRefs
+      : [],
+
+    bookingStatus: (bookingData.bookingStatus ??
+      "p") as MyBookingItem["bookingStatus"],
+    createdAt: bookingData.createdAt,
+    updatedAt: bookingData.updatedAt,
+  };
 }
 
 export async function cancelBooking(code: string): Promise<{ ok: boolean }> {

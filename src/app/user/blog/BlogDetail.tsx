@@ -1,7 +1,7 @@
 // /app/user/blog/BlogDetail.tsx
 "use client";
 
-import { CalendarDays, User2, Tag, Star } from "lucide-react";
+import { CalendarDays, User2, Tag, Star, Clock, Eye } from "lucide-react";
 import Image from "next/image";
 import {
   BlogDetail as BlogDetailType,
@@ -59,14 +59,21 @@ export default function BlogDetail({ post }: Props) {
           return (
             <div
               key={idx}
-              className="prose prose-sm max-w-none text-slate-800 [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:text-xl [&_p]:my-4 [&_ul]:my-4 [&_li]:my-1"
+              className="prose prose-lg max-w-none text-slate-700
+                [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900
+                [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-slate-800
+                [&_p]:my-4 [&_p]:leading-relaxed
+                [&_ul]:my-4 [&_ul]:pl-6 [&_li]:my-2
+                [&_a]:text-orange-600 [&_a]:hover:text-orange-700 [&_a]:underline
+                [&_strong]:text-slate-900 [&_strong]:font-semibold
+                [&_blockquote]:border-l-4 [&_blockquote]:border-orange-500 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-slate-600"
               dangerouslySetInnerHTML={{ __html: block.value }}
             />
           );
         }
         if (block.type === "image") {
           return (
-            <div key={idx} className="my-6 overflow-hidden rounded-2xl">
+            <div key={idx} className="my-8 overflow-hidden rounded-2xl shadow-lg">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={block.value}
@@ -78,7 +85,7 @@ export default function BlogDetail({ post }: Props) {
         }
         if (block.type === "video") {
           return (
-            <div key={idx} className="my-6 overflow-hidden rounded-2xl">
+            <div key={idx} className="my-8 overflow-hidden rounded-2xl shadow-lg">
               <video
                 src={block.value}
                 controls
@@ -95,7 +102,14 @@ export default function BlogDetail({ post }: Props) {
     if (typeof post.content === "string") {
       return (
         <div
-          className="prose prose-sm max-w-none text-slate-800 [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:text-xl [&_p]:my-4 [&_ul]:my-4 [&_li]:my-1"
+          className="prose prose-lg max-w-none text-slate-700
+            [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900
+            [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-slate-800
+            [&_p]:my-4 [&_p]:leading-relaxed
+            [&_ul]:my-4 [&_ul]:pl-6 [&_li]:my-2
+            [&_a]:text-orange-600 [&_a]:hover:text-orange-700 [&_a]:underline
+            [&_strong]:text-slate-900 [&_strong]:font-semibold
+            [&_blockquote]:border-l-4 [&_blockquote]:border-orange-500 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-slate-600"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
       );
@@ -104,23 +118,23 @@ export default function BlogDetail({ post }: Props) {
     // fallback: chỉ có summary
     if (post.summary) {
       return (
-        <p className="mt-4 text-[15px] leading-relaxed text-slate-800">
+        <p className="mt-4 text-base leading-relaxed text-slate-700">
           {post.summary}
         </p>
       );
     }
 
     return (
-      <p className="mt-4 text-[15px] leading-relaxed text-slate-500">
+      <p className="mt-4 text-base leading-relaxed text-slate-500">
         Nội dung bài viết đang được cập nhật.
       </p>
     );
   };
 
   return (
-    <article className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur">
+    <article className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
       {/* Hero cover */}
-      <div className="relative h-[260px] w-full overflow-hidden rounded-t-3xl md:h-[320px]">
+      <div className="relative h-[300px] w-full overflow-hidden md:h-[400px]">
         <Image
           src={cover}
           alt={post.title ?? "Cover image"}
@@ -128,62 +142,72 @@ export default function BlogDetail({ post }: Props) {
           className="object-cover"
           sizes="(min-width: 1024px) 800px, 100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-        <div className="absolute bottom-5 left-6 right-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">
+        <div className="absolute inset-0 bg-gradient-to-t from-blue-950/90 via-blue-950/40 to-transparent" />
+
+        {/* Content overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+          {/* Category badge */}
+          <div className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-3 py-1 mb-4">
+            <span className="text-xs font-bold text-white uppercase tracking-wider">
               Travel Blog
-            </p>
-            <h1 className="mt-2 text-2xl font-bold leading-snug text-white md:text-3xl">
-              {post.title}
-            </h1>
+            </span>
           </div>
-          {post.ratingAvg != null && (
-            <div className="flex items-center rounded-full bg-black/60 px-3 py-1 text-xs text-amber-200">
-              <Star className="mr-1 h-4 w-4 fill-amber-400 text-amber-400" />
-              <span className="font-semibold">{post.ratingAvg.toFixed(1)}</span>
-              <span className="ml-1 opacity-80">
-                ({post.ratingCount ?? 0} đánh giá)
-              </span>
+
+          <h1 className="text-2xl font-bold leading-tight text-white md:text-4xl mb-4">
+            {post.title}
+          </h1>
+
+          {/* Meta info */}
+          <div className="flex flex-wrap items-center gap-4 text-sm text-blue-100">
+            {/* Author */}
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-xs">
+                {(post.author?.name || "A").charAt(0).toUpperCase()}
+              </div>
+              <span className="font-medium">{post.author?.name ?? "Admin"}</span>
             </div>
-          )}
+
+            {date && (
+              <div className="flex items-center gap-1.5">
+                <CalendarDays className="h-4 w-4 text-orange-400" />
+                <span>
+                  {new Date(date).toLocaleDateString("vi-VN", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+            )}
+
+            {readingMinutes > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4 text-orange-400" />
+                <span>{readingMinutes} phút đọc</span>
+              </div>
+            )}
+
+            {/* Rating */}
+            {post.ratingAvg != null && (
+              <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <span className="font-semibold">{post.ratingAvg.toFixed(1)}</span>
+                <span className="opacity-80">({post.ratingCount ?? 0})</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Body */}
-      <div className="px-5 pb-8 pt-5 md:px-8 md:pt-6">
-        {/* Meta */}
-        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 md:text-sm">
-          {date && (
-            <div className="flex items-center gap-1.5">
-              <CalendarDays className="h-4 w-4" />
-              <span>
-                {new Date(date).toLocaleDateString("vi-VN", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                })}
-              </span>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5">
-            <User2 className="h-4 w-4" />
-            <span>{post.author?.name ?? "Admin"}</span>
-          </div>
-          {readingMinutes > 0 && (
-            <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 md:text-xs">
-              ~ {readingMinutes} phút đọc
-            </div>
-          )}
-        </div>
-
+      <div className="px-6 pb-10 pt-8 md:px-10">
         {/* Tags */}
         {tags.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-6">
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-medium text-emerald-700 md:text-xs"
+                className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors cursor-pointer"
               >
                 <Tag className="h-3 w-3" />
                 {tag}
@@ -192,15 +216,17 @@ export default function BlogDetail({ post }: Props) {
           </div>
         )}
 
-        {/* Summary ngắn */}
+        {/* Summary/Excerpt */}
         {(post.summary || (post as any).excerpt) && (
-          <p className="mt-5 text-[15px] leading-relaxed text-slate-700">
-            {post.summary || (post as any).excerpt}
-          </p>
+          <div className="mb-8 p-5 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border-l-4 border-orange-500">
+            <p className="text-base leading-relaxed text-slate-700 italic">
+              {post.summary || (post as any).excerpt}
+            </p>
+          </div>
         )}
 
         {/* Content chính */}
-        <div className="mt-6 border-t border-slate-100 pt-6">
+        <div className="border-t border-slate-100 pt-8">
           {renderContent()}
         </div>
       </div>

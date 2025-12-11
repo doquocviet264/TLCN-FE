@@ -44,7 +44,11 @@ export default function MyBookingsPage() {
   });
 
   const [activeTab, setActiveTab] = React.useState<BookingTab>("all");
-  const list: any[] = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+  const list: any[] = Array.isArray(data?.data)
+    ? data.data
+    : Array.isArray(data)
+    ? data
+    : [];
 
   const filtered = React.useMemo(() => {
     if (activeTab === "all") return list;
@@ -173,11 +177,14 @@ function BookingRow({
         <div className="flex flex-col gap-4 p-5 md:p-6">
           {/* header */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+            <Link
+              href={`/user/bookings/${encodeURIComponent(code)}`}
+              className="hover:text-emerald-600"
+            >
               <h2 className="text-[18px] font-semibold leading-tight">
                 Đơn {code} • {title}
               </h2>
-            </div>
+            </Link>
             <div className="text-sm text-slate-500">
               Mã đơn <b className="text-slate-800">{code}</b>
             </div>
@@ -225,6 +232,13 @@ function BookingRow({
 
           {/* actions */}
           <div className="mt-1 flex flex-wrap items-center gap-10">
+            <Link
+              href={`/user/booking/${booking.code}`}
+              className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 shadow-sm transition hover:border-blue-500 hover:text-blue-600"
+            >
+              Chi tiết
+            </Link>
+
             <Link
               href={`/user/destination/${tour?.destinationSlug ?? ""}/${
                 tour?._id ?? ""

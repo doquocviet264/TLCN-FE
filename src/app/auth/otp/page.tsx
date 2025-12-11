@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { FiChevronLeft } from "react-icons/fi";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authApi } from "@/lib/auth/authApi";
 
-export default function RegisterOtpPage() {
+function RegisterOtpPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Decode email từ URL (vì đã được encodeURIComponent khi redirect)
@@ -118,5 +118,13 @@ export default function RegisterOtpPage() {
       </form>
     </main>
     </>
+  );
+}
+
+export default function RegisterOtpPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RegisterOtpPageContent />
+    </Suspense>
   );
 }

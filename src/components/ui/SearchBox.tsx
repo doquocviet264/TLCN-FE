@@ -15,8 +15,7 @@ const slugify = (s: string) =>
   (s || "")
     .toLowerCase()
     .normalize("NFD")
-    // @ts-expect-error - Unicode property escapes
-    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
