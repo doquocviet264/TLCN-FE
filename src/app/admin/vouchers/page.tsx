@@ -277,7 +277,7 @@ export default function AdminVouchersPage() {
             resetForm();
             setShowModal(true);
           }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200"
+          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors shadow-lg shadow-orange-200"
         >
           <Plus className="w-5 h-5" />
           Tạo Voucher
@@ -336,7 +336,7 @@ export default function AdminVouchersPage() {
               placeholder="Tìm kiếm theo mã voucher..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
             />
           </div>
 
@@ -344,7 +344,7 @@ export default function AdminVouchersPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none bg-white"
+            className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 outline-none bg-white"
           >
             <option value="">Tất cả trạng thái</option>
             <option value="active">Hoạt động</option>
@@ -356,7 +356,7 @@ export default function AdminVouchersPage() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none bg-white"
+            className="px-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 outline-none bg-white"
           >
             <option value="">Tất cả loại</option>
             <option value="percent">Giảm %</option>
@@ -379,7 +379,7 @@ export default function AdminVouchersPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center">
-            <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-slate-500">Đang tải...</p>
           </div>
         ) : vouchers.length === 0 ? (
@@ -575,7 +575,7 @@ export default function AdminVouchersPage() {
                       }))
                     }
                     placeholder="VD: AHH-SUMMER2024"
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none font-mono"
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none font-mono"
                     required
                   />
                   <button
@@ -602,7 +602,7 @@ export default function AdminVouchersPage() {
                         type: e.target.value as "percent" | "fixed",
                       }))
                     }
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none bg-white"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 outline-none bg-white"
                   >
                     <option value="percent">Giảm theo %</option>
                     <option value="fixed">Giảm số tiền cố định</option>
@@ -623,7 +623,7 @@ export default function AdminVouchersPage() {
                     }
                     min={1}
                     max={formData.type === "percent" ? 100 : undefined}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none"
                     required
                   />
                 </div>
@@ -645,7 +645,7 @@ export default function AdminVouchersPage() {
                       }))
                     }
                     placeholder="0 = Không giới hạn"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none"
                   />
                 </div>
                 {formData.type === "percent" && (
@@ -663,7 +663,7 @@ export default function AdminVouchersPage() {
                         }))
                       }
                       placeholder="0 = Không giới hạn"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none"
                     />
                   </div>
                 )}
@@ -680,7 +680,7 @@ export default function AdminVouchersPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, expiresAt: e.target.value }))
                   }
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none"
                 />
               </div>
 
@@ -696,7 +696,7 @@ export default function AdminVouchersPage() {
                   }
                   rows={3}
                   placeholder="Mô tả voucher (hiển thị cho khách hàng)"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none resize-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none resize-none"
                 />
               </div>
 

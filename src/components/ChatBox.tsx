@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import useUser from "#/src/hooks/useUser";
 import { useChatStore } from "#/stores/chatStore";
 import {
@@ -12,6 +13,9 @@ import {
   Headset,
   Trash2,
   User,
+  History,
+  Shield,
+  Crown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -20,6 +24,9 @@ import {
   getSupportMessages,
   sendSupportMessage,
   type ChatMessage,
+  type ChatRole,
+  isStaffRole,
+  ROLE_LABELS,
 } from "@/lib/chat/chatApi";
 
 export default function ChatBox() {
@@ -187,7 +194,7 @@ export default function ChatBox() {
               setIsMinimized(false);
               setUnreadCount(0);
             }}
-            className="fixed bottom-6 right-6 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 text-white shadow-xl shadow-blue-500/30 ring-2 ring-white/50"
+            className="fixed bottom-6 right-6 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-orange-500 to-orange-600 text-white shadow-xl shadow-orange-500/30 ring-2 ring-white/50"
           >
             <MessageCircle size={28} />
             {unreadCount > 0 && (
@@ -209,7 +216,7 @@ export default function ChatBox() {
             className="fixed bottom-5 right-5 z-[9999] flex h-[550px] w-[360px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:bottom-6 sm:right-6"
           >
             {/* HEADER */}
-            <div className="flex items-center justify-between bg-gradient-to-r from-blue-700 to-blue-500 px-4 py-3 text-white shadow-md z-10">
+            <div className="flex items-center justify-between bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 text-white shadow-md z-10">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30">
                   <Headset size={20} />
@@ -221,13 +228,20 @@ export default function ChatBox() {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
                     </span>
-                    <span className="text-[11px] text-blue-100 font-medium">
+                    <span className="text-[11px] text-orange-100 font-medium">
                       Thường trả lời ngay
                     </span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-1">
+                <Link
+                  href="/user/chat"
+                  className="rounded-full p-1.5 hover:bg-white/20"
+                  title="Xem lịch sử chat"
+                >
+                  <History size={18} />
+                </Link>
                 <button
                   onClick={() => setIsMinimized(true)}
                   className="rounded-full p-1.5 hover:bg-white/20"
@@ -357,9 +371,22 @@ export default function ChatBox() {
 
                   {messages.map((msg, idx) => {
                     // Logic Role: Admin/Leader là Support (Trái), còn lại là Tôi (Phải)
-                    const isSupport =
-                      msg.fromRole === "admin" || msg.fromRole === "leader";
+                    const role = (msg.fromRole || "guest").toLowerCase() as ChatRole;
+                    const isSupport = isStaffRole(role);
                     const isMe = !isSupport;
+
+                    // Get role-specific styling
+                    const getRoleIcon = () => {
+                      if (role === "admin") return <Shield size={12} />;
+                      if (role === "leader") return <Crown size={12} />;
+                      return <Headset size={12} />;
+                    };
+
+                    const getRoleBadgeColor = () => {
+                      if (role === "admin") return "bg-blue-100 text-blue-700";
+                      if (role === "leader") return "bg-purple-100 text-purple-700";
+                      return "bg-slate-100 text-slate-600";
+                    };
 
                     return (
                       <motion.div
@@ -372,8 +399,12 @@ export default function ChatBox() {
                       >
                         {/* Avatar cho Support */}
                         {isSupport && (
-                          <div className="mr-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 border border-blue-200 shadow-sm mt-1">
-                            <Headset size={14} />
+                          <div className={`mr-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border shadow-sm mt-1 ${
+                            role === "admin"
+                              ? "bg-blue-100 text-blue-600 border-blue-200"
+                              : "bg-purple-100 text-purple-600 border-purple-200"
+                          }`}>
+                            {getRoleIcon()}
                           </div>
                         )}
 
@@ -382,16 +413,27 @@ export default function ChatBox() {
                             isMe ? "items-end" : "items-start"
                           }`}
                         >
-                          {/* Tên người gửi */}
-                          <span className="mb-1 ml-1 text-[10px] font-medium text-slate-400">
-                            {isSupport ? "Hỗ trợ viên" : "Bạn"}
+                          {/* Tên người gửi với role badge */}
+                          <span className="mb-1 ml-1 text-[10px] font-medium flex items-center gap-1">
+                            {isSupport ? (
+                              <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${getRoleBadgeColor()}`}>
+                                {getRoleIcon()}
+                                {ROLE_LABELS[role] || "Hỗ trợ viên"}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">Bạn</span>
+                            )}
                           </span>
 
                           {/* Bong bóng chat */}
                           <div
                             className={`relative rounded-2xl px-4 py-2.5 text-sm shadow-sm leading-relaxed ${
                               isMe
-                                ? "rounded-tr-none bg-blue-600 text-white"
+                                ? "rounded-tr-none bg-gradient-to-r from-orange-500 to-orange-600 text-white"
+                                : role === "admin"
+                                ? "rounded-tl-none bg-gradient-to-r from-blue-600 to-blue-700 text-white"
+                                : role === "leader"
+                                ? "rounded-tl-none bg-gradient-to-r from-purple-600 to-purple-700 text-white"
                                 : "rounded-tl-none bg-white text-slate-800 border border-slate-100"
                             }`}
                           >
@@ -401,7 +443,7 @@ export default function ChatBox() {
                           {/* Thời gian */}
                           <span
                             className={`mt-1 px-1 text-[9px] ${
-                              isMe ? "text-blue-600/60" : "text-slate-400"
+                              isMe ? "text-orange-600/60" : "text-slate-400"
                             }`}
                           >
                             {formatTime(msg.createdAt)}

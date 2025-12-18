@@ -1,3 +1,6 @@
+// /app/user/destination/page.tsx (ví dụ đường dẫn)
+// nhớ chỉnh lại path cho đúng với project của bạn
+
 "use client";
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
@@ -21,15 +24,13 @@ const slugify = (s: string) =>
 
 const normalizeForSearch = (s?: string) => {
   if (!s) return undefined;
-  return (
-    s
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .replace(/[^a-z0-9 ]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-  );
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 };
 
 const titleFromSlug = (s?: string) => (s ? s.replace(/-/g, " ") : "");
@@ -114,7 +115,7 @@ type SearchQuery = {
   budgetMax?: number;
 };
 
-// ========= Skeleton Component (Tĩnh, nhẹ) =========
+// ========= Skeleton Component =========
 const TourSkeleton = () => (
   <div className="flex flex-col rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
     <div className="h-48 w-full rounded-xl bg-slate-100" />
@@ -272,189 +273,275 @@ function DestinationPageContent() {
   };
 
   return (
-    <div className="relative min-h-screen">
-      {/* Background TĨNH - Không animation để tránh lag */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-slate-50">
-        <div className="absolute -top-24 -left-24 h-[20rem] w-[20rem] rounded-full bg-emerald-100/40 blur-3xl" />
-        <div className="absolute top-1/2 right-0 h-[15rem] w-[15rem] rounded-full bg-blue-100/40 blur-3xl" />
-      </div>
+    <main className="relative min-h-screen bg-slate-50 font-sans text-slate-600">
+      {/* ===== HERO HEADER (match trang blog) ===== */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950 pb-20 pt-20 lg:pb-24 lg:pt-24">
+        {/* Pattern background */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-5"
+          style={{
+            backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+          }}
+        />
+        {/* Gradient blobs */}
+        <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-orange-500/20 blur-[100px]" />
+        <div className="pointer-events-none absolute top-1/2 right-0 h-80 w-80 -translate-y-1/2 rounded-full bg-orange-500/15 blur-[100px]" />
+        <div className="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-blue-500/20 blur-[80px]" />
 
-      {/* Hero Header */}
-      <div className="mx-auto w-[92%] max-w-6xl pb-4 pt-10">
-        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-emerald-700/80 font-semibold">
-              AHH Travel
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl text-slate-800">
-              Danh sách tour
+        <div className="container relative z-10 mx-auto max-w-6xl px-4 text-left">
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/20 px-4 py-1.5 mb-5">
+              <span className="h-2 w-2 rounded-full bg-orange-400 shadow shadow-orange-300" />
+              <span className="text-xs font-semibold text-orange-300 uppercase tracking-wider">
+                AHH Travel · Tour Hot
+              </span>
+            </div>
+
+            <h1 className="text-4xl font-extrabold text-white sm:text-5xl lg:text-6xl leading-tight">
+              Danh sách{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-300">
+                Tour Du Lịch
+              </span>
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Chọn tour ưng ý và đặt ngay hôm nay.
+
+            <p className="mt-4 max-w-2xl text-base sm:text-lg text-blue-200">
+              Chọn tour ưng ý, khám phá hành trình mơ ước và đặt chỗ ngay hôm
+              nay cùng Travel AHH.
             </p>
-          </div>
+
+            {/* Stats */}
+            <div className="mt-7 flex flex-wrap gap-6 text-sm">
+              <div className="text-white/90">
+                <p className="text-2xl font-bold text-white">
+                  {total}
+                  <span className="ml-1 text-sm font-medium text-blue-200">
+                    tour
+                  </span>
+                </p>
+                <p className="text-xs uppercase tracking-wide text-blue-200">
+                  đang mở bán
+                </p>
+              </div>
+              <div className="h-10 w-px bg-white/20" />
+              <div className="text-white/90">
+                <p className="text-2xl font-bold text-white">
+                  {visibleCount}
+                  <span className="ml-1 text-sm font-medium text-blue-200">
+                    tour
+                  </span>
+                </p>
+                <p className="text-xs uppercase tracking-wide text-blue-200">
+                  phù hợp với bộ lọc hiện tại
+                </p>
+              </div>
+              <div className="h-10 w-px bg-white/20 hidden sm:block" />
+              <div className="text-white/90 hidden sm:block">
+                <p className="text-2xl font-bold text-white">
+                  {currentPage}/{totalPages}
+                </p>
+                <p className="text-xs uppercase tracking-wide text-blue-200">
+                  trang kết quả
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Wave bottom */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg
+            viewBox="0 0 1440 100"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-full"
+          >
+            <path
+              d="M0 50L48 45.7C96 41.3 192 32.7 288 30.2C384 27.7 480 31.3 576 39.2C672 47 768 59 864 59.5C960 60 1056 49 1152 43.5C1248 38 1344 38 1392 38L1440 38V100H1392C1344 100 1248 100 1152 100C1056 100 960 100 864 100C768 100 672 100 576 100C480 100 384 100 288 100C192 100 96 100 48 100H0V50Z"
+              fill="#f8fafc"
+            />
+          </svg>
+        </div>
+      </section>
+
+      {/* ===== MAIN LAYOUT ===== */}
+      <div className="relative z-10 mx-auto -mt-8 max-w-6xl px-4 pb-14 lg:px-0">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+          {/* Sidebar filter */}
+          <aside className="lg:sticky lg:top-24 lg:self-start z-10">
+            <TourFilter
+              value={filters}
+              onChange={(v) => setFilters(v)}
+              onSubmit={handleSubmitFilter}
+              fromOptions={fromOptions}
+              toOptions={toOptions}
+            />
+          </aside>
+
+          {/* Grid kết quả */}
+          <main id="list" className="pb-4">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Tour nổi bật
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Trang {currentPage}/{totalPages} · Hiển thị{" "}
+                  <span className="font-semibold text-orange-600">
+                    {visibleCount}
+                  </span>{" "}
+                  tour phù hợp
+                </p>
+              </div>
+            </div>
+
+            {isError ? (
+              <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-red-600 shadow-sm">
+                Không tải được dữ liệu tour. Vui lòng thử lại sau.
+              </div>
+            ) : (
+              <>
+                {/* Tour Grid */}
+                <div className="grid auto-rows-fr grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {isLoading ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                      <TourSkeleton key={i} />
+                    ))
+                  ) : visibleTours.length === 0 ? (
+                    <div className="col-span-full py-12 text-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-50">
+                        <svg
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          className="h-8 w-8 text-orange-400"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="mb-2 text-lg font-semibold text-slate-800">
+                        Không tìm thấy tour phù hợp
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        Thử thay đổi điểm đến, ngân sách hoặc ngày khởi hành để
+                        tìm được hành trình phù hợp hơn nhé.
+                      </p>
+                    </div>
+                  ) : (
+                    visibleTours.map((t: any) => {
+                      const percent = computePercent(t) ?? DEFAULT_PERCENT;
+                      const id = t._id ?? t.id ?? "";
+                      const slug = t.destinationSlug ?? slugify(t.title);
+
+                      return (
+                        <motion.div
+                          key={id || t.title}
+                          initial={{ opacity: 0, y: 16 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                          className="h-full"
+                        >
+                          <CardHot
+                            image={pickTourImage(t)}
+                            title={t.title}
+                            href={`/user/destination/${slug}/${id}`}
+                            originalPrice={toNum(t.priceAdult)}
+                            salePrice={toNum(t.salePrice)}
+                            discountPercent={percent}
+                            discountAmount={t.discountAmount}
+                            time={t.time}
+                            destination={
+                              t.destination ?? titleFromSlug(t.destinationSlug)
+                            }
+                            seats={t.quantity ?? t.seats ?? 0}
+                            schedule={
+                              t.startText ??
+                              (t.startDate
+                                ? `Khởi hành: ${fmtDate(t.startDate)}`
+                                : undefined)
+                            }
+                          />
+                        </motion.div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Pagination */}
+                {!isLoading && totalPages > 1 && (
+                  <div className="mt-10 flex items-center justify-center gap-2">
+                    <button
+                      className="flex h-10 min-w-[38px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 shadow-sm transition-all hover:border-orange-500 hover:text-orange-600 disabled:opacity-50 disabled:hover:border-slate-200"
+                      disabled={currentPage <= 1}
+                      onClick={() => goToPage(currentPage - 1)}
+                    >
+                      Trước
+                    </button>
+
+                    {pageNumbers.map((n, idx) =>
+                      n === "..." ? (
+                        <span
+                          key={`dots-${idx}`}
+                          className="select-none px-2 text-slate-400"
+                        >
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={n}
+                          onClick={() => goToPage(n as number)}
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold transition-all ${
+                            n === currentPage
+                              ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30"
+                              : "border border-slate-200 bg-white text-slate-600 shadow-sm hover:border-orange-500 hover:text-orange-600"
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      )
+                    )}
+
+                    <button
+                      className="flex h-10 min-w-[38px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 shadow-sm transition-all hover:border-orange-500 hover:text-orange-600 disabled:opacity-50 disabled:hover:border-slate-200"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => goToPage(currentPage + 1)}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </main>
         </div>
       </div>
-
-      {/* Main Layout */}
-      <div className="mx-auto grid w-[92%] max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-        {/* Sidebar filter */}
-        <aside className="lg:sticky lg:top-24 lg:self-start z-10">
-          <TourFilter
-            value={filters}
-            onChange={(v) => setFilters(v)}
-            onSubmit={handleSubmitFilter}
-            fromOptions={fromOptions}
-            toOptions={toOptions}
-          />
-        </aside>
-
-        {/* Grid kết quả */}
-        <main id="list" className="pb-14">
-          <div className="mb-4 flex items-end justify-between">
-            <h2 className="text-xl font-semibold text-slate-800">
-              Tour nổi bật
-            </h2>
-            <span className="text-sm text-slate-600 hidden sm:inline-block">
-              Trang {currentPage}/{totalPages} · Hiển thị {visibleCount} tour
-            </span>
-          </div>
-
-          {isError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-600 shadow-sm">
-              Không tải được dữ liệu tour. Vui lòng thử lại sau.
-            </div>
-          ) : (
-            <>
-              {/* Tour Grid - Bỏ motion.div wrapper phức tạp, chỉ giữ fade in nhẹ */}
-              <div className="grid auto-rows-fr grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {isLoading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <TourSkeleton key={i} />
-                  ))
-                ) : visibleTours.length === 0 ? (
-                  <div className="col-span-full py-10 text-center">
-                    <div className="mx-auto mb-3 h-16 w-16 text-slate-300">
-                      <svg
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-slate-500">
-                      Không tìm thấy tour phù hợp với bộ lọc.
-                    </p>
-                  </div>
-                ) : (
-                  visibleTours.map((t: any) => {
-                    const percent = computePercent(t) ?? DEFAULT_PERCENT;
-                    const id = t._id ?? t.id ?? "";
-                    const slug = t.destinationSlug ?? slugify(t.title);
-
-                    return (
-                      // Chỉ dùng motion.div đơn giản để hiện ra nhẹ nhàng, không layout shift
-                      <motion.div
-                        key={id || t.title}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.3 }}
-                        className="h-full"
-                      >
-                        <CardHot
-                          image={pickTourImage(t)}
-                          title={t.title}
-                          href={`/user/destination/${slug}/${id}`}
-                          originalPrice={toNum(t.priceAdult)}
-                          salePrice={toNum(t.salePrice)}
-                          discountPercent={percent}
-                          discountAmount={t.discountAmount}
-                          time={t.time}
-                          destination={
-                            t.destination ?? titleFromSlug(t.destinationSlug)
-                          }
-                          seats={t.quantity ?? t.seats ?? 0}
-                          schedule={
-                            t.startText ??
-                            (t.startDate
-                              ? `Khởi hành: ${fmtDate(t.startDate)}`
-                              : undefined)
-                          }
-                        />
-                      </motion.div>
-                    );
-                  })
-                )}
-              </div>
-
-              {/* Pagination */}
-              {!isLoading && totalPages > 1 && (
-                <div className="mt-10 flex items-center justify-center gap-2">
-                  <button
-                    className="flex h-9 min-w-[36px] items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 shadow-sm transition-all hover:border-emerald-500 hover:text-emerald-600 disabled:opacity-50 disabled:hover:border-slate-200"
-                    disabled={currentPage <= 1}
-                    onClick={() => goToPage(currentPage - 1)}
-                  >
-                    Trước
-                  </button>
-
-                  {pageNumbers.map((n, idx) =>
-                    n === "..." ? (
-                      <span
-                        key={`dots-${idx}`}
-                        className="select-none px-2 text-slate-400"
-                      >
-                        …
-                      </span>
-                    ) : (
-                      <button
-                        key={n}
-                        onClick={() => goToPage(n as number)}
-                        className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition-all ${
-                          n === currentPage
-                            ? "bg-emerald-600 text-white shadow-sm"
-                            : "border border-slate-200 bg-white text-slate-600 shadow-sm hover:border-emerald-500 hover:text-emerald-600"
-                        }`}
-                      >
-                        {n}
-                      </button>
-                    )
-                  )}
-
-                  <button
-                    className="flex h-9 min-w-[36px] items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 shadow-sm transition-all hover:border-emerald-500 hover:text-emerald-600 disabled:opacity-50 disabled:hover:border-slate-200"
-                    disabled={currentPage >= totalPages}
-                    onClick={() => goToPage(currentPage + 1)}
-                  >
-                    Sau
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </main>
-      </div>
-    </div>
+    </main>
   );
 }
 
 // Wrapper với Suspense để tránh lỗi useSearchParams
 export default function DestinationPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600 mx-auto" />
-          <p className="mt-4 text-slate-600">Đang tải...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-orange-200 border-t-orange-600 mx-auto" />
+            <p className="mt-4 text-slate-600">Đang tải...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <DestinationPageContent />
     </Suspense>
   );

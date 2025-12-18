@@ -12,19 +12,15 @@ import {
   Lock,
   Plane,
   ChevronDown,
-  Globe2,
   ArrowRight,
   MapPin,
   Sparkles,
   Star,
-  Compass,
-  Mountain,
   Users,
-  Target,
   Clock,
+  Ticket,
 } from "lucide-react";
 
-// --- Components ---
 import VietnamJourneyMap from "@/components/VietnamJourneyMap";
 import JourneyStats from "./JourneyStats";
 import Achievements from "./Achievements";
@@ -32,13 +28,10 @@ import JourneyTimeline from "./JourneyTimeline";
 import CheckinAccordion from "./CheckinAccordion";
 import useUser from "#/src/hooks/useUser";
 
-// --- Tour Components ---
 import CardHot from "@/components/cards/CardHot";
 import { getTours } from "@/lib/tours/tour";
 
-// =========================================================
-// HELPER FUNCTIONS
-// =========================================================
+/* ================= Helpers ================= */
 const slugify = (s: string) =>
   (s || "")
     .toLowerCase()
@@ -69,7 +62,7 @@ const computePercent = (t: any) => {
 const pickTourImage = (t: any) =>
   t?.image ?? t?.cover ?? t?.images?.[0] ?? "/hot1.jpg";
 
-// Animation Variants
+/* ================= Animations ================= */
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
@@ -84,11 +77,11 @@ const staggerContainer: Variants = {
 };
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
-// Feature cards for guest page
+/* ================= Static content ================= */
 const FEATURES = [
   {
     icon: MapIcon,
@@ -124,12 +117,13 @@ export default function UserHomeMapPage() {
   const { isAuthenticated, loading: userLoading } = useUser();
   const router = useRouter();
 
-  // --- State cho Tour ---
   const [tours, setTours] = useState<any[]>([]);
   const [tourLoading, setTourLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"map" | "timeline" | "achievements">("map");
+  const [activeTab, setActiveTab] = useState<
+    "map" | "timeline" | "achievements"
+  >("map");
 
-  // --- Fetch Tours ---
+  /* ================= Fetch tours ================= */
   useEffect(() => {
     const fetchTours = async () => {
       try {
@@ -145,101 +139,81 @@ export default function UserHomeMapPage() {
     fetchTours();
   }, []);
 
-  // =========================================================
-  // LOADING STATE
-  // =========================================================
+  /* ================= Loading user ================= */
   if (userLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="relative">
-          <div className="w-20 h-20 rounded-full border-4 border-slate-200 animate-pulse" />
-          <div className="absolute inset-0 w-20 h-20 rounded-full border-4 border-t-emerald-500 animate-spin" />
+          <div className="h-20 w-20 animate-pulse rounded-full border-4 border-slate-200" />
+          <div className="absolute inset-0 h-20 w-20 animate-spin rounded-full border-4 border-t-orange-500 border-slate-200" />
         </div>
-        <p className="mt-6 text-slate-600 font-medium animate-pulse">
+        <p className="mt-6 animate-pulse font-medium text-slate-600">
           Đang tải hành trình của bạn...
         </p>
       </div>
     );
   }
 
-  // =========================================================
-  // GUEST LANDING PAGE
-  // =========================================================
+  /* ================= Guest landing ================= */
   if (!isAuthenticated) {
     return (
-      <main className="relative w-full bg-white font-sans text-slate-600 selection:bg-orange-100 selection:text-orange-900 overflow-hidden">
-        {/* --- HERO SECTION --- */}
-        <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 py-20 px-4 text-center">
-          {/* Animated background */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-0 right-0 -mr-40 -mt-40 w-[600px] h-[600px] rounded-full bg-orange-500/10 blur-[120px] animate-pulse" />
-            <div className="absolute bottom-0 left-0 -ml-40 -mb-40 w-[600px] h-[600px] rounded-full bg-blue-500/10 blur-[120px] animate-pulse" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-emerald-500/5 blur-[150px]" />
-          </div>
-
-          {/* Floating elements */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-2 h-2 bg-white/20 rounded-full"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  y: [0, -30, 0],
-                  opacity: [0.2, 0.5, 0.2],
-                }}
-                transition={{
-                  duration: 3 + Math.random() * 2,
-                  repeat: Infinity,
-                  delay: Math.random() * 2,
-                }}
-              />
-            ))}
+      <main className="relative w-full overflow-hidden bg-white font-sans text-slate-600 selection:bg-orange-100 selection:text-orange-900">
+        {/* HERO */}
+        <section className="relative flex min-h-[80vh] flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950 px-4 pb-20 pt-24 text-center text-white">
+          {/* pattern */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.08]"
+            style={{
+              backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)",
+              backgroundSize: "26px 26px",
+            }}
+          />
+          {/* blobs */}
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -left-32 -top-32 h-72 w-72 rounded-full bg-orange-500/25 blur-[90px]" />
+            <div className="absolute -right-40 bottom-0 h-80 w-80 rounded-full bg-cyan-500/20 blur-[100px]" />
           </div>
 
           <motion.div
             initial="hidden"
             animate="visible"
             variants={fadeInUp}
-            className="relative z-10 max-w-5xl mx-auto space-y-8"
+            className="relative z-10 mx-auto max-w-5xl space-y-8"
           >
-            {/* Badge */}
+            {/* badge */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/20 text-orange-400 shadow-xl backdrop-blur-xl"
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-orange-300 shadow-xl backdrop-blur-xl"
             >
               <Sparkles size={16} className="animate-pulse" />
-              <span className="text-sm font-bold uppercase tracking-wider">
+              <span className="text-sm font-bold uppercase tracking-[0.18em]">
                 Hộ chiếu du lịch số 4.0
               </span>
             </motion.div>
 
-            {/* Main heading */}
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[1.1]">
+            {/* title */}
+            <h1 className="text-4xl font-black leading-[1.1] sm:text-5xl md:text-6xl lg:text-7xl">
               Chinh phục
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-400 animate-gradient">
-                63 Tỉnh Thành
+              <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-400 bg-clip-text text-transparent">
+                63 tỉnh thành
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            <p className="mx-auto max-w-2xl text-base leading-relaxed text-blue-100 sm:text-lg">
               Ghi dấu mọi bước chân, mở khóa thành tựu và nhận những phần quà
               giá trị trên hành trình khám phá Việt Nam cùng AHH Travel.
             </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+            {/* CTAs */}
+            <div className="flex flex-col items-center justify-center gap-4 pt-6 sm:flex-row">
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => router.push("/auth/login")}
-                className="group px-8 py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-lg shadow-2xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all flex items-center gap-3"
+                className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-3.5 text-base font-bold text-white shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50"
               >
                 <Lock size={20} />
                 Đăng nhập để bắt đầu
@@ -248,211 +222,214 @@ export default function UserHomeMapPage() {
                   className="transition-transform group-hover:translate-x-1"
                 />
               </motion.button>
+
               <Link
                 href="/auth/register"
-                className="px-8 py-4 rounded-2xl bg-white/10 text-white font-bold text-lg border border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all"
+                className="inline-flex items-center justify-center rounded-2xl border border-white/25 bg-white/5 px-8 py-3.5 text-base font-bold text-white backdrop-blur-sm hover:bg-white/15 hover:border-white/40 transition-colors"
               >
                 Tạo tài khoản mới
               </Link>
             </div>
 
-            {/* Stats preview */}
+            {/* stats */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="flex items-center justify-center gap-8 pt-8"
+              className="flex items-center justify-center gap-8 pt-4 text-sm text-blue-100"
             >
               {[
                 { value: "10K+", label: "Phượt thủ" },
                 { value: "500K+", label: "Địa điểm" },
                 { value: "50K+", label: "Voucher" },
-              ].map((stat, i) => (
+              ].map((s, i) => (
                 <div key={i} className="text-center">
-                  <p className="text-3xl font-black text-white">{stat.value}</p>
-                  <p className="text-sm text-slate-400">{stat.label}</p>
+                  <p className="text-2xl font-black text-white">{s.value}</p>
+                  <p className="mt-1 text-xs">{s.label}</p>
                 </div>
               ))}
             </motion.div>
           </motion.div>
 
-          {/* Scroll indicator */}
+          {/* scroll hint */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1, y: [0, 10, 0] }}
+            animate={{ opacity: 1, y: [0, 8, 0] }}
             transition={{ delay: 1.5, duration: 2, repeat: Infinity }}
-            className="absolute bottom-10 text-slate-400"
+            className="absolute bottom-6 text-blue-100/80"
           >
-            <ChevronDown size={36} />
+            <ChevronDown size={30} />
           </motion.div>
         </section>
 
-        {/* --- FEATURES SECTION --- */}
-        <section className="py-24 bg-slate-50 relative">
-          <div className="max-w-7xl mx-auto px-4">
+        {/* FEATURES */}
+        <section className="relative bg-slate-50 py-20">
+          <div className="mx-auto max-w-7xl px-4">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-16"
+              className="mb-12 text-center"
             >
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-4">
-                Tính năng <span className="text-emerald-600">nổi bật</span>
+              <h2 className="mb-3 text-3xl font-black text-slate-900 md:text-4xl">
+                Tính năng{" "}
+                <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+                  nổi bật
+                </span>
               </h2>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                Trải nghiệm cách mới để ghi lại và chia sẻ hành trình du lịch của bạn
+              <p className="mx-auto max-w-2xl text-sm text-slate-600 sm:text-base">
+                Trải nghiệm cách mới để ghi lại và chia sẻ hành trình du lịch
+                của bạn.
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {FEATURES.map((feature, index) => (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {FEATURES.map((f, idx) => (
                 <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 30 }}
+                  key={idx}
+                  initial={{ opacity: 0, y: 24 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ y: -5 }}
-                  className={`${feature.bgColor} rounded-3xl p-6 border border-slate-200/50 hover:shadow-xl transition-all cursor-pointer group`}
+                  transition={{ delay: idx * 0.06 }}
+                  whileHover={{ y: -4 }}
+                  className={`${f.bgColor} group rounded-3xl border border-slate-200/60 p-6 shadow-sm hover:shadow-xl transition-all cursor-default`}
                 >
                   <div
-                    className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 transition-transform`}
+                    className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${f.color} text-white shadow-lg group-hover:scale-110 transition-transform`}
                   >
-                    <feature.icon size={28} />
+                    <f.icon size={26} />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-2">
-                    {feature.title}
+                  <h3 className="mb-2 text-lg font-bold text-slate-900">
+                    {f.title}
                   </h3>
-                  <p className="text-slate-600 text-sm">{feature.description}</p>
+                  <p className="text-sm text-slate-600">{f.description}</p>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* --- PREVIEW MAP SECTION --- */}
-        <section className="py-24 bg-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5" />
-          <div className="max-w-7xl mx-auto px-4 relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
+        {/* PREVIEW MAP */}
+        <section className="relative overflow-hidden bg-white py-20">
+          <div className="pointer-events-none absolute inset-0 opacity-5 [background-image:radial-gradient(#64748b_1px,transparent_1px)] [background-size:24px_24px]" />
+          <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 lg:grid-cols-2">
+            <motion.div
+              initial={{ opacity: 0, x: -24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="mb-5 text-3xl font-black text-slate-900 md:text-4xl">
+                Bản đồ{" "}
+                <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">
+                  hành trình cá nhân
+                </span>
+              </h2>
+              <p className="mb-6 text-sm text-slate-600 sm:text-base">
+                Mỗi địa điểm bạn ghé thăm sẽ được tô sáng trên bản đồ. Theo dõi
+                tiến độ chinh phục 63 tỉnh thành và nhận thưởng tương xứng.
+              </p>
+
+              <div className="space-y-3 text-sm text-slate-700">
+                {[
+                  "Tự động check-in khi đặt tour trên hệ thống",
+                  "Đánh dấu thủ công những nơi đã từng đến",
+                  "Nhận voucher khi mở khóa tỉnh/thành mới",
+                  "Chia sẻ hành trình với bạn bè trong một cú bấm",
+                ].map((item, i) => (
+                  <motion.div
+                    key={item}
+                    initial={{ opacity: 0, x: -14 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.08 }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100">
+                      <Star size={14} className="text-emerald-600" />
+                    </div>
+                    <span>{item}</span>
+                  </motion.div>
+                ))}
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => router.push("/auth/register")}
+                className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-6 py-3 text-sm font-bold text-white shadow-lg hover:bg-slate-800"
               >
-                <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-6">
-                  Bản đồ
-                  <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">
-                    hành trình cá nhân
-                  </span>
-                </h2>
-                <p className="text-lg text-slate-600 mb-8">
-                  Mỗi địa điểm bạn ghé thăm sẽ được tô sáng trên bản đồ. Theo dõi
-                  tiến độ chinh phục 63 tỉnh thành và nhận thưởng tương xứng.
-                </p>
+                Bắt đầu hành trình ngay
+                <ArrowRight size={18} />
+              </motion.button>
+            </motion.div>
 
-                <div className="space-y-4">
-                  {[
-                    "Tự động check-in khi đặt tour",
-                    "Đánh dấu thủ công nơi đã đến",
-                    "Nhận voucher cho mỗi tỉnh mới",
-                    "Chia sẻ hành trình với bạn bè",
-                  ].map((item, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 }}
-                      className="flex items-center gap-3"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
-                        <Star size={14} className="text-emerald-600" />
-                      </div>
-                      <span className="text-slate-700">{item}</span>
-                    </motion.div>
-                  ))}
-                </div>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => router.push("/auth/register")}
-                  className="mt-8 px-6 py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors"
-                >
-                  Bắt đầu hành trình ngay
-                </motion.button>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className="relative"
-              >
-                <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-3xl blur-2xl" />
-                <div className="relative bg-white rounded-3xl shadow-2xl p-6 border border-slate-200">
-                  <Image
-                    src="/vietnam-map-preview.png"
-                    alt="Vietnam Map Preview"
-                    width={500}
-                    height={600}
-                    className="rounded-2xl"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent rounded-3xl" />
-                  <div className="absolute bottom-8 left-8 right-8 bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-slate-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-slate-500">Tiến độ mẫu</p>
-                        <p className="text-2xl font-black text-slate-800">
-                          25/63 tỉnh
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-slate-500">Danh hiệu</p>
-                        <p className="text-lg font-bold text-amber-600">
-                          🧭 Thám hiểm gia
-                        </p>
-                      </div>
+            <motion.div
+              initial={{ opacity: 0, x: 24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="relative"
+            >
+              <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-emerald-500/20 to-blue-500/20 blur-2xl" />
+              <div className="relative rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
+                <Image
+                  src="/vietnam-map-preview.png"
+                  alt="Vietnam Map Preview"
+                  width={500}
+                  height={600}
+                  className="rounded-2xl object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+                <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-t from-white via-transparent to-transparent" />
+                <div className="absolute bottom-7 left-7 right-7 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur">
+                  <div className="flex items-center justify-between text-sm">
+                    <div>
+                      <p className="text-xs text-slate-500">Tiến độ mẫu</p>
+                      <p className="text-2xl font-black text-slate-900">
+                        25/63 tỉnh
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">Danh hiệu</p>
+                      <p className="text-base font-bold text-amber-600">
+                        🧭 Thám hiểm gia
+                      </p>
                     </div>
                   </div>
                 </div>
-              </motion.div>
-            </div>
+              </div>
+            </motion.div>
           </div>
         </section>
 
-        {/* --- CTA SECTION --- */}
-        <section className="py-24 bg-gradient-to-br from-emerald-600 to-teal-700 relative overflow-hidden">
-          <div className="absolute inset-0">
-            <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+        {/* CTA cuối */}
+        <section className="relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-slate-900 py-20">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -left-20 top-0 h-72 w-72 rounded-full bg-orange-500/20 blur-3xl" />
+            <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
           </div>
-
-          <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+          <div className="relative z-10 mx-auto max-w-4xl px-4 text-center text-white">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
+              <h2 className="mb-4 text-3xl font-black md:text-4xl">
                 Sẵn sàng chinh phục Việt Nam?
               </h2>
-              <p className="text-xl text-emerald-100 mb-8">
+              <p className="mb-8 text-base text-blue-100 md:text-lg">
                 Tham gia cùng hàng ngàn phượt thủ và bắt đầu hành trình của bạn
                 ngay hôm nay.
               </p>
               <motion.button
                 whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => router.push("/auth/register")}
-                className="px-10 py-5 rounded-2xl bg-white text-emerald-700 font-bold text-xl shadow-2xl hover:shadow-white/20 transition-all"
+                className="inline-flex items-center gap-2 rounded-2xl bg-white px-9 py-4 text-base font-bold text-blue-900 shadow-2xl hover:bg-slate-100"
               >
                 Đăng ký miễn phí
+                <ArrowRight size={18} />
               </motion.button>
             </motion.div>
           </div>
@@ -461,73 +438,78 @@ export default function UserHomeMapPage() {
     );
   }
 
-  // =========================================================
-  // AUTHENTICATED USER DASHBOARD
-  // =========================================================
+  /* ================= Authenticated dashboard ================= */
   return (
     <main className="relative min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-emerald-100/40 blur-[120px]" />
-        <div className="absolute top-[20%] -right-[10%] w-[40%] h-[40%] rounded-full bg-blue-100/40 blur-[120px]" />
-        <div className="absolute bottom-[10%] left-[20%] w-[30%] h-[30%] rounded-full bg-amber-100/30 blur-[100px]" />
+      {/* background blobs (nhẹ, không quá xanh) */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -left-[10%] -top-[20%] h-[40%] w-[45%] rounded-full bg-blue-100/60 blur-[120px]" />
+        <div className="absolute right-[-10%] top-[10%] h-[38%] w-[40%] rounded-full bg-amber-100/50 blur-[110px]" />
+        <div className="absolute bottom-[5%] left-[15%] h-[30%] w-[30%] rounded-full bg-emerald-100/40 blur-[100px]" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 space-y-8">
-        {/* Header */}
+      <div className="relative z-10 mx-auto max-w-7xl space-y-8 px-4 py-8">
+        {/* header */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="mb-4 text-center"
         >
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-3">
+          <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/60 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 shadow-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Hành trình của bạn
+          </p>
+          <h1 className="text-3xl font-black text-slate-900 md:text-4xl">
+            Bản đồ du lịch cá nhân
           </h1>
-          <p className="text-slate-600 text-lg">
-            Khám phá và ghi dấu mọi điểm đến trên bản đồ Việt Nam
+          <p className="mt-2 text-sm text-slate-600 md:text-base">
+            Khám phá và ghi dấu mọi điểm đến trên bản đồ Việt Nam.
           </p>
         </motion.div>
 
-        {/* Stats Dashboard */}
+        {/* stats */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.05 }}
         >
           <JourneyStats />
         </motion.div>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center justify-center gap-2 bg-white rounded-2xl p-2 shadow-sm border border-slate-200 w-fit mx-auto">
+        {/* tabs */}
+        <div className="mx-auto flex w-fit items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
           {[
             { key: "map", label: "Bản đồ", icon: MapIcon },
             { key: "timeline", label: "Dòng thời gian", icon: Clock },
             { key: "achievements", label: "Thành tựu", icon: Trophy },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${
-                activeTab === tab.key
-                  ? "bg-emerald-600 text-white shadow-md"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              <tab.icon size={18} />
-              {tab.label}
-            </button>
-          ))}
+          ].map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as any)}
+                className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all ${
+                  active
+                    ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <tab.icon size={17} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Tab Content */}
+        {/* tab content */}
         <AnimatePresence mode="wait">
           {activeTab === "map" && (
             <motion.div
               key="map"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="rounded-[2rem] bg-white p-4 shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden"
+              exit={{ opacity: 0, y: -16 }}
+              className="overflow-hidden rounded-[2rem] border border-slate-100 bg-white p-4 shadow-xl shadow-slate-200/60"
             >
               <VietnamJourneyMap />
             </motion.div>
@@ -536,9 +518,9 @@ export default function UserHomeMapPage() {
           {activeTab === "timeline" && (
             <motion.div
               key="timeline"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              exit={{ opacity: 0, y: -16 }}
             >
               <JourneyTimeline />
             </motion.div>
@@ -547,44 +529,44 @@ export default function UserHomeMapPage() {
           {activeTab === "achievements" && (
             <motion.div
               key="achievements"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              exit={{ opacity: 0, y: -16 }}
             >
               <Achievements />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Checkin History */}
+        {/* checkin list */}
         {activeTab === "map" && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.2 }}
           >
             <CheckinAccordion />
           </motion.div>
         )}
 
-        {/* Tour Suggestions */}
-        <section className="pt-8 border-t border-slate-200">
-          <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        {/* suggested tours */}
+        <section className="border-t border-slate-200 pt-8">
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-3xl font-extrabold text-slate-900 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white">
+              <h2 className="flex items-center gap-3 text-2xl font-extrabold text-slate-900 md:text-3xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white">
                   <Plane size={20} />
                 </div>
                 Tour gợi ý cho bạn
               </h2>
-              <p className="mt-2 text-slate-500">
-                Những hành trình phù hợp để lấp đầy bản đồ của bạn
+              <p className="mt-1 text-sm text-slate-500">
+                Những hành trình phù hợp để lấp đầy bản đồ của bạn.
               </p>
             </div>
 
             <Link
               href="/user/destination"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 hover:border-orange-500 hover:text-orange-600 transition-all shadow-sm"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:border-orange-500 hover:text-orange-600"
             >
               Xem tất cả tour
               <ArrowRight size={16} />
@@ -592,13 +574,13 @@ export default function UserHomeMapPage() {
           </div>
 
           {tourLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
                   className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm"
                 >
-                  <div className="h-48 w-full animate-pulse rounded-xl bg-slate-100" />
+                  <div className="h-44 w-full animate-pulse rounded-xl bg-slate-100" />
                   <div className="mt-3 h-4 w-3/4 animate-pulse rounded bg-slate-100" />
                   <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-slate-100" />
                 </div>
@@ -610,7 +592,7 @@ export default function UserHomeMapPage() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+              className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
             >
               {tours.map((t) => {
                 const percent = computePercent(t);
@@ -618,7 +600,11 @@ export default function UserHomeMapPage() {
                 const id = t._id ?? t.id;
 
                 return (
-                  <motion.div key={id} variants={itemVariants} whileHover={{ y: -5 }}>
+                  <motion.div
+                    key={id}
+                    variants={itemVariants}
+                    whileHover={{ y: -4 }}
+                  >
                     <CardHot
                       image={pickTourImage(t)}
                       title={t.title}
@@ -628,7 +614,9 @@ export default function UserHomeMapPage() {
                       discountPercent={percent}
                       discountAmount={t.discountAmount}
                       time={t.time}
-                      destination={t.destination ?? titleFromSlug(t.destinationSlug)}
+                      destination={
+                        t.destination ?? titleFromSlug(t.destinationSlug)
+                      }
                       seats={t.quantity ?? t.seats ?? 0}
                       schedule={
                         t.startText ??

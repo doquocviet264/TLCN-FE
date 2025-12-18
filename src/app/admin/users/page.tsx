@@ -77,7 +77,7 @@ export default function UsersPage() {
       <div className="mb-6">
         <Link
           href="/admin/users/create"
-          className="inline-block rounded-lg bg-emerald-600 px-6 py-3 text-white font-semibold hover:bg-emerald-700 transition"
+          className="inline-block rounded-lg bg-orange-500 px-6 py-3 text-white font-semibold hover:bg-orange-600 transition"
         >
           + Thêm User Mới
         </Link>
@@ -96,7 +96,7 @@ export default function UsersPage() {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -105,7 +105,7 @@ export default function UsersPage() {
       {/* Content */}
       {isLoading ? (
         <div className="flex justify-center items-center min-h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
         </div>
       ) : error ? (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
@@ -171,7 +171,7 @@ export default function UsersPage() {
                       <td className="px-4 py-3 text-slate-600">
                         <a
                           href={`mailto:${user.email}`}
-                          className="text-emerald-600 hover:underline"
+                          className="text-orange-600 hover:underline"
                         >
                           {user.email}
                         </a>
@@ -202,7 +202,7 @@ export default function UsersPage() {
                           <Link
                             href={`/admin/users/${user._id}`}
                             title="Chỉnh sửa"
-                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                            className="p-2 text-orange-600 hover:bg-emerald-50 rounded-lg transition"
                           >
                             <i className="ri-pencil-line text-lg"></i>
                           </Link>
@@ -235,7 +235,7 @@ export default function UsersPage() {
             <p className="text-slate-600 mb-4 md:mb-0">
               Tổng cộng: <span className="font-bold text-slate-900">{data.total}</span> người
               dùng | Trang{" "}
-              <span className="font-bold text-emerald-600">{page}</span> of{" "}
+              <span className="font-bold text-orange-600">{page}</span> of{" "}
               <span className="font-bold">{data.pages}</span>
             </p>
 
@@ -256,7 +256,7 @@ export default function UsersPage() {
                   onClick={() => setPage(i + 1)}
                   className={`px-3 py-2 rounded-lg transition ${
                     page === i + 1
-                      ? "bg-emerald-600 text-white"
+                      ? "bg-orange-500 text-white"
                       : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                   }`}
                 >

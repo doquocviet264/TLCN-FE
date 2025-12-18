@@ -175,7 +175,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
               name="title"
               value={formData.title}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               placeholder="Du lịch Hạ Long 3N2Đ"
               required
             />
@@ -192,7 +192,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 name="time"
                 value={formData.time}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 placeholder="3 ngày 2 đêm"
               />
             </div>
@@ -205,7 +205,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 name="destination"
                 value={formData.destination}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 placeholder="Quảng Ninh"
                 required
               />
@@ -223,7 +223,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 value={formData.leaderId || ""}
                 onChange={handleChange}
                 disabled={isLoadingLeaders}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent appearance-none bg-white"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent appearance-none bg-white"
               >
                 <option value="">-- Chưa gán leader --</option>
                 {leaders.map((leader: any) => (
@@ -259,7 +259,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
               value={formData.description}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               placeholder="Mô tả chi tiết về tour..."
             />
           </div>
@@ -275,7 +275,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 name="priceAdult"
                 value={formData.priceAdult}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
             <div>
@@ -287,7 +287,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 name="priceChild"
                 value={formData.priceChild}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -303,7 +303,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 name="startDate"
                 value={typeof formData.startDate === 'string' ? formData.startDate : ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
             <div>
@@ -315,7 +315,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 name="endDate"
                 value={typeof formData.endDate === 'string' ? formData.endDate : ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -331,7 +331,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 name="quantity"
                 value={formData.quantity}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
             <div>
@@ -343,7 +343,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 name="min_guests"
                 value={formData.min_guests}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
             <div>
@@ -355,7 +355,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 name="current_guests"
                 value={formData.current_guests}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
             <div>
@@ -366,7 +366,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               >
                 <option value="pending">Chờ duyệt</option>
                 <option value="confirmed">Đã duyệt</option>
@@ -389,7 +389,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                     type="text"
                     value={img}
                     onChange={(e) => handleImageChange(idx, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     placeholder="https://example.com/image.jpg"
                   />
                   <button
@@ -416,7 +416,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 font-semibold"
+              className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition disabled:opacity-50 font-semibold"
             >
               {isLoading
                 ? "Đang xử lý..."

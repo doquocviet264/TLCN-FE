@@ -161,9 +161,9 @@ export default function MyVouchersPage() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-orange-50/30">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-600 font-medium">Đang tải voucher...</p>
         </div>
       </div>
@@ -171,7 +171,7 @@ export default function MyVouchersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50/30 py-8 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <motion.div
@@ -180,7 +180,7 @@ export default function MyVouchersPage() {
           className="mb-8"
         >
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-200">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-200">
               <Gift className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -255,7 +255,7 @@ export default function MyVouchersPage() {
                 placeholder="Tìm kiếm theo mã, mô tả..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all text-slate-700"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-slate-700"
               />
             </div>
 
@@ -266,7 +266,7 @@ export default function MyVouchersPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all appearance-none bg-white text-slate-700"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all appearance-none bg-white text-slate-700"
                 >
                   {filterOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -299,7 +299,7 @@ export default function MyVouchersPage() {
             </p>
             <button
               onClick={() => router.push("/user/map")}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold shadow-lg shadow-emerald-200 hover:shadow-xl transition-all"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold shadow-lg shadow-orange-200 hover:shadow-xl transition-all"
             >
               Khám phá Hành Trình
             </button>

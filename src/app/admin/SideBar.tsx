@@ -1,8 +1,23 @@
+"use client";
+
 import Link from "next/link";
+import Image from "next/image";
 import React from "react";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "#/stores/auth";
-import { authApi } from "@/lib/auth/authApi";
+import { useRouter, usePathname } from "next/navigation";
+import { useAdminStore } from "#/stores/admin";
+import {
+  LayoutDashboard,
+  MapPin,
+  CalendarCheck,
+  Users,
+  FileText,
+  Star,
+  Gift,
+  UserCog,
+  MessageSquare,
+  LogOut,
+  ChevronRight,
+} from "lucide-react";
 
 interface NavLink {
   display: string;
@@ -16,7 +31,7 @@ const navLinks: NavLink[] = [
   {
     display: "Dashboard",
     path: "/admin/dashboard",
-    icon: <i className="ri-home-line"></i>,
+    icon: <LayoutDashboard className="w-5 h-5" />,
     category: "main",
   },
 
@@ -24,7 +39,7 @@ const navLinks: NavLink[] = [
   {
     display: "Tours",
     path: "/admin/tours",
-    icon: <i className="ri-bus-line"></i>,
+    icon: <MapPin className="w-5 h-5" />,
     category: "tours",
   },
 
@@ -32,7 +47,7 @@ const navLinks: NavLink[] = [
   {
     display: "Đặt tour",
     path: "/admin/bookings",
-    icon: <i className="ri-calendar-check-line"></i>,
+    icon: <CalendarCheck className="w-5 h-5" />,
     category: "bookings",
   },
 
@@ -40,7 +55,7 @@ const navLinks: NavLink[] = [
   {
     display: "Người dùng",
     path: "/admin/users",
-    icon: <i className="ri-team-line"></i>,
+    icon: <Users className="w-5 h-5" />,
     category: "users",
   },
 
@@ -48,13 +63,13 @@ const navLinks: NavLink[] = [
   {
     display: "Blog",
     path: "/admin/blog",
-    icon: <i className="ri-newspaper-line"></i>,
+    icon: <FileText className="w-5 h-5" />,
     category: "content",
   },
   {
     display: "Đánh giá",
     path: "/admin/reviews",
-    icon: <i className="ri-star-line"></i>,
+    icon: <Star className="w-5 h-5" />,
     category: "content",
   },
 
@@ -62,7 +77,7 @@ const navLinks: NavLink[] = [
   {
     display: "Vouchers",
     path: "/admin/vouchers",
-    icon: <i className="ri-coupon-line"></i>,
+    icon: <Gift className="w-5 h-5" />,
     category: "operations",
   },
 
@@ -70,31 +85,26 @@ const navLinks: NavLink[] = [
   {
     display: "Leader",
     path: "/admin/leaders",
-    icon: <i className="ri-user-star-line"></i>,
+    icon: <UserCog className="w-5 h-5" />,
     category: "operations",
   },
   {
     display: "Chat",
     path: "/admin/chat",
-    icon: <i className="ri-message-3-line"></i>,
+    icon: <MessageSquare className="w-5 h-5" />,
     category: "operations",
   },
-  // { display: 'Thanh toán', path: '/admin/payments', icon: <i className="ri-bank-card-line"></i>, category: 'operations' },
 ];
 
 const SideBar = () => {
   const router = useRouter();
-  const resetAuth = useAuthStore((state: any) => state.resetAuth);
+  const pathname = usePathname();
+  const signOut = useAdminStore((state) => state.signOut);
+  const profile = useAdminStore((state) => state.profile);
 
   const handleLogout = async () => {
-    try {
-      await authApi.logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      resetAuth();
-      router.push("/auth/login");
-    }
+    signOut();
+    router.push("/admin/login");
   };
 
   const groupedLinks = navLinks.reduce((acc, link) => {
@@ -105,7 +115,7 @@ const SideBar = () => {
   }, {} as Record<string, NavLink[]>);
 
   const categoryLabels: Record<string, string> = {
-    main: "CHÍNH",
+    main: "",
     tours: "QUẢN LÝ TOUR",
     bookings: "ĐẶT TOUR",
     users: "NGƯỜI DÙNG",
@@ -124,39 +134,83 @@ const SideBar = () => {
     "operations",
   ];
 
+  const isActive = (path: string) => {
+    if (path === "/admin/dashboard") {
+      return pathname === path;
+    }
+    return pathname?.startsWith(path);
+  };
+
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-gradient-to-b from-blue-950 to-blue-900">
       {/* Logo Section */}
-      <div className="border-b border-slate-200 px-6 py-6">
-        <img src="/logo.png" alt="Logo" className="h-10 w-auto" />
+      <div className="px-6 py-5 border-b border-blue-800/50">
+        <Link href="/admin/dashboard" className="flex items-center gap-3">
+          <Image
+            src="/logo.png"
+            alt="Anh Travel"
+            width={140}
+            height={45}
+            className="brightness-0 invert"
+          />
+        </Link>
+      </div>
+
+      {/* Admin Profile Badge */}
+      <div className="px-4 py-4">
+        <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/5 border border-white/10">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-bold shadow-lg">
+            {profile?.name?.charAt(0)?.toUpperCase() || "A"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-white truncate">
+              {profile?.name || "Admin"}
+            </p>
+            <p className="text-xs text-blue-300">Quản trị viên</p>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
+      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
         {categoryOrder.map((category) => {
           const links = groupedLinks[category];
           if (!links) return null;
 
           return (
-            <div key={category}>
-              {category !== "main" && (
-                <div className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <div key={category} className="mb-4">
+              {categoryLabels[category] && (
+                <div className="px-4 py-2 text-[10px] font-bold text-blue-400/70 uppercase tracking-wider">
                   {categoryLabels[category]}
                 </div>
               )}
-              <div className="space-y-1">
-                {links.map(({ display, path, icon }) => (
-                  <Link
-                    key={path}
-                    href={path}
-                    className="group flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-700 transition-all duration-200 hover:bg-emerald-50 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-                  >
-                    <span className="h-5 w-5 flex-shrink-0 transition-all duration-200 group-hover:text-emerald-600">
-                      {icon}
-                    </span>
-                    <span>{display}</span>
-                  </Link>
-                ))}
+              <div className="space-y-0.5">
+                {links.map(({ display, path, icon }) => {
+                  const active = isActive(path);
+                  return (
+                    <Link
+                      key={path}
+                      href={path}
+                      className={`group flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+                        active
+                          ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/25"
+                          : "text-blue-100 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <span
+                        className={`flex-shrink-0 transition-all duration-200 ${
+                          active ? "text-white" : "text-blue-300 group-hover:text-orange-400"
+                        }`}
+                      >
+                        {icon}
+                      </span>
+                      <span className="flex-1">{display}</span>
+                      {active && (
+                        <ChevronRight className="w-4 h-4 text-white/70" />
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           );
@@ -164,11 +218,12 @@ const SideBar = () => {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-slate-200 px-6 py-4">
+      <div className="px-4 py-4 border-t border-blue-800/50">
         <button
           onClick={handleLogout}
-          className="w-full rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:bg-red-100 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm font-medium text-blue-200 transition-all duration-200 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/30"
         >
+          <LogOut className="w-4 h-4" />
           Đăng xuất
         </button>
       </div>

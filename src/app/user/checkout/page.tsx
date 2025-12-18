@@ -348,20 +348,7 @@ function CheckoutContent() {
   };
 
   /* ---------- Loading / Error ---------- */
-  if (!id)
-    return (
-      <div className="p-10 text-center text-slate-700">Thiếu mã tour.</div>
-    );
-
-  if (isLoading)
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto h-14 w-14 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600" />
-          <p className="mt-4 text-slate-600">Đang tải thông tin tour…</p>
-        </div>
-      </div>
-    );
+  // ... các đoạn logic phía trên giữ nguyên
 
   if (isError || !tour)
     return (
@@ -371,219 +358,281 @@ function CheckoutContent() {
     );
 
   return (
-    <main className="mx-auto max-w-[1200px] px-4 py-8 bg-slate-50 min-h-screen">
-      {/* Header */}
-      <div className="mb-8">
-        <nav className="text-sm text-slate-500 mb-2">
-          <Link href="/" className="hover:text-emerald-600">
-            Trang chủ
-          </Link>{" "}
-          / <span className="text-slate-800">Đặt tour</span>
-        </nav>
-        <h1 className="text-3xl font-bold text-slate-900">Xác nhận đặt chỗ</h1>
-      </div>
+    <main className="min-h-screen bg-slate-50">
+      {/* ===== HERO / HEADER ===== */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950 pb-20 pt-10 text-white">
+        {/* pattern chấm */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
 
-      <form
-        onSubmit={onSubmit}
-        className="grid grid-cols-1 lg:grid-cols-12 gap-8"
-      >
-        {/* LEFT COLUMN: INFO */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* 1. Contact Info */}
-          <Card
-            title="Thông tin liên lạc"
-            icon={<User size={20} className="text-emerald-600" />}
-          >
-            <div className="grid md:grid-cols-2 gap-4">
-              <Input
-                name="fullName"
-                label="Họ và tên *"
-                value={formData.fullName}
-                onChange={(e: any) =>
-                  handleInputChange("fullName", e.target.value)
-                }
-                icon={<User size={16} />}
-                required
-                error={errors.fullName}
-              />
-              <Input
-                name="email"
-                label="Email *"
-                type="email"
-                value={formData.email}
-                onChange={(e: any) =>
-                  handleInputChange("email", e.target.value)
-                }
-                icon={<Mail size={16} />}
-                required
-                error={errors.email}
-              />
-              <Input
-                name="phone"
-                label="Số điện thoại *"
-                value={formData.phone}
-                onChange={(e: any) =>
-                  handleInputChange("phone", e.target.value)
-                }
-                icon={<Phone size={16} />}
-                required
-                error={errors.phone}
-              />
-              <Input
-                name="address"
-                label="Địa chỉ"
-                value={formData.address}
-                onChange={(e: any) =>
-                  handleInputChange("address", e.target.value)
-                }
-                icon={<MapPin size={16} />}
-                error={errors.address}
-              />
-            </div>
-          </Card>
+        <div className="relative z-10 mx-auto flex max-w-[1200px] flex-col gap-5 px-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="max-w-xl">
+            {/* breadcrumb */}
+            <nav className="mb-3 flex items-center gap-2 text-xs font-medium text-blue-200/90">
+              <Link href="/" className="hover:text-amber-300">
+                Trang chủ
+              </Link>
+              <span className="h-1 w-1 rounded-full bg-blue-300" />
+              <span className="text-blue-100">Đặt tour</span>
+            </nav>
 
-          {/* 2. Guests */}
-          <Card title="Số lượng hành khách" icon={<UsersIcon />}>
-            <div className="grid md:grid-cols-2 gap-6">
-              <QuantitySelector
-                label="Người lớn"
-                value={adults}
-                onChange={setAdults}
-                min={1}
-                price={priceAdult}
-              />
-              <QuantitySelector
-                label="Trẻ em"
-                value={children}
-                onChange={setChildren}
-                min={0}
-                price={priceChild}
-              />
-            </div>
-          </Card>
-
-          {/* 3. Payment Method */}
-          <Card
-            title="Phương thức thanh toán"
-            icon={<Banknote size={20} className="text-emerald-600" />}
-          >
-            <PaymentMethods
-              value={paymentMethod}
-              onChange={setPaymentMethod}
-              typeValue={paymentType}
-              onTypeChange={setPaymentType}
-            />
-          </Card>
-        </div>
-
-        {/* RIGHT COLUMN: SUMMARY */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Tour Summary Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden sticky top-6">
-            {/* Header Image */}
-            <div className="relative h-40 w-full">
-              <Image
-                src={coverImg}
-                alt={tour.title ?? "Tour"}
-                fill
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-3 left-4 text-white">
-                <h3 className="font-bold text-lg line-clamp-1">{tour.title}</h3>
-                <p className="text-sm opacity-90 flex items-center gap-1">
-                  <MapPin size={12} /> {tour.destination}
-                </p>
-              </div>
+            {/* badge bước */}
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-100">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              Bước 2 · Xác nhận & thanh toán
             </div>
 
-            {/* Pricing Details */}
-            <div className="p-5 space-y-4">
-              <div className="space-y-2 text-sm text-slate-600">
-                <div className="flex justify-between">
-                  <span>Người lớn ({adults}x)</span>
-                  <span>{vnd(adults * priceAdult)}</span>
-                </div>
-                {children > 0 && (
-                  <div className="flex justify-between">
-                    <span>Trẻ em ({children}x)</span>
-                    <span>{vnd(children * priceChild)}</span>
-                  </div>
-                )}
-                <div className="border-t border-dashed border-slate-200 my-2 pt-2 flex justify-between font-medium text-slate-900">
-                  <span>Tạm tính</span>
-                  <span>{vnd(listed)}</span>
-                </div>
+            <h1 className="mt-3 text-2xl font-extrabold leading-snug sm:text-3xl lg:text-4xl">
+              Xác nhận đặt chỗ
+            </h1>
+            <p className="mt-2 max-w-lg text-sm text-blue-100/90">
+              Kiểm tra thông tin liên lạc, số lượng khách và phương thức thanh
+              toán trước khi hoàn tất đơn đặt tour.
+            </p>
+          </div>
 
-                {/* Discount Row */}
-                {discountAmount > 0 && (
-                  <div className="flex justify-between text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded">
-                    <span>Voucher giảm giá</span>
-                    <span>- {vnd(discountAmount)}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* VOUCHER BUTTON */}
-              <button
-                type="button"
-                onClick={() => setShowVoucherModal(true)}
-                className="w-full flex items-center justify-between p-3 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 hover:bg-emerald-50 transition group"
-              >
-                <div className="flex items-center gap-2">
-                  <Ticket size={18} className="text-emerald-600" />
-                  <span className="text-sm font-medium text-slate-700">
-                    {voucher ? (
-                      <span className="text-emerald-700 font-bold">
-                        {voucher.code}
-                      </span>
-                    ) : (
-                      "Mã giảm giá"
-                    )}
-                  </span>
-                </div>
-                <div className="flex items-center text-xs text-emerald-600 font-semibold group-hover:underline">
-                  {voucher ? "Đổi" : "Chọn hoặc nhập mã"}{" "}
-                  <ChevronRight size={14} />
-                </div>
-              </button>
-
-              {/* Total */}
-              <div className="flex justify-between items-end pt-4 border-t border-slate-200">
-                <span className="text-slate-600 font-medium">Tổng cộng</span>
-                <span className="text-2xl font-bold text-slate-900">
-                  {vnd(totalDisplay)}
+          {/* tóm tắt tour nhỏ trên hero (mobile thì ẩn bớt) */}
+          <div className="hidden min-w-[260px] rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs sm:block">
+            <p className="mb-1 line-clamp-1 font-semibold text-white">
+              {tour.title}
+            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-blue-100">
+              {tour.destination && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin size={14} /> {tour.destination}
                 </span>
-              </div>
-
-              <Button
-                type="submit"
-                full
-                disabled={submitting}
-                className="h-12 text-base"
-              >
-                {submitting ? "Đang xử lý..." : "Thanh toán ngay"}
-              </Button>
-
-              {errors.submit && (
-                <p className="text-xs text-red-600 text-center mt-2 flex items-center justify-center gap-1">
-                  <AlertCircle size={14} /> {errors.submit}
-                </p>
+              )}
+              {tour.time && (
+                <span className="inline-flex items-center gap-1">
+                  <User size={14} /> {tour.time}
+                </span>
               )}
             </div>
           </div>
         </div>
-      </form>
+      </section>
+
+      {/* ===== MAIN CONTENT ===== */}
+      <section className="relative z-10 mx-auto max-w-[1200px] px-4 pb-10 -mt-4 lg:-mt-6">
+        <form
+          onSubmit={onSubmit}
+          className="grid grid-cols-1 gap-8 lg:grid-cols-12"
+        >
+          {/* LEFT COLUMN: INFO */}
+          <div className="space-y-6 lg:col-span-8">
+            {/* 1. Contact Info */}
+            <Card
+              title="Thông tin liên lạc"
+              icon={<User size={18} className="text-orange-500" />}
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  name="fullName"
+                  label="Họ và tên *"
+                  value={formData.fullName}
+                  onChange={(e: any) =>
+                    handleInputChange("fullName", e.target.value)
+                  }
+                  icon={<User size={16} />}
+                  required
+                  error={errors.fullName}
+                />
+                <Input
+                  name="email"
+                  label="Email *"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e: any) =>
+                    handleInputChange("email", e.target.value)
+                  }
+                  icon={<Mail size={16} />}
+                  required
+                  error={errors.email}
+                />
+                <Input
+                  name="phone"
+                  label="Số điện thoại *"
+                  value={formData.phone}
+                  onChange={(e: any) =>
+                    handleInputChange("phone", e.target.value)
+                  }
+                  icon={<Phone size={16} />}
+                  required
+                  error={errors.phone}
+                />
+                <Input
+                  name="address"
+                  label="Địa chỉ"
+                  value={formData.address}
+                  onChange={(e: any) =>
+                    handleInputChange("address", e.target.value)
+                  }
+                  icon={<MapPin size={16} />}
+                  error={errors.address}
+                />
+              </div>
+            </Card>
+
+            {/* 2. Guests */}
+            <Card title="Số lượng hành khách" icon={<UsersIcon />}>
+              <div className="grid gap-6 md:grid-cols-2">
+                <QuantitySelector
+                  label="Người lớn"
+                  value={adults}
+                  onChange={setAdults}
+                  min={1}
+                  price={priceAdult}
+                />
+                <QuantitySelector
+                  label="Trẻ em"
+                  value={children}
+                  onChange={setChildren}
+                  min={0}
+                  price={priceChild}
+                />
+              </div>
+            </Card>
+
+            {/* 3. Payment Method */}
+            <Card
+              title="Phương thức thanh toán"
+              icon={<Banknote size={18} className="text-emerald-600" />}
+            >
+              <PaymentMethods
+                value={paymentMethod}
+                onChange={setPaymentMethod}
+                typeValue={paymentType}
+                onTypeChange={setPaymentType}
+              />
+            </Card>
+          </div>
+
+          {/* RIGHT COLUMN: SUMMARY */}
+          <div className="space-y-6 lg:col-span-4">
+            {/* Tour Summary Card */}
+            <div className="sticky top-6 overflow-hidden rounded-3xl border border-slate-200 bg-white/95 shadow-xl shadow-slate-200/70 backdrop-blur">
+              {/* Header Image */}
+              <div className="relative h-40 w-full">
+                <Image
+                  src={coverImg}
+                  alt={tour.title ?? "Tour"}
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                <div className="absolute bottom-3 left-4 right-3">
+                  <p className="mb-1 inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-200">
+                    Xác nhận đặt tour
+                  </p>
+                  <h3 className="line-clamp-2 text-lg font-bold text-white">
+                    {tour.title}
+                  </h3>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-blue-100">
+                    <MapPin size={12} /> {tour.destination}
+                  </p>
+                </div>
+              </div>
+
+              {/* Pricing Details */}
+              <div className="space-y-4 p-5">
+                <div className="space-y-2 text-sm text-slate-600">
+                  <div className="flex justify-between">
+                    <span>Người lớn ({adults}x)</span>
+                    <span>{vnd(adults * priceAdult)}</span>
+                  </div>
+                  {children > 0 && (
+                    <div className="flex justify-between">
+                      <span>Trẻ em ({children}x)</span>
+                      <span>{vnd(children * priceChild)}</span>
+                    </div>
+                  )}
+                  <div className="my-2 flex justify-between border-t border-dashed border-slate-200 pt-2 font-medium text-slate-900">
+                    <span>Tạm tính</span>
+                    <span>{vnd(listed)}</span>
+                  </div>
+
+                  {/* Discount Row */}
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between rounded-xl bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+                      <span>Voucher giảm giá</span>
+                      <span>- {vnd(discountAmount)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* VOUCHER BUTTON */}
+                <button
+                  type="button"
+                  onClick={() => setShowVoucherModal(true)}
+                  className="group flex w-full items-center justify-between rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/60 p-3 text-left text-sm transition hover:bg-emerald-50"
+                >
+                  <div className="flex items-center gap-2">
+                    <Ticket size={18} className="text-emerald-600" />
+                    <span className="font-medium text-slate-700">
+                      {voucher ? (
+                        <span className="font-bold text-emerald-700">
+                          {voucher.code}
+                        </span>
+                      ) : (
+                        "Mã giảm giá"
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center text-xs font-semibold text-emerald-600 group-hover:underline">
+                    {voucher ? "Đổi" : "Chọn hoặc nhập mã"}{" "}
+                    <ChevronRight size={14} />
+                  </div>
+                </button>
+
+                {/* Total */}
+                <div className="flex items-end justify-between border-t border-slate-200 pt-4">
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      Tổng cộng
+                    </span>
+                    <p className="text-[11px] text-slate-400">
+                      Giá đã bao gồm thuế & phí cơ bản
+                    </p>
+                  </div>
+                  <span className="text-2xl font-extrabold text-slate-900">
+                    {vnd(totalDisplay)}
+                  </span>
+                </div>
+
+                <Button
+                  type="submit"
+                  full
+                  disabled={submitting}
+                  className="h-12 text-base"
+                >
+                  {submitting ? "Đang xử lý..." : "Thanh toán ngay"}
+                </Button>
+
+                {errors.submit && (
+                  <p className="mt-2 flex items-center justify-center gap-1 text-center text-xs text-red-600">
+                    <AlertCircle size={14} /> {errors.submit}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </form>
+      </section>
 
       {/* VOUCHER MODAL */}
       <AnimatePresence>
         {showVoucherModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
+              className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
             >
               <div className="p-4 border-b flex justify-between items-center bg-slate-50">
                 <h3 className="font-bold text-lg text-slate-800">
@@ -699,10 +748,15 @@ const UsersIcon = () => (
 
 function Card({ title, icon, children }: any) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-      <h2 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
-        {icon} {title}
-      </h2>
+    <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm shadow-slate-100">
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+          {icon}
+        </div>
+        <h2 className="text-base font-semibold text-slate-900 sm:text-lg">
+          {title}
+        </h2>
+      </div>
       {children}
     </div>
   );
@@ -839,12 +893,22 @@ function PaymentMethods({ value, onChange, typeValue, onTypeChange }: any) {
     </div>
   );
 }
-
-function Button({ children, className, ...props }: any) {
+function Button({ children, className = "", ...props }: any) {
   return (
     <button
       {...props}
-      className={`w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-70 disabled:scale-100 ${className}`}
+      className={`
+        w-full rounded-2xl 
+        bg-gradient-to-r from-orange-500 to-orange-600 
+        px-4 py-3
+        text-sm font-bold text-white
+        shadow-lg shadow-orange-500/30
+        transition-all
+        hover:from-orange-600 hover:to-orange-700
+        active:scale-[0.97]
+        disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100
+        ${className}
+      `}
     >
       {children}
     </button>

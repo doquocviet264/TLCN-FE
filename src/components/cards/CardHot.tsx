@@ -4,28 +4,29 @@ import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import { Clock3, Plane, CalendarDays, Users2 } from "lucide-react";
-export type CardHotProps = 
-{ 
-  image: string; 
-  title: string; 
-  subtitle?: string; 
-  badgeText?: string; 
-  originalPrice?: number | string; salePrice?: number | string; 
+
+export type CardHotProps = {
+  image: string;
+  title: string;
+  subtitle?: string;
+  badgeText?: string;
+  originalPrice?: number | string;
+  salePrice?: number | string;
   discountPercent?: number;
-   discountAmount?: number; 
-   href?: string;
-    time?: string;
+  discountAmount?: number;
+  href?: string;
+  time?: string;
+  destination?: string;
+  schedule?: string;
+  seats?: number | string;
+  meta?: {
+    duration?: string;
     destination?: string;
-    schedule?: string; // ví dụ "Khởi hành: 11/9/2025"
-    seats?: number | string; // 👈 còn bao nhiêu chỗ
-    // Giữ tương thích cũ
-    meta?: {
-      duration?: string;
-      destination?: string;
-      schedule?: string;
-      seats?: number | string;
-    };
+    schedule?: string;
+    seats?: number | string;
+  };
 };
+
 /* ============== helpers ============== */
 const toNumber = (v?: number | string) => {
   if (typeof v === "number") return Number.isFinite(v) ? v : undefined;
@@ -34,6 +35,7 @@ const toNumber = (v?: number | string) => {
     return Number.isNaN(n) ? undefined : n;
   }
 };
+
 const vnd = (n?: number) =>
   typeof n === "number"
     ? new Intl.NumberFormat("vi-VN", {
@@ -66,6 +68,7 @@ export default function CardHot(props: CardHotProps) {
       saleNum = Math.round(originalNum - discountAmount);
     }
   }
+
   const hasSale =
     originalNum != null && saleNum != null && saleNum < originalNum;
   const priceToShow = hasSale ? saleNum : saleNum ?? originalNum;
@@ -81,8 +84,9 @@ export default function CardHot(props: CardHotProps) {
       href={href}
       className="
         group flex h-full flex-col overflow-hidden
-        rounded-[20px] border border-orange-200 bg-white/95
-        shadow-sm transition hover:-translate-y-[2px] hover:shadow-md
+        rounded-2xl border border-slate-100 bg-white
+        shadow-sm transition-all duration-300
+        hover:-translate-y-2 hover:shadow-xl hover:shadow-orange-100
       "
     >
       {/* media */}
@@ -92,25 +96,27 @@ export default function CardHot(props: CardHotProps) {
           alt={title}
           fill
           sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
+
+        {/* overlay nhẹ khi hover */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
         {badgeText && (
-          <div className="absolute left-3 top-3 rounded-full bg-orange-500/95 px-3 py-1 text-[12px] font-semibold text-white shadow">
+          <div className="absolute left-3 top-3 rounded-full bg-orange-500/95 px-3 py-1 text-[11px] font-semibold text-white shadow">
             {badgeText}
           </div>
         )}
       </div>
 
       {/* body */}
-      <div className="flex flex-1 flex-col gap-3.5 px-5 pb-4 pt-4 sm:pb-5">
-        <h3 className="line-clamp-2 text-[17px] sm:text-[18px] font-extrabold leading-snug text-[#1e429f]">
+      <div className="flex flex-1 flex-col gap-3 px-5 pb-5 pt-4">
+        <h3 className="line-clamp-2 text-[16px] sm:text-[17px] font-semibold leading-snug text-slate-900">
           {title}
         </h3>
 
         {subtitle && (
-          <p className="line-clamp-1 text-[13px] text-slate-500">
-            {subtitle}
-          </p>
+          <p className="line-clamp-1 text-[13px] text-slate-500">{subtitle}</p>
         )}
 
         {/* tour info */}
@@ -118,26 +124,26 @@ export default function CardHot(props: CardHotProps) {
           <ul className="mt-1.5 space-y-1.5 text-[13px] sm:text-[14px] leading-snug text-slate-700">
             {durationText && (
               <li className="flex items-start gap-2">
-                <Clock3 className="mt-[2px] h-4 w-4 text-[#1e429f]" />
-                <span className="font-semibold">{durationText}</span>
+                <Clock3 className="mt-[2px] h-4 w-4 text-orange-500" />
+                <span>{durationText}</span>
               </li>
             )}
             {destinationTxt && (
               <li className="flex items-start gap-2">
-                <Plane className="mt-[2px] h-4 w-4 text-[#1e429f]" />
-                <span className="font-semibold">{destinationTxt}</span>
+                <Plane className="mt-[2px] h-4 w-4 text-orange-500" />
+                <span>{destinationTxt}</span>
               </li>
             )}
             {scheduleText && (
               <li className="flex items-start gap-2">
-                <CalendarDays className="mt-[2px] h-4 w-4 text-[#1e429f]" />
-                <span className="font-semibold">{scheduleText}</span>
+                <CalendarDays className="mt-[2px] h-4 w-4 text-orange-500" />
+                <span>{scheduleText}</span>
               </li>
             )}
             {seatsText != null && seatsText !== "" && (
               <li className="flex items-start gap-2">
-                <Users2 className="mt-[2px] h-4 w-4 text-[#1e429f]" />
-                <span className="font-semibold">Còn {seatsText} chỗ</span>
+                <Users2 className="mt-[2px] h-4 w-4 text-orange-500" />
+                <span>Còn {seatsText} chỗ</span>
               </li>
             )}
           </ul>
@@ -145,32 +151,40 @@ export default function CardHot(props: CardHotProps) {
 
         {/* footer */}
         <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="leading-none">
+          <div className="leading-tight">
             {hasSale && (
-              <div className="text-[12px] text-slate-500 line-through">
+              <div className="text-[12px] text-slate-400 line-through">
                 {vnd(originalNum)}
               </div>
             )}
-            <div className="tabular-nums font-extrabold text-[#1e429f] text-[17px] sm:text-[18px]">
+            <div className="tabular-nums text-[17px] sm:text-[18px] font-bold text-slate-900">
               {vnd(priceToShow)}
             </div>
+            {hasSale && typeof discountPercent === "number" && (
+              <div className="mt-0.5 inline-flex items-center rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-600">
+                -{discountPercent}%
+              </div>
+            )}
           </div>
 
-          {/* nút nhỏ lại — KHÔNG phải Link để tránh conflict */}
-          <button
-            type="button"
+          <div
             className="
-              pointer-events-none 
-              rounded-full border border-[#ea580c]
-              px-3 py-1.5
-              text-[12px] font-semibold text-[#ea580c]
-              bg-white
-              group-hover:bg-[#ea580c] group-hover:text-white
-              transition
-            "
+    inline-flex items-center justify-center
+    rounded-full border border-orange-500
+    px-4 py-2 text-[12px] font-semibold
+    text-orange-600 bg-white
+    transition-all duration-200
+
+    group-hover:border-orange-600
+    group-hover:text-orange-700
+
+    active:bg-gradient-to-r active:from-orange-500 active:to-amber-400
+    active:text-white active:border-transparent
+    active:scale-[0.97]
+  "
           >
-            Xem
-          </button>
+            Xem chi tiết
+          </div>
         </div>
       </div>
     </Link>

@@ -46,7 +46,7 @@ export default function BlogListPage() {
   // Fetch completed tours để hiển thị CTA
   const { data: bookingsData } = useMyBookings({ enabled: !!user });
   const completedTours = (bookingsData?.data ?? []).filter(
-    (b) => b.bookingStatus === "completed"
+    (b) => b.bookingStatus === "f" // "f" = finished/completed
   ).length;
 
   const blogs = data?.data ?? [];

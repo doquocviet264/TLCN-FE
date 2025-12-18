@@ -99,7 +99,7 @@ const Page = () => {
   if (isLoading)
     return (
       <div className="flex justify-center items-center min-h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
       </div>
     )
 
@@ -127,7 +127,7 @@ const Page = () => {
           </div>
           <Link
             href="/admin/tours/create"
-            className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-semibold"
+            className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition font-semibold shadow-lg shadow-orange-500/25"
           >
             + Tạo Tour Mới
           </Link>
@@ -147,7 +147,7 @@ const Page = () => {
                 setSearchTerm(e.target.value)
                 setPage(1)
               }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
           </div>
           
@@ -159,7 +159,7 @@ const Page = () => {
                 setStatusFilter(e.target.value)
                 setPage(1)
               }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
               <option value="">Tất cả trạng thái</option>
               <option value="pending">Chờ duyệt</option>
@@ -362,7 +362,7 @@ const Page = () => {
           <div className="flex flex-col md:flex-row items-center justify-between bg-white rounded-lg shadow-md p-4">
             <p className="text-slate-600 mb-4 md:mb-0">
               Tổng cộng: <span className="font-bold text-slate-900">{total}</span> tours | Trang{' '}
-              <span className="font-bold text-emerald-600">{page}</span> of{' '}
+              <span className="font-bold text-orange-600">{page}</span> of{' '}
               <span className="font-bold">{Math.ceil(total / 20)}</span>
             </p>
 
@@ -381,7 +381,7 @@ const Page = () => {
                   onClick={() => setPage(i + 1)}
                   className={`px-3 py-2 rounded-lg transition ${
                     page === i + 1
-                      ? 'bg-emerald-600 text-white'
+                      ? 'bg-orange-500 text-white'
                       : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                   }`}
                 >

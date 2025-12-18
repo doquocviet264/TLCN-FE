@@ -3,13 +3,11 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import Input from "@/components/ui/Input";
-import Button from "@/components/ui/Button";
+import Link from "next/link";
 import { FaFacebookF, FaApple } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
-import { FiEye, FiEyeOff } from "react-icons/fi";
+import { User, Mail, Phone, Lock, Eye, EyeOff, UserPlus, AlertCircle, CheckCircle2, AtSign } from "lucide-react";
 import { useRegister } from "#/hooks/auth-hook/useAuth";
-// Nếu bạn có cài thư viện toast (vd: react-hot-toast), hãy import vào đây
 import { toast } from "react-hot-toast";
 
 export default function RegisterPage() {
@@ -30,13 +28,27 @@ export default function RegisterPage() {
 
   const { mutate: registerMutate, isPending } = useRegister();
 
+  // Password strength indicator
+  const getPasswordStrength = (pwd: string) => {
+    let strength = 0;
+    if (pwd.length >= 8) strength++;
+    if (/[a-z]/.test(pwd)) strength++;
+    if (/[A-Z]/.test(pwd)) strength++;
+    if (/[0-9]/.test(pwd)) strength++;
+    if (/[!@#$%^&*(),.?":{}|<>_\-+=~`[\]\\;/]/.test(pwd)) strength++;
+    return strength;
+  };
+
+  const passwordStrength = getPasswordStrength(password);
+  const strengthColors = ["bg-slate-200", "bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-lime-500", "bg-emerald-500"];
+  const strengthTexts = ["", "Rất yếu", "Yếu", "Trung bình", "Mạnh", "Rất mạnh"];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isPending) return;
 
     const newErrors: { [key: string]: string } = {};
 
-    // --- Validation Logic (Giữ nguyên) ---
     if (!fullName.trim()) {
       newErrors.fullName = "Vui lòng nhập họ và tên";
     } else if (fullName.trim().length < 2) {
@@ -60,33 +72,13 @@ export default function RegisterPage() {
     if (!phone.trim()) {
       newErrors.phone = "Vui lòng nhập số điện thoại";
     } else if (!/^(?:\+?84|0)(?:3|5|7|8|9)\d{8}$/.test(phone.trim().replace(/\s/g, ""))) {
-      // Đồng bộ với Backend regex VN: +84/0 + đầu số 3/5/7/8/9 + 8 số
-      newErrors.phone = "Số điện thoại VN không hợp lệ (VD: 0912345678)";
+      newErrors.phone = "Số điện thoại VN không hợp lệ";
     }
 
     if (!password.trim()) {
       newErrors.password = "Vui lòng nhập mật khẩu";
-    } else {
-      // Đồng bộ với Backend passwordValidator
-      const pwdErrors: string[] = [];
-      if (password.length < 8) {
-        pwdErrors.push("ít nhất 8 ký tự");
-      }
-      if (!/[a-z]/.test(password)) {
-        pwdErrors.push("1 chữ thường");
-      }
-      if (!/[A-Z]/.test(password)) {
-        pwdErrors.push("1 chữ hoa");
-      }
-      if (!/[0-9]/.test(password)) {
-        pwdErrors.push("1 chữ số");
-      }
-      if (!/[!@#$%^&*(),.?":{}|<>_\-+=~`[\]\\;/]/.test(password)) {
-        pwdErrors.push("1 ký tự đặc biệt");
-      }
-      if (pwdErrors.length > 0) {
-        newErrors.password = `Mật khẩu cần có: ${pwdErrors.join(", ")}`;
-      }
+    } else if (passwordStrength < 5) {
+      newErrors.password = "Mật khẩu chưa đủ mạnh";
     }
 
     if (!confirmPassword.trim()) {
@@ -112,19 +104,15 @@ export default function RegisterPage() {
 
     registerMutate(input, {
       onSuccess: (data: any) => {
-        console.log("Đăng ký thành công", data);
         setApiError("");
-
         const emailParam = encodeURIComponent(email);
 
-        // Hiển thị toast phù hợp với message từ Backend
         if (data?.message?.includes("chưa kích hoạt")) {
           toast.success("Đã gửi lại mã OTP mới. Vui lòng kiểm tra email!");
         } else {
           toast.success("Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP.");
         }
 
-        // Chuyển hướng sang trang nhập OTP
         router.push(`/auth/otp?email=${emailParam}`);
       },
       onError: (error: any) => {
@@ -143,234 +131,251 @@ export default function RegisterPage() {
   };
 
   const startOAuth = (provider: "facebook" | "google" | "apple") => {
-    // Đảm bảo đường dẫn này đúng với Backend của bạn
-    // Thường là http://localhost:4000/api/auth/google
-    const API_URL =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
     window.location.href = `${API_URL}/auth/${provider}`;
   };
 
   return (
-    <>
-      <h2 className="heading-2 font-bold text-[var(--secondary)] mb-1">
-        ĐĂNG KÝ
-      </h2>
-      <p className="text-sm text-gray-600 mb-5">
-        Hãy bắt đầu tạo tài khoản cho bản thân
-      </p>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/30 mb-3">
+          <UserPlus className="w-7 h-7 text-white" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900">Tạo tài khoản</h2>
+        <p className="text-slate-500 text-sm mt-1">Bắt đầu hành trình du lịch của bạn</p>
+      </div>
 
+      {/* Error Message */}
       {apiError && (
-        <p className="text-[var(--warning)] text-sm mb-3 bg-red-50 p-2 rounded border border-red-200">
-          {apiError}
-        </p>
+        <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <p className="text-sm text-red-700">{apiError}</p>
+        </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5 pt-5">
-        <div className="grid grid-cols-2 gap-4">
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Full Name & Username */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <Input
-              type="text"
-              label="Họ và tên"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-              className={
-                errors.fullName ? "border-red-500 focus:ring-red-500" : ""
-              }
-            />
-            {errors.fullName && (
-              <p className="text-[var(--warning)] text-xs mt-1">
-                {errors.fullName}
-              </p>
-            )}
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Họ và tên</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <User className="w-4 h-4 text-slate-400" />
+              </div>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Nguyễn Văn A"
+                className={`w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 focus:bg-white transition-all ${errors.fullName ? "border-red-300" : "border-slate-200"}`}
+              />
+            </div>
+            {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
           </div>
           <div>
-            <Input
-              type="text"
-              label="User name"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              required
-              className={
-                errors.userName ? "border-red-500 focus:ring-red-500" : ""
-              }
-            />
-            {errors.userName && (
-              <p className="text-[var(--warning)] text-xs mt-1">
-                {errors.userName}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Input
-              type="email"
-              label="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className={
-                errors.email ? "border-red-500 focus:ring-red-500" : ""
-              }
-            />
-            {errors.email && (
-              <p className="text-[var(--warning)] text-xs mt-1">
-                {errors.email}
-              </p>
-            )}
-          </div>
-          <div>
-            <Input
-              type="text"
-              label="Số điện thoại"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              className={
-                errors.phone ? "border-red-500 focus:ring-red-500" : ""
-              }
-            />
-            {errors.phone && (
-              <p className="text-[var(--warning)] text-xs mt-1">
-                {errors.phone}
-              </p>
-            )}
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <AtSign className="w-4 h-4 text-slate-400" />
+              </div>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="username"
+                className={`w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 focus:bg-white transition-all ${errors.userName ? "border-red-300" : "border-slate-200"}`}
+              />
+            </div>
+            {errors.userName && <p className="text-red-500 text-xs mt-1">{errors.userName}</p>}
           </div>
         </div>
 
-        <div className="relative">
-          <Input
-            type={showPassword ? "text" : "password"}
-            label="Mật khẩu"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className={
-              errors.password ? "border-red-500 focus:ring-red-500" : ""
-            }
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-[42px] text-gray-500 hover:text-gray-700"
-          >
-            {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
-          </button>
-          {errors.password && (
-            <p className="text-[var(--warning)] text-xs mt-1">
-              {errors.password}
+        {/* Email & Phone */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Mail className="w-4 h-4 text-slate-400" />
+              </div>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="email@example.com"
+                className={`w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 focus:bg-white transition-all ${errors.email ? "border-red-300" : "border-slate-200"}`}
+              />
+            </div>
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Số điện thoại</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Phone className="w-4 h-4 text-slate-400" />
+              </div>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="0912 345 678"
+                className={`w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 focus:bg-white transition-all ${errors.phone ? "border-red-300" : "border-slate-200"}`}
+              />
+            </div>
+            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+          </div>
+        </div>
+
+        {/* Password */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Mật khẩu</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Lock className="w-4 h-4 text-slate-400" />
+            </div>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Tạo mật khẩu mạnh"
+              className={`w-full pl-10 pr-10 py-2.5 rounded-xl border text-sm bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 focus:bg-white transition-all ${errors.password ? "border-red-300" : "border-slate-200"}`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          {/* Password Strength */}
+          {password && (
+            <div className="mt-2">
+              <div className="flex gap-1 mb-1">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div
+                    key={i}
+                    className={`h-1 flex-1 rounded-full transition-colors ${i <= passwordStrength ? strengthColors[passwordStrength] : "bg-slate-200"}`}
+                  />
+                ))}
+              </div>
+              <p className={`text-xs ${passwordStrength >= 4 ? "text-emerald-600" : passwordStrength >= 3 ? "text-yellow-600" : "text-red-500"}`}>
+                {strengthTexts[passwordStrength]}
+              </p>
+            </div>
+          )}
+          {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Xác nhận mật khẩu</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Lock className="w-4 h-4 text-slate-400" />
+            </div>
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Nhập lại mật khẩu"
+              className={`w-full pl-10 pr-10 py-2.5 rounded-xl border text-sm bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 focus:bg-white transition-all ${errors.confirmPassword ? "border-red-300" : "border-slate-200"}`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+            >
+              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          {confirmPassword && password === confirmPassword && (
+            <p className="text-emerald-600 text-xs mt-1 flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" /> Mật khẩu khớp
             </p>
           )}
+          {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
         </div>
 
-        <div className="relative">
-          <Input
-            type={showConfirmPassword ? "text" : "password"}
-            label="Xác thực mật khẩu"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            className={
-              errors.confirmPassword ? "border-red-500 focus:ring-red-500" : ""
-            }
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-3 top-[42px] text-gray-500 hover:text-gray-700"
-          >
-            {showConfirmPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
-          </button>
-          {errors.confirmPassword && (
-            <p className="text-[var(--warning)] text-xs mt-1">
-              {errors.confirmPassword}
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center space-x-2">
+        {/* Terms */}
+        <div className="flex items-start gap-2">
           <input
             type="checkbox"
             id="terms"
             checked={agree}
             onChange={() => setAgree(!agree)}
-            className="w-4 h-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)]"
-            required
+            className="w-4 h-4 mt-0.5 rounded border-slate-300 text-orange-500 focus:ring-orange-500/50"
           />
-          <label
-            htmlFor="terms"
-            className="text-sm text-gray-600 select-none cursor-pointer"
-          >
-            Tôi đã đọc các điều khoản và điều kiện
+          <label htmlFor="terms" className="text-sm text-slate-600 cursor-pointer">
+            Tôi đồng ý với{" "}
+            <Link href="#" className="text-orange-600 hover:underline">Điều khoản dịch vụ</Link>
+            {" "}và{" "}
+            <Link href="#" className="text-orange-600 hover:underline">Chính sách bảo mật</Link>
           </label>
         </div>
-        {errors.agree && (
-          <p className="text-[var(--warning)] text-xs">{errors.agree}</p>
-        )}
+        {errors.agree && <p className="text-red-500 text-xs">{errors.agree}</p>}
 
-        <Button
+        {/* Submit */}
+        <button
           type="submit"
-          variant="primary"
-          className="w-full mt-4 h-12 text-base font-bold transition-all hover:shadow-lg"
           disabled={isPending}
+          className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-xl hover:from-orange-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2 transition-all shadow-lg shadow-orange-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isPending ? (
             <span className="flex items-center justify-center gap-2">
-              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               Đang xử lý...
             </span>
           ) : (
-            "ĐĂNG KÝ"
+            "Đăng ký"
           )}
-        </Button>
+        </button>
       </form>
 
-      <p className="text-sm mt-6 text-gray-600 text-center">
-        Bạn đã có tài khoản?{" "}
-        <a
-          href="/auth/login"
-          className="text-[var(--primary)] font-bold hover:underline"
-        >
-          Đăng nhập ngay
-        </a>
+      {/* Login Link */}
+      <p className="text-center text-sm text-slate-600">
+        Đã có tài khoản?{" "}
+        <Link href="/auth/login" className="text-orange-600 hover:text-orange-700 font-semibold">
+          Đăng nhập
+        </Link>
       </p>
 
-      <div className="flex items-center gap-2 pt-5">
-        <hr className="flex-1 border-gray-300" />
-        <span className="text-gray-500 text-sm">Hoặc đăng ký bằng</span>
-        <hr className="flex-1 border-gray-300" />
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-slate-200" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-3 bg-white text-slate-500 text-xs">Hoặc đăng ký với</span>
+        </div>
       </div>
 
-      <div className="flex justify-center mt-6 space-x-4">
-        <Button
-          variant="outline-primary"
+      {/* Social */}
+      <div className="flex justify-center gap-3">
+        <button
           type="button"
           onClick={() => startOAuth("facebook")}
-          className="w-14 h-14 rounded-full flex items-center justify-center p-0 border-gray-200 hover:bg-blue-50 hover:border-blue-200 transition-colors"
+          className="w-12 h-12 flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all"
         >
-          <FaFacebookF className="text-[#1877F2] text-xl" />
-        </Button>
-
-        <Button
-          variant="outline-primary"
+          <FaFacebookF className="text-[#1877F2]" />
+        </button>
+        <button
           type="button"
           onClick={() => startOAuth("google")}
-          className="w-14 h-14 rounded-full flex items-center justify-center p-0 border-gray-200 hover:bg-red-50 hover:border-red-200 transition-colors"
+          className="w-12 h-12 flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all"
         >
-          <FcGoogle className="text-xl" />
-        </Button>
-
-        <Button
-          variant="outline-primary"
+          <FcGoogle />
+        </button>
+        <button
           type="button"
           onClick={() => startOAuth("apple")}
-          className="w-14 h-14 rounded-full flex items-center justify-center p-0 border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+          className="w-12 h-12 flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all"
         >
-          <FaApple className="text-black text-xl" />
-        </Button>
+          <FaApple className="text-slate-900" />
+        </button>
       </div>
-    </>
+    </div>
   );
 }

@@ -57,14 +57,21 @@ export default function MyBookingsPage() {
 
   return (
     <div className="mx-auto w-[92%] max-w-6xl py-8">
-      {/* Header giống trang Cài đặt */}
+      {/* Header */}
       <div className="mb-6">
-        <h1 className="text-[28px] font-bold tracking-tight">
-          Đặt chỗ của tôi
-        </h1>
-        <p className="mt-1 text-[15px] text-slate-600">
-          Xem lại các đơn đặt tour, thanh toán cọc hoặc huỷ nếu cần.
-        </p>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-200">
+            <Calendar className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-800">
+              Đặt chỗ của tôi
+            </h1>
+            <p className="text-slate-500 text-sm">
+              Xem lại các đơn đặt tour, thanh toán cọc hoặc huỷ nếu cần
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -73,10 +80,10 @@ export default function MyBookingsPage() {
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
-            className={`rounded-full px-4 py-2 text-sm transition ${
+            className={`rounded-full px-4 py-2.5 text-sm font-medium transition-all ${
               activeTab === t.key
-                ? "bg-emerald-600 text-white shadow"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                ? "bg-orange-500 text-white shadow-lg shadow-orange-500/25"
+                : "bg-white border border-slate-200 text-slate-700 hover:border-orange-300 hover:text-orange-600"
             }`}
           >
             {t.label}
@@ -179,7 +186,7 @@ function BookingRow({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Link
               href={`/user/bookings/${encodeURIComponent(code)}`}
-              className="hover:text-emerald-600"
+              className="hover:text-orange-600"
             >
               <h2 className="text-[18px] font-semibold leading-tight">
                 Đơn {code} • {title}
@@ -243,7 +250,7 @@ function BookingRow({
               href={`/user/destination/${tour?.destinationSlug ?? ""}/${
                 tour?._id ?? ""
               }`}
-              className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 shadow-sm transition hover:border-emerald-500 hover:text-emerald-600"
+              className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 shadow-sm transition hover:border-orange-500 hover:text-orange-600"
             >
               Xem tour
             </Link>
@@ -256,7 +263,7 @@ function BookingRow({
                     href={`/user/checkout?id=${
                       tour?._id ?? booking?.tourId ?? ""
                     }`}
-                    className="inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
+                    className="inline-flex items-center rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition hover:from-orange-600 hover:to-orange-700"
                   >
                     {status === "pending" ? "Thanh toán cọc" : "Thanh toán"}
                   </Link>

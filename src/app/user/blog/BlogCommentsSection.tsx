@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { MessageSquare, TrendingUp } from "lucide-react";
 import CommentBox from "./CommentBox";
 import CommentsList from "./CommentsList";
 
@@ -13,27 +14,46 @@ const BlogCommentsSection = ({ slug }: BlogCommentsSectionProps) => {
     handleCommentAdded: (data: any) => void;
   }>(null);
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const handleCommentAddedInBox = (commentData: {
     userId: string;
     fullName: string;
     avatar?: string;
   }) => {
-    console.log("BlogCommentsSection received comment data:", commentData);
     // Call the CommentsList method to update cache and refetch
     commentsListRef.current?.handleCommentAdded(commentData);
+    // Also trigger a refresh
+    setRefreshKey((k) => k + 1);
   };
 
   return (
-    <>
-      <div className="mt-10">
-        <h3 className="text-2xl font-bold text-slate-900 mb-6">Bình luận</h3>
+    <section className="mt-12">
+      {/* Section Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/25">
+            <MessageSquare className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-slate-900">Bình luận</h3>
+            <p className="text-xs text-slate-500">
+              Chia sẻ cảm nhận của bạn về bài viết
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Comment Box */}
+      <div className="mb-8">
         <CommentBox slug={slug} onCommentAdded={handleCommentAddedInBox} />
       </div>
 
-      <div className="mt-8">
-        <CommentsList slug={slug} ref={commentsListRef} />
+      {/* Comments List */}
+      <div>
+        <CommentsList slug={slug} ref={commentsListRef} refresh={refreshKey > 0} />
       </div>
-    </>
+    </section>
   );
 };
 

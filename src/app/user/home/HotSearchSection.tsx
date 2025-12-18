@@ -29,7 +29,7 @@ const formatDate = (d?: string) => {
 /* ===== skeleton card ===== */
 function Skeleton() {
   return (
-    <div className="rounded-2xl border border-slate-200 p-4 shadow-sm">
+    <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
       <div className="aspect-[16/9] w-full animate-pulse rounded-xl bg-slate-200" />
       <div className="mt-4 h-5 w-3/4 animate-pulse rounded bg-slate-200" />
       <div className="mt-3 h-4 w-1/2 animate-pulse rounded bg-slate-200" />
@@ -39,49 +39,42 @@ function Skeleton() {
 }
 
 const HotSearchSection = () => {
-  // gọi API: lấy 12 tour
   const { data, isLoading, isError } = useGetTours(1, 12);
   const list = data?.data ?? [];
 
-  // map sang CardHotProps
   const cards: CardHotProps[] = useMemo(
     () =>
       list.map((t) => {
-        const id = t._id ?? (t as any).id ?? "";
-        const slug = t.destinationSlug ?? slugify(t.title);
+        const id = (t as any)._id ?? (t as any).id ?? "";
+        const slug = (t as any).destinationSlug ?? slugify(t.title);
         const href = `/user/destination/${slug}/${id}`;
 
-        const originalPrice = toNum(t.salePrice ?? t.priceAdult);
+        const originalPrice = toNum((t as any).priceAdult);
+        const salePrice = toNum((t as any).salePrice);
+
         const image =
           (Array.isArray((t as any).images) && (t as any).images[0]) ||
-          t.image ||
-          t.cover ||
+          (t as any).image ||
+          (t as any).cover ||
           "/hot1.jpg";
 
-        // Lấy ngày khởi hành (giả sử API trả về field startDate hoặc start_date)
         const startDateRaw = (t as any).startDate ?? (t as any).start_date;
 
         return {
           title: t.title,
           image,
           href,
-
-          // --- GIÁ ---
           originalPrice,
-          salePrice: (t as any).salePrice,
+          salePrice,
           discountPercent: (t as any).discountPercent,
-          // discountAmount: (t as any).discountAmount, // Nếu có thì uncomment
+          discountAmount: (t as any).discountAmount,
 
-          // --- THÔNG TIN CHI TIẾT (SỬA PHẦN NÀY) ---
-          // Mapping trực tiếp vào các props mà CardHot yêu cầu
-          time: t.time ?? "—",
-          destination: t.destination ?? "—",
-          seats: t.quantity, // Truyền số lượng chỗ còn lại
+          time: (t as any).time ?? undefined,
+          destination: (t as any).destination ?? undefined,
+          seats: (t as any).quantity ?? (t as any).seats,
           schedule: startDateRaw
             ? `Khởi hành: ${formatDate(startDateRaw)}`
             : undefined,
-
-          // Badge (Ví dụ: Giảm giá hoặc tour hot)
           badgeText: (t as any).discountPercent
             ? `Giảm ${(t as any).discountPercent}%`
             : undefined,
@@ -91,27 +84,44 @@ const HotSearchSection = () => {
   );
 
   return (
-    <section className="px-4 pb-12 pt-6">
+    <section className="bg-slate-50 px-4 pb-14 pt-10">
       <div className="mx-auto w-full max-w-7xl">
-        <h2 className="mb-5 text-center text-[22px] sm:text-[26px] md:text-[28px] font-extrabold text-[#1b4c75] tracking-wide">
-          TOUR CHÍNH
-        </h2>
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full bg-orange-100 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-orange-700">
+            <span className="h-2 w-2 rounded-full bg-orange-500" />
+            Tour được yêu thích
+          </div>
+          <h2 className="mt-3 text-2xl sm:text-3xl font-extrabold text-slate-900">
+            Tour nổi bật hiện nay
+          </h2>
+          {cards.length > 0 && (
+            <p className="mt-2 text-sm text-slate-500">
+              Khám phá {cards.length} hành trình được nhiều khách lựa chọn.
+            </p>
+          )}
+        </div>
 
         {/* Error */}
         {isError && !isLoading && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
+          <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 p-6 text-sm text-red-700">
             Không tải được danh sách tour. Vui lòng thử lại sau.
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-          {/* Loading skeleton */}
+        {/* Grid */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading &&
             Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={`sk-${i}`} />
             ))}
 
-          {/* Data */}
+          {!isLoading && !isError && cards.length === 0 && (
+            <div className="col-span-full rounded-2xl border border-slate-100 bg-white p-10 text-center text-slate-500 text-sm">
+              Hiện chưa có tour phù hợp để hiển thị.
+            </div>
+          )}
+
           {!isLoading &&
             !isError &&
             cards.map((t) => <CardHot key={`${t.title}-${t.href}`} {...t} />)}

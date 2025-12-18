@@ -1,271 +1,377 @@
-// /app/user/blog/page.tsx
+// /app/user/post-blog/page.tsx
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { blogApi, type BlogSummary } from "@/lib/blog/blogApi";
-import { Search } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Pen,
+  Send,
+  ArrowLeft,
+  ImagePlus,
+  Type,
+  Tag,
+  Globe,
+  Lock,
+  Sparkles,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import { toast } from "react-hot-toast";
+import useUser from "@/hooks/useUser";
+import { blogApi } from "@/lib/blog/blogApi";
+import PostForm from "./PostForm";
+import CoverUpload from "./CoverUpload";
+import CategoryTagsForm from "./CategoryTagsForm";
+import PostPrivacySettings from "./PostPrivacySettings";
 
-const PER_PAGE = 9;
-
-function BlogListPageContent() {
+export default function CreateBlogPage() {
   const router = useRouter();
-  const sp = useSearchParams();
+  const { user, loading: userLoading } = useUser();
 
-  const [search, setSearch] = useState(sp.get("q") || "");
-  const [page, setPage] = useState(() =>
-    Math.max(1, Number(sp.get("page") || 1))
-  );
+  // Form state
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [address, setAddress] = useState("");
+  const [wardId, setWardId] = useState("");
+  const [wardName, setWardName] = useState("");
+  const [privacy, setPrivacy] = useState<"public" | "private">("public");
 
-  const [blogs, setBlogs] = useState<BlogSummary[]>([]);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  // UI state
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeStep, setActiveStep] = useState(1);
 
-  const updateURL = (qValue: string, pValue: number) => {
-    const params = new URLSearchParams();
-    if (qValue.trim()) params.set("q", qValue.trim());
-    if (pValue > 1) params.set("page", String(pValue));
-    router.replace(`/user/blog?${params.toString()}`, { scroll: false });
+  // Handle cover image
+  const handleCoverChange = (file: File | null) => {
+    setCoverImage(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setCoverPreview(null);
+    }
   };
 
-  const fetchBlogs = async () => {
+  // Submit handler
+  const handleSubmit = async () => {
+    if (!title.trim()) {
+      toast.error("Vui lòng nhập tiêu đề bài viết");
+      return;
+    }
+
+    if (!content.trim()) {
+      toast.error("Vui lòng nhập nội dung bài viết");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      setLoading(true);
-      setError("");
-      const res = await blogApi.getBlogs(page, PER_PAGE, search);
-      setBlogs(res.data || []);
-      setTotal(res.total || 0);
-      const limit = res.limit || PER_PAGE;
-      setTotalPages(Math.max(1, Math.ceil((res.total || 0) / limit)));
-    } catch (err) {
-      console.error("Error getBlogs", err);
-      setError("Không tải được danh sách bài viết.");
-      setBlogs([]);
-      setTotal(0);
-      setTotalPages(1);
+      const formData = new FormData();
+      formData.append("title", title.trim());
+      formData.append("content", content);
+      formData.append("privacy", privacy);
+
+      if (coverImage) {
+        formData.append("cover", coverImage);
+      }
+
+      if (categories.length > 0) {
+        formData.append("categories", JSON.stringify(categories));
+      }
+
+      if (tags.length > 0) {
+        formData.append("tags", JSON.stringify(tags));
+      }
+
+      const result = await blogApi.createBlog(formData);
+
+      toast.success("Đăng bài viết thành công!");
+
+      // Redirect to blog detail or blog list
+      if (result?.slug) {
+        router.push(`/user/blog/${result.slug}`);
+      } else {
+        router.push("/user/blog");
+      }
+    } catch (error: any) {
+      console.error("Create blog error:", error);
+      const errorMsg =
+        error?.response?.data?.message ||
+        "Có lỗi khi đăng bài viết. Vui lòng thử lại.";
+      toast.error(errorMsg);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  useEffect(() => {
-    fetchBlogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search]);
+  // Loading state
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const onSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    updateURL(search, 1);
-    fetchBlogs();
-  };
-
-  const onPageChange = (p: number) => {
-    const next = Math.min(Math.max(1, p), totalPages);
-    if (next === page) return;
-    setPage(next);
-    updateURL(search, next);
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  const makeExcerpt = (b: BlogSummary) =>
-    b.excerpt ||
-    b.tags?.join(", ") ||
-    "Chia sẻ kinh nghiệm du lịch chi tiết, thực tế.";
+  // Not logged in
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center"
+        >
+          <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Pen className="w-10 h-10 text-orange-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">
+            Đăng nhập để viết bài
+          </h2>
+          <p className="text-slate-600 mb-6">
+            Bạn cần đăng nhập để chia sẻ câu chuyện du lịch của mình với cộng
+            đồng Travel AHH
+          </p>
+          <Link
+            href="/auth/login"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/25"
+          >
+            Đăng nhập ngay
+          </Link>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative min-h-screen bg-slate-50">
-      {/* background gradient nhẹ */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-emerald-50 via-white to-slate-50" />
+    <main className="min-h-screen bg-slate-50">
+      {/* Hero Header */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950 pb-16 pt-8">
+        {/* Pattern */}
+        <div
+          className="absolute inset-0 opacity-5"
+          style={{
+            backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+          }}
+        />
+        {/* Blobs */}
+        <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-orange-500/20 blur-[100px]" />
+        <div className="absolute top-1/2 right-0 h-80 w-80 -translate-y-1/2 rounded-full bg-orange-500/15 blur-[100px]" />
 
-      {/* Hero */}
-      <header className="mx-auto max-w-6xl px-4 pt-10 pb-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-emerald-600">
-              AHH Travel Blog
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Kinh nghiệm & câu chuyện du lịch
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Tổng hợp những bài viết, review, bí kíp vi vu khắp nơi từ AHH
-              Travel và cộng đồng.
-            </p>
+        <div className="relative z-10 mx-auto max-w-4xl px-4">
+          {/* Back button */}
+          <Link
+            href="/user/blog"
+            className="inline-flex items-center gap-2 text-blue-200 hover:text-white transition-colors mb-6"
+          >
+            <ArrowLeft size={18} />
+            <span className="text-sm font-medium">Quay lại Blog</span>
+          </Link>
+
+          {/* Title */}
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
+              <Pen className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white">Viết bài mới</h1>
+              <p className="text-blue-200 mt-1">
+                Chia sẻ câu chuyện và kinh nghiệm du lịch của bạn
+              </p>
+            </div>
           </div>
 
-          <form
-            onSubmit={onSearchSubmit}
-            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white/80 p-2 shadow-sm backdrop-blur"
-          >
-            <div className="flex items-center gap-2">
-              <Search className="ml-1 h-5 w-5 text-slate-400" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm bài viết, địa điểm..."
-                className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+          {/* User info */}
+          <div className="mt-6 flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 w-fit">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold">
+              {(user.fullName || user.email || "U").charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-medium text-white">
+                {user.fullName || user.email}
+              </p>
+              <p className="text-xs text-blue-200">Tác giả</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content */}
+      <section className="relative z-10 mx-auto max-w-4xl px-4 -mt-6 pb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6"
+        >
+          {/* Cover Upload */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                  <ImagePlus className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">Ảnh bìa</h3>
+                  <p className="text-xs text-slate-500">
+                    Thêm ảnh bìa để bài viết nổi bật hơn
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-5">
+              <CoverUpload
+                cover={coverPreview}
+                onCoverChange={(file) => handleCoverChange(file)}
+                onRemove={() => handleCoverChange(null)}
               />
+            </div>
+          </div>
+
+          {/* Post Form */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                  <Type className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">Nội dung</h3>
+                  <p className="text-xs text-slate-500">
+                    Viết tiêu đề và nội dung bài viết
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-5">
+              <PostForm
+                title={title}
+                content={content}
+                privacy={privacy}
+                onTitleChange={setTitle}
+                onContentChange={setContent}
+                onPrivacyClick={() => setShowPrivacyModal(true)}
+              />
+            </div>
+          </div>
+
+          {/* Categories & Tags */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                  <Tag className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">
+                    Danh mục & Thẻ
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Giúp bài viết dễ tìm kiếm hơn
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-5">
+              <CategoryTagsForm
+                categories={categories}
+                tags={tags}
+                address={address}
+                wardId={wardId}
+                wardName={wardName}
+                onCategoriesChange={setCategories}
+                onTagsChange={setTags}
+                onAddressChange={setAddress}
+                onWardChange={(id, name) => {
+                  setWardId(id);
+                  setWardName(name);
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Submit Section */}
+          <div className="bg-gradient-to-r from-blue-950 to-blue-900 rounded-2xl p-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                {/* Privacy indicator */}
+                <button
+                  type="button"
+                  onClick={() => setShowPrivacyModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
+                >
+                  {privacy === "public" ? (
+                    <>
+                      <Globe className="w-4 h-4 text-blue-200" />
+                      <span className="text-sm text-blue-100">Công khai</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4 text-blue-200" />
+                      <span className="text-sm text-blue-100">Riêng tư</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="text-blue-200 text-sm">
+                  {title.trim() && content.trim() ? (
+                    <span className="flex items-center gap-1 text-emerald-300">
+                      <CheckCircle size={14} />
+                      Sẵn sàng đăng bài
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <AlertCircle size={14} />
+                      Vui lòng điền đầy đủ thông tin
+                    </span>
+                  )}
+                </div>
+              </div>
+
               <button
-                type="submit"
-                className="rounded-xl bg-[var(--primary,#16a34a)] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110"
+                onClick={handleSubmit}
+                disabled={isSubmitting || !title.trim() || !content.trim()}
+                className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
               >
-                Tìm
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Đang đăng...
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    Đăng bài viết
+                  </>
+                )}
               </button>
             </div>
-          </form>
-        </div>
-      </header>
-
-      {/* Content */}
-      <main className="mx-auto max-w-6xl px-4 pb-12">
-        {loading ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm animate-pulse"
-              >
-                <div className="h-40 bg-slate-200" />
-                <div className="space-y-2 p-4">
-                  <div className="h-4 w-3/4 rounded bg-slate-200" />
-                  <div className="h-3 w-full rounded bg-slate-200" />
-                  <div className="h-3 w-2/3 rounded bg-slate-200" />
-                </div>
-              </div>
-            ))}
           </div>
-        ) : error ? (
-          <div className="rounded-2xl border border-rose-100 bg-rose-50 p-6 text-sm text-rose-700">
-            {error}
-          </div>
-        ) : blogs.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-600 shadow-sm">
-            Chưa có bài blog nào được đăng.
-          </div>
-        ) : (
-          <>
-            <div className="mb-4 flex items-center justify-between text-sm text-slate-600">
-              <span>
-                Trang {page}/{totalPages} · Tổng {total.toLocaleString("vi-VN")}{" "}
-                bài viết
-              </span>
-              <Link
-                href="/user/blog/post"
-                className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-              >
-                + Viết bài mới
-              </Link>
-            </div>
+        </motion.div>
+      </section>
 
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {blogs.map((b) => (
-                <Link
-                  key={b.slug}
-                  href={`/user/blog/${b.slug}`}
-                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                >
-                  <div className="relative h-44 w-full overflow-hidden bg-slate-100">
-                    <Image
-                      src={b.cover || b.thumbnail || "/blog-placeholder.jpg"}
-                      alt={b.title}
-                      fill
-                      className="object-cover transition duration-300 group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="flex flex-1 flex-col p-4">
-                    <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wide text-emerald-600">
-                      {b.categories?.[0] && (
-                        <span className="rounded-full bg-emerald-50 px-2 py-0.5">
-                          {b.categories[0]}
-                        </span>
-                      )}
-                      {b.rating != null && (
-                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">
-                          ★ {b.rating.toFixed(1)}
-                        </span>
-                      )}
-                    </div>
-                    <h2 className="line-clamp-2 text-sm font-semibold text-slate-900">
-                      {b.title}
-                    </h2>
-                    <p className="mt-2 line-clamp-3 text-xs text-slate-600">
-                      {makeExcerpt(b)}
-                    </p>
-
-                    <div className="mt-auto flex items-center justify-between pt-4 text-[11px] text-slate-500">
-                      <span>
-                        {b.author?.name ? `Bởi ${b.author.name}` : "Ẩn danh"}
-                      </span>
-                      {b.createdAt && (
-                        <span>
-                          {new Date(b.createdAt).toLocaleDateString("vi-VN")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-8 flex justify-center">
-                <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => onPageChange(page - 1)}
-                    disabled={page <= 1}
-                    className="rounded-full px-3 py-1 text-xs text-slate-700 disabled:opacity-40 hover:bg-slate-100"
-                  >
-                    Trước
-                  </button>
-                  {Array.from({ length: totalPages }).map((_, i) => {
-                    const p = i + 1;
-                    const active = p === page;
-                    return (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => onPageChange(p)}
-                        className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                          active
-                            ? "bg-[var(--primary,#16a34a)] text-white"
-                            : "text-slate-700 hover:bg-slate-100"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    );
-                  })}
-                  <button
-                    type="button"
-                    onClick={() => onPageChange(page + 1)}
-                    disabled={page >= totalPages}
-                    className="rounded-full px-3 py-1 text-xs text-slate-700 disabled:opacity-40 hover:bg-slate-100"
-                  >
-                    Sau
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </main>
-    </div>
-  );
-}
-
-export default function BlogListPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <BlogListPageContent />
-    </Suspense>
+      {/* Privacy Modal */}
+      {showPrivacyModal && (
+        <PostPrivacySettings
+          value={privacy}
+          onChange={(p) => setPrivacy(p as "public" | "private")}
+          onClose={() => setShowPrivacyModal(false)}
+        />
+      )}
+    </main>
   );
 }

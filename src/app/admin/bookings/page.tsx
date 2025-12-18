@@ -89,7 +89,7 @@ export default function BookingsPage() {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
             />
           </div>
 
@@ -104,7 +104,7 @@ export default function BookingsPage() {
                 setStatusFilter(e.target.value as "" | "p" | "c" | "x");
                 setPage(1);
               }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
             >
               <option value="">Tất cả trạng thái</option>
               <option value="p">Chờ xác nhận</option>
@@ -118,7 +118,7 @@ export default function BookingsPage() {
       {/* Loading State */}
       {isLoading && (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
           <span className="ml-3 text-slate-600">Đang tải dữ liệu...</span>
         </div>
       )}
@@ -149,7 +149,7 @@ export default function BookingsPage() {
               <p className="text-slate-600 mb-4 md:mb-0">
                 Tổng cộng: <span className="font-bold text-slate-900">{data.total}</span> đơn đặt
                 tour | Trang{" "}
-                <span className="font-bold text-emerald-600">{page}</span> của{" "}
+                <span className="font-bold text-orange-600">{page}</span> của{" "}
                 <span className="font-bold">{totalPages}</span>
               </p>
 
@@ -170,7 +170,7 @@ export default function BookingsPage() {
                     onClick={() => setPage(i + 1)}
                     className={`px-3 py-2 rounded-lg transition ${
                       page === i + 1
-                        ? "bg-emerald-600 text-white"
+                        ? "bg-orange-500 text-white"
                         : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                     }`}
                   >

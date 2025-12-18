@@ -25,16 +25,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <Provider store={store}>
-      <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 ${inter.variable}`}>
+      <div className={`min-h-screen bg-slate-100 ${inter.variable}`}>
         {/* Sidebar */}
-        <aside className="fixed left-0 top-0 h-screen w-64 border-r border-slate-200 bg-white shadow-sm">
+        <aside className="fixed left-0 top-0 h-screen w-64 shadow-xl z-50">
           <SideBar />
         </aside>
 
         {/* Main Content */}
         <QueryClientProvider client={queryClient}>
           <main className="ml-64">
-            <div className="min-h-screen p-8">
+            <div className="min-h-screen">
               {children}
             </div>
           </main>
