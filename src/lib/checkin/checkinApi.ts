@@ -106,4 +106,71 @@ export const checkinApi = {
     // Trả về nhưng đánh dấu là manual để FE không hiện voucher popup
     return { ...res.data, isManual: true };
   },
+
+  // 7. Lấy danh sách tỉnh từ booking đã hoàn thành (TỰ ĐỘNG)
+  // API trả về các tỉnh mà user đã đi qua các tour đã book và hoàn thành
+  getBookingProvinces: async (): Promise<{ provinces: string[]; bookings: any[] }> => {
+    const token = localStorage.getItem("accessToken");
+    try {
+      const res = await axios.get(`${API_URL}/bookings/me/provinces`, {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+      return res.data;
+    } catch (error) {
+      // Nếu API chưa có, trả về mảng rỗng
+      console.log("API booking provinces chưa có, sử dụng fallback");
+      return { provinces: [], bookings: [] };
+    }
+  },
+
+  // 8. Lấy tất cả dữ liệu hành trình (kết hợp booking + manual)
+  getFullJourney: async (): Promise<{
+    fromBookings: string[];      // Tỉnh từ booking đã hoàn thành (tự động)
+    fromManualCheckins: string[]; // Tỉnh tự đánh dấu (thủ công)
+    bookingDetails?: any[];       // Chi tiết các booking
+  }> => {
+    const token = localStorage.getItem("accessToken");
+    try {
+      const res = await axios.get(`${API_URL}/checkins/full-journey`, {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+      return res.data;
+    } catch (error) {
+      // Fallback: gọi riêng từng API
+      console.log("API full-journey chưa có, gọi riêng từng API");
+      try {
+        const [journeyRes, bookingRes] = await Promise.all([
+          axios.get(`${API_URL}/checkins/journey`, {
+            headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+          }).catch(() => ({ data: { provinces: [] } })),
+          axios.get(`${API_URL}/bookings/me`, {
+            headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+            params: { limit: 100 }
+          }).catch(() => ({ data: { data: [] } })),
+        ]);
+
+        // Lấy tỉnh từ booking đã hoàn thành (status = 'f' hoặc 'c')
+        const completedBookings = (bookingRes.data.data || []).filter(
+          (b: any) => b.bookingStatus === 'f' || b.bookingStatus === 'c'
+        );
+
+        // Lấy destination từ tour của mỗi booking
+        const bookingProvinces = completedBookings
+          .map((b: any) => b.tourDestination || b.tour?.destination)
+          .filter(Boolean);
+
+        return {
+          fromBookings: [...new Set(bookingProvinces)] as string[],
+          fromManualCheckins: journeyRes.data.provinces || [],
+          bookingDetails: completedBookings,
+        };
+      } catch (fallbackError) {
+        return { fromBookings: [], fromManualCheckins: [] };
+      }
+    }
+  },
 };

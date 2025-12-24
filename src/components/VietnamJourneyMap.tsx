@@ -14,15 +14,14 @@ import {
   FaGift,
 } from "react-icons/fa";
 import { checkinApi } from "@/lib/checkin/checkinApi";
-import { voucherApi } from "@/lib/voucher/voucherApi";
 import { useAuthStore } from "#/stores/auth";
 import { VIETNAM_PATHS, MAP_VIEWBOX } from "./VietnamMapPaths"; // Import file data
 
 const COLORS = {
-  VISITED: "#10b981", // Xanh ngọc - đã đi qua tour/voucher
-  MANUAL_VISITED: "#3b82f6", // Xanh dương - tự đánh dấu
-  LOCKED: "#e5e7eb", // Xám
-  HOVER: "#fcd34d", // Vàng
+  BOOKING_VISITED: "#10b981", // Xanh ngọc - đã đi qua tour đặt trên web (TỰ ĐỘNG)
+  MANUAL_VISITED: "#3b82f6", // Xanh dương - tự đánh dấu (đi ngoài web)
+  LOCKED: "#e5e7eb", // Xám - chưa đi
+  HOVER: "#fcd34d", // Vàng - đang hover
   STROKE: "#ffffff",
 };
 
@@ -31,11 +30,12 @@ export default function VietnamJourneyMap() {
   const { user } = useAuthStore();
   const mapRef = useRef<SVGSVGElement | null>(null);
 
-  const [visitedProvinces, setVisitedProvinces] = useState<Set<string>>(
+  // Tỉnh từ booking đã hoàn thành trên web (TỰ ĐỘNG - xanh ngọc)
+  const [bookingProvinces, setBookingProvinces] = useState<Set<string>>(
     new Set()
   );
-  // Tỉnh đã đánh dấu thủ công (không nhận voucher)
-  const [manualVisitedProvinces, setManualVisitedProvinces] = useState<Set<string>>(
+  // Tỉnh tự đánh dấu - đi ngoài web này (THỦ CÔNG - xanh dương)
+  const [manualProvinces, setManualProvinces] = useState<Set<string>>(
     new Set()
   );
   const [isLoadingAction, setIsLoadingAction] = useState(false);
@@ -50,11 +50,6 @@ export default function VietnamJourneyMap() {
   const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(
     null
   );
-  const [showVoucher, setShowVoucher] = useState(false);
-  const [earnedVoucher, setEarnedVoucher] = useState<{
-    code: string;
-    description: string;
-  } | null>(null);
   const [showManualSuccess, setShowManualSuccess] = useState(false);
 
   const [isDragging, setIsDragging] = useState(false);
@@ -95,121 +90,79 @@ export default function VietnamJourneyMap() {
     }
   };
 
-  // 1. FETCH DATA
+  // 1. FETCH DATA - Lấy dữ liệu hành trình từ 2 nguồn
   useEffect(() => {
     const fetchJourney = async () => {
       if (!user) return;
       try {
-        // Gọi API lấy danh sách tỉnh đã đi
-        const res = await checkinApi.getUserJourney();
-        console.log("Dữ liệu từ Server:", res);
+        // Gọi API mới lấy dữ liệu kết hợp: booking (tự động) + manual (thủ công)
+        const res = await checkinApi.getFullJourney();
+        console.log("Dữ liệu hành trình từ Server:", res);
 
-        // Lấy manual provinces từ localStorage
-        const storedManual = getStoredManualProvinces();
-
-        const tourProvinces = new Set<string>();
-        const manualProvinces = new Set<string>();
-
-        // API trả về: { total: 5, provinces: ["Hà Nội", "Lào Cai"] }
-        if (res.provinces && Array.isArray(res.provinces)) {
-          res.provinces.forEach((p: string) => {
-            const normalizedName = normalize(p);
-            // Nếu tỉnh này có trong localStorage manual -> đưa vào manual
-            if (storedManual.has(normalizedName)) {
-              manualProvinces.add(normalizedName);
-            } else {
-              // Còn lại là qua tour
-              tourProvinces.add(normalizedName);
-            }
+        // Tỉnh từ booking đã hoàn thành (TỰ ĐỘNG - user đi tour trên web)
+        const fromBookingsSet = new Set<string>();
+        if (res.fromBookings && Array.isArray(res.fromBookings)) {
+          res.fromBookings.forEach((p: string) => {
+            fromBookingsSet.add(normalize(p));
           });
         }
 
-        setVisitedProvinces(tourProvinces);
-        setManualVisitedProvinces(manualProvinces);
+        // Tỉnh từ manual check-in (THỦ CÔNG - user đi ngoài web)
+        const fromManualSet = new Set<string>();
+        if (res.fromManualCheckins && Array.isArray(res.fromManualCheckins)) {
+          res.fromManualCheckins.forEach((p: string) => {
+            fromManualSet.add(normalize(p));
+          });
+        }
+
+        // Kết hợp với localStorage (fallback nếu API chưa sync)
+        const storedManual = getStoredManualProvinces();
+        storedManual.forEach((p) => fromManualSet.add(p));
+
+        setBookingProvinces(fromBookingsSet);
+        setManualProvinces(fromManualSet);
+
+        console.log("Từ booking (tự động):", Array.from(fromBookingsSet));
+        console.log("Tự đánh dấu (thủ công):", Array.from(fromManualSet));
       } catch (error) {
         console.error("Lỗi tải hành trình:", error);
+        // Fallback: chỉ lấy từ localStorage
+        const storedManual = getStoredManualProvinces();
+        setManualProvinces(storedManual);
       }
     };
 
     fetchJourney();
   }, [user]);
 
-  // 2. CHECK-IN (qua tour - nhận voucher)
-  const handleCheckIn = async () => {
-    if (!selectedProvince || isLoadingAction) return;
-
-    setIsLoadingAction(true);
-    try {
-      // 1. Gọi API và ĐÓN LẤY KẾT QUẢ TRẢ VỀ (chứa voucherCode từ DB)
-      const res: any = await checkinApi.checkinProvince(selectedProvince);
-
-      // --- CẬP NHẬT GIAO DIỆN ---
-
-      // 2. Tô màu xanh ngay lập tức
-      setVisitedProvinces((prev) =>
-        new Set(prev).add(normalize(selectedProvince))
-      );
-
-      // 3. Bắn pháo hoa
-      (confetti as any)({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ["#10b981", "#fcd34d", "#3b82f6"],
-      });
-
-      // 4. HIỆN VOUCHER TỪ BACKEND (Quan trọng)
-      // Lấy voucherCode từ response của server, nếu lỗi thì fallback mã tạm
-      const backendVoucher =
-        res.voucherCode ||
-        `VN-${normalize(selectedProvince).substring(0, 3).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
-
-      const voucherDescription = `Voucher giảm 10% cho chuyến đi tiếp theo đến ${selectedProvince}!`;
-
-      // 5. LƯU VOUCHER VÀO LOCAL STORAGE (để hiển thị ở Kho Voucher)
-      voucherApi.saveCheckinVoucher(backendVoucher, selectedProvince, voucherDescription);
-
-      setEarnedVoucher({
-        code: backendVoucher,
-        description: voucherDescription,
-      });
-
-      setShowVoucher(true);
-      setSelectedProvince(null);
-    } catch (error: any) {
-      console.error("Lỗi check-in:", error);
-
-      // Xử lý thông báo lỗi thân thiện hơn
-      const msg =
-        error.response?.data?.message || "Check-in thất bại. Vui lòng thử lại!";
-
-      // Nếu lỗi là "Đã check-in rồi" thì chỉ thông báo nhẹ nhàng
-      if (msg.includes("đã check-in")) {
-        alert(
-          "Bạn đã check-in địa điểm này rồi! Hãy kiểm tra trong Kho Voucher nhé."
-        );
-      } else {
-        alert(msg);
-      }
-    } finally {
-      setIsLoadingAction(false);
-    }
+  // 2. Xem tour tại tỉnh này (dẫn đến trang destination)
+  const handleViewTours = () => {
+    if (!selectedProvince) return;
+    // Encode tên tỉnh để search
+    const searchQuery = encodeURIComponent(selectedProvince);
+    router.push(`/user/destination?search=${searchQuery}`);
+    setSelectedProvince(null);
   };
 
-  // 2b. ĐÁNH DẤU THỦ CÔNG (không nhận voucher)
+  // 3. ĐÁNH DẤU THỦ CÔNG - Cho những địa điểm đã đi NGOÀI web này
   const handleManualMark = async () => {
     if (!selectedProvince || isLoadingAction) return;
 
     setIsLoadingAction(true);
     try {
-      // Gọi API đánh dấu thủ công
-      await checkinApi.manualMarkProvince(selectedProvince);
+      // Gọi API đánh dấu thủ công (nếu có)
+      try {
+        await checkinApi.manualMarkProvince(selectedProvince);
+      } catch (apiError) {
+        // Nếu API lỗi, vẫn lưu local
+        console.log("API manual mark không available, lưu local");
+      }
 
-      // Lưu vào localStorage để phân biệt với tour check-in
+      // Lưu vào localStorage
       saveManualProvince(selectedProvince);
 
       // Tô màu xanh dương cho tỉnh đánh dấu thủ công
-      setManualVisitedProvinces((prev) =>
+      setManualProvinces((prev) =>
         new Set(prev).add(normalize(selectedProvince))
       );
 
@@ -228,30 +181,13 @@ export default function VietnamJourneyMap() {
       setSelectedProvince(null);
     } catch (error: any) {
       console.error("Lỗi đánh dấu thủ công:", error);
-      const msg =
-        error.response?.data?.message || "Đánh dấu thất bại. Vui lòng thử lại!";
-
-      // Nếu đã check-in rồi, vẫn đánh dấu là manual trong localStorage
-      if (msg.includes("đã check-in") || msg.includes("đã đánh dấu")) {
-        saveManualProvince(selectedProvince);
-        setManualVisitedProvinces((prev) =>
-          new Set(prev).add(normalize(selectedProvince))
-        );
-        // Xóa khỏi visited (tour) nếu có
-        setVisitedProvinces((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(normalize(selectedProvince));
-          return newSet;
-        });
-        setSelectedProvince(null);
-      } else {
-        alert(msg);
-      }
+      alert("Đánh dấu thất bại. Vui lòng thử lại!");
     } finally {
       setIsLoadingAction(false);
     }
   };
-  // 3. ZOOM/PAN CONTROLS
+
+  // 4. ZOOM/PAN CONTROLS
   const zoomIn = () => setScale((s) => Math.min(s + 0.2, 4));
   const zoomOut = () => setScale((s) => Math.max(s - 0.2, 0.5));
   const resetMap = () => {
@@ -294,11 +230,11 @@ export default function VietnamJourneyMap() {
         <div className="absolute bottom-4 left-4 z-20 bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-lg border border-slate-100 flex flex-col gap-3 text-xs font-semibold text-slate-600">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-[#10b981] shadow-sm ring-1 ring-emerald-200"></span>
-            <span>Đã đi (có voucher)</span>
+            <span>Đã đi qua tour (tự động)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-[#3b82f6] shadow-sm ring-1 ring-blue-200"></span>
-            <span>Tự đánh dấu</span>
+            <span>Tự đánh dấu (đi ngoài web)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-[#e5e7eb] ring-1 ring-slate-300"></span>
@@ -346,21 +282,21 @@ export default function VietnamJourneyMap() {
             <g id="vietnam-provinces">
               {VIETNAM_PATHS.map((p) => {
                 const normalizedTitle = normalize(p.title);
-                const isVisited = visitedProvinces.has(normalizedTitle);
-                const isManualVisited = manualVisitedProvinces.has(normalizedTitle);
+                const isFromBooking = bookingProvinces.has(normalizedTitle);
+                const isManual = manualProvinces.has(normalizedTitle);
                 const isHovered = hoveredName === p.title;
                 const isSelected = selectedProvince === p.title;
 
-                // Xác định màu fill
+                // Xác định màu fill - ưu tiên: selected > hover > booking > manual > locked
                 const getFillColor = () => {
                   if (isSelected) return COLORS.HOVER;
                   if (isHovered) {
-                    if (isVisited) return "#059669"; // Đậm hơn khi hover visited
-                    if (isManualVisited) return "#2563eb"; // Đậm hơn khi hover manual
+                    if (isFromBooking) return "#059669"; // Đậm hơn khi hover booking
+                    if (isManual) return "#2563eb"; // Đậm hơn khi hover manual
                     return COLORS.HOVER;
                   }
-                  if (isVisited) return COLORS.VISITED;
-                  if (isManualVisited) return COLORS.MANUAL_VISITED;
+                  if (isFromBooking) return COLORS.BOOKING_VISITED;
+                  if (isManual) return COLORS.MANUAL_VISITED;
                   return COLORS.LOCKED;
                 };
 
@@ -392,7 +328,7 @@ export default function VietnamJourneyMap() {
           </div>
         )}
 
-        {/* Check-in Popup */}
+        {/* Province Info Popup */}
         <AnimatePresence>
           {selectedProvince && popupPos && (
             <motion.div
@@ -415,97 +351,75 @@ export default function VietnamJourneyMap() {
                 <h3 className="text-xl font-bold text-slate-800">
                   {selectedProvince}
                 </h3>
-                {visitedProvinces.has(normalize(selectedProvince)) ? (
+
+                {/* Đã đi qua tour trên web (TỰ ĐỘNG) */}
+                {bookingProvinces.has(normalize(selectedProvince)) ? (
                   <div className="mt-3 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-bold flex items-center gap-2">
-                    <FaGift className="text-emerald-500" />
-                    Đã đi (có voucher)
+                    <FaCheck className="text-emerald-500" />
+                    Đã đi qua tour trên web
                   </div>
-                ) : manualVisitedProvinces.has(normalize(selectedProvince)) ? (
+                ) : manualProvinces.has(normalize(selectedProvince)) ? (
+                  /* Đã tự đánh dấu (THỦ CÔNG) */
                   <div className="mt-3 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold flex items-center gap-2">
                     <FaCheck className="text-blue-500" />
                     Đã tự đánh dấu
                   </div>
                 ) : (
+                  /* Chưa đi - cho phép đánh dấu thủ công */
                   <>
                     <p className="text-sm text-slate-500 my-3">
-                      Chọn cách đánh dấu địa điểm này:
+                      Bạn đã từng đến {selectedProvince} ngoài website này?
                     </p>
 
-                    {/* Nút Check-in qua tour (nhận voucher) */}
-                    <button
-                      onClick={handleCheckIn}
-                      disabled={isLoadingAction}
-                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      <FaGift />
-                      {isLoadingAction ? "Đang xử lý..." : "Đã đi qua tour (nhận voucher)"}
-                    </button>
-
-                    <div className="my-2 flex items-center gap-2">
-                      <div className="flex-1 h-px bg-slate-200"></div>
-                      <span className="text-xs text-slate-400">hoặc</span>
-                      <div className="flex-1 h-px bg-slate-200"></div>
-                    </div>
-
-                    {/* Nút Đánh dấu thủ công (không nhận voucher) */}
+                    {/* Nút Đánh dấu thủ công */}
                     <button
                       onClick={handleManualMark}
                       disabled={isLoadingAction}
                       className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       <FaCheck />
-                      {isLoadingAction ? "Đang xử lý..." : "Tự đánh dấu (không voucher)"}
+                      {isLoadingAction ? "Đang xử lý..." : "Đánh dấu đã đến"}
+                    </button>
+
+                    <p className="text-xs text-slate-400 mt-3 italic">
+                      * Đánh dấu cho các địa điểm bạn đã đến mà không qua tour của chúng tôi
+                    </p>
+
+                    <div className="my-3 flex items-center gap-2">
+                      <div className="flex-1 h-px bg-slate-200"></div>
+                      <span className="text-xs text-slate-400">hoặc</span>
+                      <div className="flex-1 h-px bg-slate-200"></div>
+                    </div>
+
+                    {/* Nút Xem tour */}
+                    <button
+                      onClick={handleViewTours}
+                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <FaGift />
+                      Xem tour tại {selectedProvince}
                     </button>
 
                     <p className="text-xs text-slate-400 mt-2 italic">
-                      * Đánh dấu thủ công sẽ không nhận được phiếu giảm giá
+                      * Đặt tour và hoàn thành sẽ tự động đánh dấu
                     </p>
                   </>
                 )}
-                <button
-                  onClick={() => router.push("/user/destination")}
-                  className="mt-4 text-xs text-slate-400 hover:text-indigo-600 underline"
-                >
-                  Xem các tour tại đây
-                </button>
+
+                {/* Link xem tour (cho tỉnh đã đánh dấu) */}
+                {(bookingProvinces.has(normalize(selectedProvince)) || manualProvinces.has(normalize(selectedProvince))) && (
+                  <button
+                    onClick={handleViewTours}
+                    className="mt-4 text-sm text-indigo-600 hover:text-indigo-800 font-medium underline"
+                  >
+                    Xem các tour tại {selectedProvince}
+                  </button>
+                )}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
-      {/* Voucher Modal */}
-      <AnimatePresence>
-        {showVoucher && earnedVoucher && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden text-center"
-            >
-              <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-8 text-white">
-                <h2 className="text-3xl font-black uppercase">Chúc Mừng!</h2>
-                <p>Bạn đã mở khóa địa điểm mới</p>
-              </div>
-              <div className="p-6">
-                <p className="text-slate-600 mb-6">
-                  {earnedVoucher.description}
-                </p>
-                <div className="bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl p-4 font-mono font-bold text-xl text-slate-800">
-                  {earnedVoucher.code}
-                </div>
-                <button
-                  onClick={() => setShowVoucher(false)}
-                  className="w-full mt-6 py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800"
-                >
-                  Tuyệt vời!
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Manual Success Toast */}
       <AnimatePresence>

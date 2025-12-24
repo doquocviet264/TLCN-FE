@@ -21,8 +21,8 @@ import {
   getSupportMessages,
   sendSupportMessage,
   getUserSupportChats,
-  type ChatMessage,
   type ChatThread,
+  type ChatRole,
   formatChatTime,
   isStaffRole,
   ROLE_LABELS,
@@ -47,7 +47,6 @@ export default function ChatWidget() {
   } = useChatStore();
 
   const user = useAuthStore((s) => s.user);
-  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
 
   const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [newMessage, setNewMessage] = useState("");
@@ -139,6 +138,7 @@ export default function ChatWidget() {
         content,
         name: user?.fullName,
         email: user?.email,
+        role: user ? "user" : "guest",
       });
       loadMessages(activeSupportId, true);
     } catch (err) {
@@ -157,8 +157,8 @@ export default function ChatWidget() {
     try {
       const res = await startSupportChat({
         content: firstMessage.trim(),
-        name: isLoggedIn ? user?.fullName : guestName || undefined,
-        email: isLoggedIn ? user?.email : guestEmail || undefined,
+        name: user ? user.fullName : guestName || undefined,
+        email: user ? user.email : guestEmail || undefined,
       });
 
       setActiveChat("support", res.supportId);
@@ -372,7 +372,7 @@ export default function ChatWidget() {
         {/* New Chat View */}
         {viewMode === "new" && (
           <form onSubmit={handleStartNewChat} className="flex h-full flex-col p-4">
-            {!isLoggedIn && (
+            {!user && (
               <div className="mb-4 space-y-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-slate-600">
@@ -448,7 +448,9 @@ export default function ChatWidget() {
                 </div>
               ) : (
                 messages.map((msg, idx) => {
-                  const role = (msg.fromRole || "guest").toLowerCase() as any;
+                  // Logic: fromRole là user/guest → tin nhắn của tôi (bên phải)
+                  //        fromRole là admin/leader → tin nhắn của staff (bên trái)
+                  const role = (msg.fromRole || "guest").toLowerCase() as ChatRole;
                   const isStaff = isStaffRole(role);
 
                   if (msg.isSystem) {

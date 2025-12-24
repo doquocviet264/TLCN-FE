@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
+import NotificationBell from "@/components/NotificationBell";
 import { useEffect, useRef, useState } from "react";
 import { authApi } from "@/lib/auth/authApi";
 import { useAuthStore } from "#/stores/auth";
@@ -209,7 +210,11 @@ export default function Header() {
           )}
 
           {isLoggedIn && (
-            <div
+            <>
+              {/* Notification Bell */}
+              <NotificationBell />
+
+              <div
               ref={avatarRef}
               className="relative flex items-center gap-2 cursor-pointer"
               onClick={() => setAvatarOpen((v) => !v)}
@@ -259,6 +264,7 @@ export default function Header() {
                 </div>
               )}
             </div>
+            </>
           )}
         </div>
       </div>

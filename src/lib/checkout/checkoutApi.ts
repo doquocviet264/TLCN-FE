@@ -5,7 +5,6 @@ import axiosInstance from "@/lib/axiosInstance";
 export type PaymentMethod =
   | "office-payment"
   | "vnpay-payment"
-  | "sepay-payment"
   | "momo"
   | "vnpay"
   | "manual"
@@ -277,18 +276,6 @@ export async function createPaymentForBooking(
   );
   return data || {};
 }
-export async function initSepayPayment(
-  bookingCode: string,
-  totalPrice: number
-) {
-  const { data } = await axiosInstance.post(
-    "/payment/sepay/create",
-    { code: bookingCode, amount: totalPrice },
-    { headers: { "Content-Type": "application/json" } }
-  );
-  return data;
-}
-
 export async function initBookingPayment(
   bookingCode: string,
   totalPrice: number

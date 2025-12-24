@@ -2,6 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { FiBold, FiItalic, FiUnderline, FiImage, FiVideo, FiGlobe, FiUser } from "react-icons/fi";
+import { toast } from "react-hot-toast";
+
+// File size limits
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 
 interface PostFormProps {
   title: string;
@@ -126,7 +131,22 @@ export default function PostForm({
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const imageUrl = await readFileAsDataURL(file); 
+
+    // Validate file size
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast.error("Ảnh không được vượt quá 5MB");
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Vui lòng chọn file ảnh hợp lệ");
+      e.target.value = "";
+      return;
+    }
+
+    const imageUrl = await readFileAsDataURL(file);
     insertImage(imageUrl);
     e.target.value = "";
   };
@@ -134,7 +154,22 @@ export default function PostForm({
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const videoUrl = await readFileAsDataURL(file); 
+
+    // Validate file size
+    if (file.size > MAX_VIDEO_SIZE) {
+      toast.error("Video không được vượt quá 50MB");
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("video/")) {
+      toast.error("Vui lòng chọn file video hợp lệ");
+      e.target.value = "";
+      return;
+    }
+
+    const videoUrl = await readFileAsDataURL(file);
     insertVideo(videoUrl);
     e.target.value = "";
   };

@@ -13,20 +13,24 @@ import {
   User,
   DollarSign,
   Clock,
+  MessageSquare,
 } from "lucide-react";
 import { leaderAuthApi } from "@/lib/leader/leaderApi";
 
 interface LeaderUser {
-  _id: string;
+  id: string;
   fullName: string;
   email: string;
-  phone?: string;
+  username?: string;
+  phoneNumber?: string;
   avatar?: string;
+  status?: string;
 }
 
 const navItems = [
   { name: "Dashboard", href: "/leader/dashboard", icon: Home },
   { name: "Tour của tôi", href: "/leader/tours", icon: Calendar },
+  { name: "Chat nhóm", href: "/leader/chat", icon: MessageSquare },
 ];
 
 export default function LeaderLayout({

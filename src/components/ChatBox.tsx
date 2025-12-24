@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import useUser from "#/src/hooks/useUser";
 import { useChatStore } from "#/stores/chatStore";
@@ -12,10 +12,10 @@ import {
   Loader2,
   Headset,
   Trash2,
-  User,
   History,
   Shield,
   Crown,
+  AlertTriangle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -31,7 +31,7 @@ import {
 
 export default function ChatBox() {
   // --- HOOKS ---
-  const { user, isAuthenticated, loading: authLoading } = useUser();
+  const { user, isAuthenticated } = useUser();
   const { isOpen, openChat, closeChat, tourContext, clearTourContext } =
     useChatStore();
 
@@ -47,6 +47,9 @@ export default function ChatBox() {
   const [guestEmail, setGuestEmail] = useState("");
   const [showStartForm, setShowStartForm] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // ✅ Modal confirm end chat
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -68,6 +71,7 @@ export default function ChatBox() {
         loadMessages(savedSupportId);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -86,6 +90,16 @@ export default function ChatBox() {
       );
     }
   }, [messages, isOpen, isMinimized]);
+
+  // Close end-confirm modal on ESC
+  useEffect(() => {
+    if (!showEndConfirm) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowEndConfirm(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showEndConfirm]);
 
   // --- LOGIC: LOAD MESSAGES ---
   const loadMessages = async (sid: string, silent = false) => {
@@ -133,6 +147,7 @@ export default function ChatBox() {
       setShowStartForm(false);
       clearTourContext();
     } catch (err: any) {
+      // (Bạn có thể thay bằng toast sau; mình giữ nguyên để không đổi scope)
       alert(err.response?.data?.message || "Lỗi bắt đầu chat");
     } finally {
       setSending(false);
@@ -151,6 +166,7 @@ export default function ChatBox() {
         content: tempContent.trim(),
         name: isAuthenticated ? user?.fullName : guestName,
         email: isAuthenticated ? user?.email : guestEmail,
+        role: isAuthenticated ? "user" : "guest",
       });
       loadMessages(supportId, true);
     } catch (err: any) {
@@ -160,14 +176,15 @@ export default function ChatBox() {
   };
 
   // --- UTILS ---
-  const handleEndChat = () => {
+  const handleEndChat = useCallback(() => {
     localStorage.removeItem("supportChatId");
     setSupportId(null);
     setMessages([]);
     setShowStartForm(true);
     setUnreadCount(0);
     clearTourContext();
-  };
+    setShowEndConfirm(false);
+  }, [clearTourContext]);
 
   const formatTime = (dateStr: string) => {
     return new Date(dateStr).toLocaleTimeString("vi-VN", {
@@ -353,7 +370,7 @@ export default function ChatBox() {
                   </form>
                 </div>
               ) : (
-                // === MESSAGE LIST (CẬP NHẬT LOGIC CHIA ROLE) ===
+                // MESSAGE LIST
                 <div className="space-y-5 pb-2">
                   {loading && messages.length === 0 && (
                     <div className="flex h-full items-center justify-center">
@@ -370,12 +387,12 @@ export default function ChatBox() {
                   )}
 
                   {messages.map((msg, idx) => {
-                    // Logic Role: Admin/Leader là Support (Trái), còn lại là Tôi (Phải)
-                    const role = (msg.fromRole || "guest").toLowerCase() as ChatRole;
+                    const role = (
+                      msg.fromRole || "guest"
+                    ).toLowerCase() as ChatRole;
                     const isSupport = isStaffRole(role);
                     const isMe = !isSupport;
 
-                    // Get role-specific styling
                     const getRoleIcon = () => {
                       if (role === "admin") return <Shield size={12} />;
                       if (role === "leader") return <Crown size={12} />;
@@ -384,7 +401,8 @@ export default function ChatBox() {
 
                     const getRoleBadgeColor = () => {
                       if (role === "admin") return "bg-blue-100 text-blue-700";
-                      if (role === "leader") return "bg-purple-100 text-purple-700";
+                      if (role === "leader")
+                        return "bg-purple-100 text-purple-700";
                       return "bg-slate-100 text-slate-600";
                     };
 
@@ -397,13 +415,14 @@ export default function ChatBox() {
                           isMe ? "justify-end" : "justify-start"
                         }`}
                       >
-                        {/* Avatar cho Support */}
                         {isSupport && (
-                          <div className={`mr-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border shadow-sm mt-1 ${
-                            role === "admin"
-                              ? "bg-blue-100 text-blue-600 border-blue-200"
-                              : "bg-purple-100 text-purple-600 border-purple-200"
-                          }`}>
+                          <div
+                            className={`mr-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border shadow-sm mt-1 ${
+                              role === "admin"
+                                ? "bg-blue-100 text-blue-600 border-blue-200"
+                                : "bg-purple-100 text-purple-600 border-purple-200"
+                            }`}
+                          >
                             {getRoleIcon()}
                           </div>
                         )}
@@ -413,10 +432,11 @@ export default function ChatBox() {
                             isMe ? "items-end" : "items-start"
                           }`}
                         >
-                          {/* Tên người gửi với role badge */}
                           <span className="mb-1 ml-1 text-[10px] font-medium flex items-center gap-1">
                             {isSupport ? (
-                              <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${getRoleBadgeColor()}`}>
+                              <span
+                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${getRoleBadgeColor()}`}
+                              >
                                 {getRoleIcon()}
                                 {ROLE_LABELS[role] || "Hỗ trợ viên"}
                               </span>
@@ -425,7 +445,6 @@ export default function ChatBox() {
                             )}
                           </span>
 
-                          {/* Bong bóng chat */}
                           <div
                             className={`relative rounded-2xl px-4 py-2.5 text-sm shadow-sm leading-relaxed ${
                               isMe
@@ -440,7 +459,6 @@ export default function ChatBox() {
                             <p className="whitespace-pre-wrap">{msg.content}</p>
                           </div>
 
-                          {/* Thời gian */}
                           <span
                             className={`mt-1 px-1 text-[9px] ${
                               isMe ? "text-orange-600/60" : "text-slate-400"
@@ -489,12 +507,10 @@ export default function ChatBox() {
                     )}
                   </button>
                 </form>
+
                 <div className="mt-2 flex justify-center">
                   <button
-                    onClick={() => {
-                      if (window.confirm("Kết thúc trò chuyện?"))
-                        handleEndChat();
-                    }}
+                    onClick={() => setShowEndConfirm(true)}
                     className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-red-500 transition-colors px-2 py-1"
                   >
                     <Trash2 size={12} /> Kết thúc
@@ -502,6 +518,78 @@ export default function ChatBox() {
                 </div>
               </div>
             )}
+
+            {/* ✅ END CHAT CONFIRM MODAL */}
+            <AnimatePresence>
+              {showEndConfirm && (
+                <>
+                  {/* Overlay */}
+                  <motion.button
+                    type="button"
+                    aria-label="Đóng"
+                    onClick={() => setShowEndConfirm(false)}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-[50] bg-black/30 backdrop-blur-[2px]"
+                  />
+
+                  {/* Dialog */}
+                  <motion.div
+                    role="dialog"
+                    aria-modal="true"
+                    initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 20, scale: 0.98 }}
+                    className="absolute inset-x-0 bottom-0 z-[60] p-4"
+                  >
+                    <div className="rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+                      <div className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-600 border border-red-100">
+                            <AlertTriangle size={18} />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-bold text-slate-800">
+                              Kết thúc cuộc trò chuyện?
+                            </h4>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Lịch sử chat vẫn có thể xem trong mục{" "}
+                              <b>“Lịch sử chat”</b>. Bạn có chắc muốn kết thúc
+                              phiên hiện tại không?
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setShowEndConfirm(false)}
+                            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            aria-label="Đóng"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+
+                        <div className="mt-4 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowEndConfirm(false)}
+                            className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:scale-[0.99]"
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleEndChat}
+                            className="flex-1 rounded-xl bg-gradient-to-r from-red-500 to-red-600 py-2.5 text-xs font-semibold text-white shadow-lg shadow-red-500/25 hover:shadow-red-500/35 active:scale-[0.99]"
+                          >
+                            Kết thúc
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

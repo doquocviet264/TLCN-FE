@@ -13,9 +13,25 @@ type TourFormProps = {
   mode: "create" | "edit";
 };
 
+// Types for itinerary
+type ItinerarySegment = {
+  timeOfDay: "morning" | "afternoon" | "evening";
+  title: string;
+  items: string[];
+};
+
+type ItineraryDay = {
+  day: number;
+  title: string;
+  summary: string;
+  segments: ItinerarySegment[];
+  photos: string[];
+};
+
 // 👇 1. Tạo kiểu dữ liệu mới mở rộng từ TourInput để thêm leaderId
 type TourFormInput = TourInput & {
   leaderId?: string;
+  itinerary?: ItineraryDay[];
 };
 
 export default function TourForm({ tourId, mode }: TourFormProps) {
@@ -51,6 +67,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
     status: "pending",
     images: [],
     leaderId: "",
+    itinerary: [],
   });
 
   // Load existing data when editing
@@ -76,6 +93,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
         images: existingTour.images || [],
         // @ts-expect-error - Bỏ qua lỗi check type ở đây nếu API trả về leader object
         leaderId: existingTour.leader?._id || "",
+        itinerary: existingTour.itinerary || [],
       });
     }
   }, [mode, existingTour]);
@@ -143,6 +161,106 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
     const newImages = [...(formData.images || [])];
     newImages.splice(index, 1);
     setFormData((prev) => ({ ...prev, images: newImages }));
+  };
+
+  // ========== ITINERARY HANDLERS ==========
+  const addDay = () => {
+    const itinerary = formData.itinerary || [];
+    const newDay: ItineraryDay = {
+      day: itinerary.length + 1,
+      title: `Ngày ${itinerary.length + 1}`,
+      summary: "",
+      segments: [],
+      photos: [],
+    };
+    setFormData((prev) => ({
+      ...prev,
+      itinerary: [...(prev.itinerary || []), newDay],
+    }));
+  };
+
+  const removeDay = (dayIndex: number) => {
+    const itinerary = [...(formData.itinerary || [])];
+    itinerary.splice(dayIndex, 1);
+    // Re-number days
+    itinerary.forEach((d, i) => {
+      d.day = i + 1;
+    });
+    setFormData((prev) => ({ ...prev, itinerary }));
+  };
+
+  const updateDay = (
+    dayIndex: number,
+    field: keyof ItineraryDay,
+    value: any
+  ) => {
+    const itinerary = [...(formData.itinerary || [])];
+    itinerary[dayIndex] = { ...itinerary[dayIndex], [field]: value };
+    setFormData((prev) => ({ ...prev, itinerary }));
+  };
+
+  const addSegment = (dayIndex: number) => {
+    const itinerary = [...(formData.itinerary || [])];
+    const newSegment: ItinerarySegment = {
+      timeOfDay: "morning",
+      title: "",
+      items: [],
+    };
+    itinerary[dayIndex].segments.push(newSegment);
+    setFormData((prev) => ({ ...prev, itinerary }));
+  };
+
+  const removeSegment = (dayIndex: number, segmentIndex: number) => {
+    const itinerary = [...(formData.itinerary || [])];
+    itinerary[dayIndex].segments.splice(segmentIndex, 1);
+    setFormData((prev) => ({ ...prev, itinerary }));
+  };
+
+  const updateSegment = (
+    dayIndex: number,
+    segmentIndex: number,
+    field: keyof ItinerarySegment,
+    value: any
+  ) => {
+    const itinerary = [...(formData.itinerary || [])];
+    itinerary[dayIndex].segments[segmentIndex] = {
+      ...itinerary[dayIndex].segments[segmentIndex],
+      [field]: value,
+    };
+    setFormData((prev) => ({ ...prev, itinerary }));
+  };
+
+  const addSegmentItem = (dayIndex: number, segmentIndex: number) => {
+    const itinerary = [...(formData.itinerary || [])];
+    itinerary[dayIndex].segments[segmentIndex].items.push("");
+    setFormData((prev) => ({ ...prev, itinerary }));
+  };
+
+  const removeSegmentItem = (
+    dayIndex: number,
+    segmentIndex: number,
+    itemIndex: number
+  ) => {
+    const itinerary = [...(formData.itinerary || [])];
+    itinerary[dayIndex].segments[segmentIndex].items.splice(itemIndex, 1);
+    setFormData((prev) => ({ ...prev, itinerary }));
+  };
+
+  const updateSegmentItem = (
+    dayIndex: number,
+    segmentIndex: number,
+    itemIndex: number,
+    value: string
+  ) => {
+    const itinerary = [...(formData.itinerary || [])];
+    itinerary[dayIndex].segments[segmentIndex].items[itemIndex] = value;
+    setFormData((prev) => ({ ...prev, itinerary }));
+  };
+
+  const timeOfDayLabels: Record<string, string> = {
+    morning: "Buổi sáng",
+    afternoon: "Buổi chiều",
+    evening: "Buổi tối",
   };
 
   const isLoading = createTour.isPending || updateTour.isPending;
@@ -375,6 +493,279 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 <option value="closed">Đóng</option>
               </select>
             </div>
+          </div>
+
+          {/* ============ ITINERARY SECTION ============ */}
+          <div className="border-t border-slate-200 pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <label className="block font-semibold text-slate-900 text-lg">
+                  Lịch trình chi tiết
+                </label>
+                <p className="text-sm text-slate-500">
+                  Thêm lịch trình cho từng ngày của tour
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={addDay}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Thêm ngày
+              </button>
+            </div>
+
+            {(formData.itinerary || []).length === 0 ? (
+              <div className="text-center py-8 bg-slate-50 rounded-lg border-2 border-dashed border-slate-300">
+                <svg
+                  className="w-12 h-12 mx-auto text-slate-400 mb-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <p className="text-slate-500">
+                  Chưa có lịch trình. Nhấn "Thêm ngày" để bắt đầu.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(formData.itinerary || []).map((day, dayIdx) => (
+                  <div
+                    key={dayIdx}
+                    className="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden"
+                  >
+                    {/* Day Header */}
+                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 px-4 py-3 border-b border-slate-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500 text-white font-bold text-sm">
+                            {day.day}
+                          </span>
+                          <input
+                            type="text"
+                            value={day.title}
+                            onChange={(e) =>
+                              updateDay(dayIdx, "title", e.target.value)
+                            }
+                            className="font-semibold text-slate-900 bg-transparent border-none focus:outline-none focus:ring-0 text-lg"
+                            placeholder={`Ngày ${day.day}`}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeDay(dayIdx)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                          title="Xóa ngày này"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Day Content */}
+                    <div className="p-4 space-y-4">
+                      {/* Summary */}
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Tóm tắt ngày
+                        </label>
+                        <textarea
+                          value={day.summary || ""}
+                          onChange={(e) =>
+                            updateDay(dayIdx, "summary", e.target.value)
+                          }
+                          rows={2}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                          placeholder="Mô tả ngắn gọn về ngày này..."
+                        />
+                      </div>
+
+                      {/* Segments */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-sm font-medium text-slate-700">
+                            Các hoạt động trong ngày
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => addSegment(dayIdx)}
+                            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
+                          >
+                            + Thêm buổi
+                          </button>
+                        </div>
+
+                        {day.segments.length === 0 ? (
+                          <p className="text-sm text-slate-400 italic">
+                            Chưa có hoạt động. Nhấn "Thêm buổi" để thêm.
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {day.segments.map((segment, segIdx) => (
+                              <div
+                                key={segIdx}
+                                className="border border-slate-200 rounded-lg p-3 bg-slate-50"
+                              >
+                                <div className="flex items-start gap-3 mb-2">
+                                  <select
+                                    value={segment.timeOfDay}
+                                    onChange={(e) =>
+                                      updateSegment(
+                                        dayIdx,
+                                        segIdx,
+                                        "timeOfDay",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium"
+                                  >
+                                    <option value="morning">Buổi sáng</option>
+                                    <option value="afternoon">Buổi chiều</option>
+                                    <option value="evening">Buổi tối</option>
+                                  </select>
+                                  <input
+                                    type="text"
+                                    value={segment.title}
+                                    onChange={(e) =>
+                                      updateSegment(
+                                        dayIdx,
+                                        segIdx,
+                                        "title",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                                    placeholder="Tiêu đề hoạt động (VD: Tham quan Vịnh Hạ Long)"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeSegment(dayIdx, segIdx)}
+                                    className="p-1.5 text-red-500 hover:bg-red-100 rounded transition"
+                                  >
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
+
+                                {/* Segment Items */}
+                                <div className="ml-4 space-y-2">
+                                  {segment.items.map((item, itemIdx) => (
+                                    <div
+                                      key={itemIdx}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                                      <input
+                                        type="text"
+                                        value={item}
+                                        onChange={(e) =>
+                                          updateSegmentItem(
+                                            dayIdx,
+                                            segIdx,
+                                            itemIdx,
+                                            e.target.value
+                                          )
+                                        }
+                                        className="flex-1 px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm bg-white"
+                                        placeholder="Chi tiết hoạt động..."
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          removeSegmentItem(dayIdx, segIdx, itemIdx)
+                                        }
+                                        className="p-1 text-slate-400 hover:text-red-500 transition"
+                                      >
+                                        <svg
+                                          className="w-4 h-4"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                          />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  ))}
+                                  <button
+                                    type="button"
+                                    onClick={() => addSegmentItem(dayIdx, segIdx)}
+                                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                  >
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 4v16m8-8H4"
+                                      />
+                                    </svg>
+                                    Thêm chi tiết
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Images */}

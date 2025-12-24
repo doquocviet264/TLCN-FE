@@ -1,4 +1,24 @@
 import axiosInstance from "@/lib/axiosInstance";
+import axios from "axios";
+import { getUserToken } from "@/lib/auth/tokenManager";
+
+const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
+// Axios instance riêng cho user chat - CHỈ dùng user token, không dùng admin token
+const userChatAxios = axios.create({
+  baseURL,
+  withCredentials: false,
+});
+
+userChatAxios.interceptors.request.use((config) => {
+  // Chỉ lấy user token, không lấy admin token
+  const userToken = getUserToken();
+  if (userToken) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${userToken}`;
+  }
+  return config;
+});
 
 // ==================== Types ====================
 export type ChatRole = "admin" | "leader" | "user" | "guest";
@@ -65,24 +85,40 @@ export async function sendBookingMessage(bookingCode: string, content: string): 
   return data;
 }
 
-// ==================== Support Chat ====================
+// ==================== Support Chat (User Side - dùng userChatAxios) ====================
+// Các hàm này dùng userChatAxios để đảm bảo chỉ gửi user token, không gửi admin token
 export async function startSupportChat(params: {
   content: string;
   name?: string;
   email?: string;
 }): Promise<StartSupportResponse> {
-  const { data } = await axiosInstance.post("/chat/support/start", params);
+  const { data } = await userChatAxios.post("/chat/support/start", params);
   return data;
 }
 
 export async function getSupportMessages(supportId: string): Promise<ChatResponse> {
-  const { data } = await axiosInstance.get(`/chat/support/${supportId}`);
+  const { data } = await userChatAxios.get(`/chat/support/${supportId}`);
   return data;
 }
 
 export async function sendSupportMessage(
   supportId: string,
-  params: { content: string; name?: string; email?: string }
+  params: { content: string; name?: string; email?: string; role?: ChatRole }
+): Promise<{ message: string; data: ChatMessage }> {
+  const { data } = await userChatAxios.post(`/chat/support/${supportId}`, params);
+  return data;
+}
+
+// ==================== Support Chat (Admin Side - dùng axiosInstance) ====================
+// Admin dùng axiosInstance để gửi admin token
+export async function adminGetSupportMessages(supportId: string): Promise<ChatResponse> {
+  const { data } = await axiosInstance.get(`/chat/support/${supportId}`);
+  return data;
+}
+
+export async function adminSendSupportMessage(
+  supportId: string,
+  params: { content: string }
 ): Promise<{ message: string; data: ChatMessage }> {
   const { data } = await axiosInstance.post(`/chat/support/${supportId}`, params);
   return data;
@@ -99,16 +135,71 @@ export async function sendTourGroupMessage(tourId: string, content: string): Pro
   return data;
 }
 
+// Lấy danh sách tour mà user đã booking (để hiển thị nhóm chat)
+export type TourChatInfo = {
+  tourId: string;
+  tourTitle: string;
+  tourDestination?: string;
+  tourImage?: string;
+  startDate?: string;
+  endDate?: string;
+  bookingCode: string;
+  bookingStatus: string;
+};
+
+export async function getMyTourChats(): Promise<{ total: number; data: TourChatInfo[] }> {
+  try {
+    // Lấy danh sách booking của user
+    const { data } = await axiosInstance.get("/bookings/me", {
+      params: { limit: 50 }
+    });
+
+    const bookings = data?.data || [];
+
+    // Lọc các booking đã confirmed (c) hoặc pending (p) - không lấy canceled (x)
+    // Và chỉ lấy các tour có startDate trong tương lai hoặc đang diễn ra
+    const tourChats: TourChatInfo[] = [];
+    const seenTourIds = new Set<string>();
+
+    for (const b of bookings) {
+      if (b.bookingStatus === "x") continue; // Skip canceled
+
+      const tour = typeof b.tourId === "object" ? b.tourId : null;
+      const tourId = tour?._id || b.tourId;
+
+      if (!tourId || seenTourIds.has(tourId)) continue;
+      seenTourIds.add(tourId);
+
+      tourChats.push({
+        tourId: String(tourId),
+        tourTitle: tour?.title || b.tourTitle || "Tour",
+        tourDestination: tour?.destination || b.tourDestination,
+        tourImage: tour?.cover || tour?.images?.[0] || b.tourImage,
+        startDate: tour?.startDate || b.startDate,
+        endDate: tour?.endDate || b.endDate,
+        bookingCode: b.code,
+        bookingStatus: b.bookingStatus,
+      });
+    }
+
+    return { total: tourChats.length, data: tourChats };
+  } catch (err) {
+    console.error("getMyTourChats error:", err);
+    return { total: 0, data: [] };
+  }
+}
+
 // ==================== User Chat History ====================
 // Lấy danh sách các cuộc chat của user (support chats đã mở)
+// Dùng userChatAxios để chỉ gửi user token
 export async function getUserSupportChats(): Promise<{ total: number; data: any[] }> {
-  const { data } = await axiosInstance.get("/chat/user/support");
+  const { data } = await userChatAxios.get("/chat/user/support");
   return data;
 }
 
 // Lấy tất cả lịch sử chat của user (support + booking + tour)
 export async function getUserChatHistory(): Promise<UserChatHistory> {
-  const { data } = await axiosInstance.get("/chat/user/history");
+  const { data } = await userChatAxios.get("/chat/user/history");
   return data;
 }
 

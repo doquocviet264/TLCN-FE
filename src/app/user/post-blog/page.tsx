@@ -49,15 +49,24 @@ export default function CreateBlogPage() {
   const [activeStep, setActiveStep] = useState(1);
 
   // Handle cover image
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
   const handleCoverChange = (file: File | null) => {
-    setCoverImage(file);
     if (file) {
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error("Ảnh bìa không được vượt quá 5MB");
+        return;
+      }
+
+      setCoverImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setCoverPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     } else {
+      setCoverImage(null);
       setCoverPreview(null);
     }
   };
@@ -92,6 +101,15 @@ export default function CreateBlogPage() {
 
       if (tags.length > 0) {
         formData.append("tags", JSON.stringify(tags));
+      }
+
+      // Thêm địa chỉ và wardId nếu có
+      if (address.trim()) {
+        formData.append("locationDetail", address.trim());
+      }
+
+      if (wardId) {
+        formData.append("wardId", wardId);
       }
 
       const result = await blogApi.createBlog(formData);

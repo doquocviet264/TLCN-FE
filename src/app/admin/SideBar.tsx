@@ -15,6 +15,7 @@ import {
   Gift,
   UserCog,
   MessageSquare,
+  Bell,
   LogOut,
   ChevronRight,
 } from "lucide-react";
@@ -92,6 +93,12 @@ const navLinks: NavLink[] = [
     display: "Chat",
     path: "/admin/chat",
     icon: <MessageSquare className="w-5 h-5" />,
+    category: "operations",
+  },
+  {
+    display: "Thông báo",
+    path: "/admin/notifications",
+    icon: <Bell className="w-5 h-5" />,
     category: "operations",
   },
 ];

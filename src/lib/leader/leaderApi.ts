@@ -26,8 +26,8 @@ leaderAxios.interceptors.request.use((config) => {
 // ======= AUTH API =======
 export const leaderAuthApi = {
   // Đăng nhập Leader
-  login: async (credentials: { email: string; password: string }) => {
-    const res = await axios.post(`${API_URL}/leader/auth/login`, credentials);
+  login: async (credentials: { identifier: string; password: string }) => {
+    const res = await axios.post(`${API_URL}/leader/login`, credentials);
     if (res.data.token) {
       localStorage.setItem("leaderToken", res.data.token);
       localStorage.setItem("leaderUser", JSON.stringify(res.data.leader));
@@ -43,7 +43,7 @@ export const leaderAuthApi = {
 
   // Lấy thông tin leader hiện tại
   getMe: async () => {
-    const res = await leaderAxios.get("/leader/auth/me");
+    const res = await leaderAxios.get("/leader/me");
     return res.data;
   },
 
@@ -96,6 +96,78 @@ export interface Expense {
   addedBy?: string;
 }
 
+// ======= CHAT API =======
+export interface ChatMessage {
+  _id: string;
+  roomType: "booking" | "support" | "tour";
+  bookingCode?: string;
+  tourId?: string;
+  fromId?: string;
+  fromRole: "admin" | "leader" | "user" | "guest";
+  name?: string;
+  email?: string;
+  content: string;
+  isSystem: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const leaderChatApi = {
+  // Lấy tin nhắn nhóm tour
+  getTourMessages: async (tourId: string) => {
+    const res = await leaderAxios.get(`/chat/tour/${tourId}`);
+    return res.data as { tourId: string; total: number; data: ChatMessage[] };
+  },
+
+  // Gửi tin nhắn nhóm tour
+  sendTourMessage: async (tourId: string, content: string) => {
+    const res = await leaderAxios.post(`/chat/tour/${tourId}`, { content });
+    return res.data as { message: string; data: ChatMessage };
+  },
+
+  // Lấy tin nhắn booking
+  getBookingMessages: async (bookingCode: string) => {
+    const res = await leaderAxios.get(`/chat/booking/${bookingCode}`);
+    return res.data as { bookingCode: string; total: number; data: ChatMessage[] };
+  },
+
+  // Gửi tin nhắn booking
+  sendBookingMessage: async (bookingCode: string, content: string) => {
+    const res = await leaderAxios.post(`/chat/booking/${bookingCode}`, { content });
+    return res.data as { message: string; data: ChatMessage };
+  },
+};
+
+// ======= BOOKING API =======
+export interface TourBooking {
+  _id: string;
+  code: string;
+  userId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerAvatar?: string | null;
+  guestCount: number;
+  totalPrice: number;
+  bookingStatus: string;
+  paymentStatus: string;
+  createdAt: string;
+}
+
+export const leaderBookingApi = {
+  // Lấy danh sách khách hàng đã đặt tour
+  getTourBookings: async (tourId: string) => {
+    const res = await leaderAxios.get(`/leader/tours/${tourId}/bookings`);
+    return res.data as {
+      tourId: string;
+      tourTitle: string;
+      total: number;
+      data: TourBooking[];
+    };
+  },
+};
+
+// ======= TOURS API =======
 export const leaderToursApi = {
   // Lấy danh sách tour được phân công
   getMyTours: async (params?: { status?: string; onlyToday?: boolean }) => {

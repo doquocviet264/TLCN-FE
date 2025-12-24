@@ -24,7 +24,6 @@ import { useGetTourById } from "#/hooks/tours-hook/useTourDetail";
 import {
   createBooking,
   initBookingPayment,
-  initSepayPayment,
 } from "@/lib/checkout/checkoutApi";
 import type { CreateBookingBody } from "@/lib/checkout/checkoutApi";
 
@@ -63,7 +62,7 @@ const isPhoneVN = (s: string) =>
  * TYPES
  * ===========================================================
  */
-type PaymentMethod = CreateBookingBody["paymentMethod"] | "sepay-payment";
+type PaymentMethod = CreateBookingBody["paymentMethod"];
 type PaymentType = "office" | "full";
 
 /* ===========================================================
@@ -308,29 +307,33 @@ function CheckoutContent() {
 
       // Thanh toán VNPay
       if (paymentMethod === "vnpay-payment") {
-        const payData = await initBookingPayment(res.code, total);
-        const redirectUrl =
-          payData?.payUrl || payData?.deeplink || payData?.payment?.redirectUrl;
+        try {
+          const payData = await initBookingPayment(res.code, total);
+          const redirectUrl =
+            payData?.payUrl || payData?.deeplink || payData?.payment?.redirectUrl;
 
-        if (redirectUrl) {
-          window.location.href = redirectUrl;
+          if (redirectUrl) {
+            // Chuyển hướng đến VNPay để thanh toán
+            window.location.href = redirectUrl;
+            return;
+          } else {
+            // Không có URL thanh toán - hiển thị lỗi
+            throw new Error("Không thể khởi tạo thanh toán VNPay. Vui lòng thử lại.");
+          }
+        } catch (payErr: any) {
+          console.error("VNPay init error:", payErr);
+          // Chuyển đến trang success với trạng thái pending để user có thể thanh toán lại
+          const sp = new URLSearchParams();
+          sp.append("bookingId", res.code);
+          sp.append("email", payload.contact.email);
+          sp.append("paymentMethod", "vnpay-payment");
+          sp.append("paymentError", "true");
+          router.replace(`/user/checkout/success?${sp.toString()}`);
           return;
         }
       }
 
-      // Thanh toán SePay
-      if (paymentMethod === "sepay-payment") {
-        const payData = await initSepayPayment(res.code, total);
-        const redirectUrl =
-          payData?.payUrl || payData?.deeplink || payData?.payment?.redirectUrl;
-
-        if (redirectUrl) {
-          window.location.href = redirectUrl;
-          return;
-        }
-      }
-
-      // Office hoặc fallback: chuyển sang trang success
+      // Office payment: chuyển sang trang success
       const sp = new URLSearchParams();
       sp.append("bookingId", res.code);
       sp.append("email", payload.contact.email);
@@ -828,22 +831,15 @@ function PaymentMethods({ value, onChange, typeValue, onTypeChange }: any) {
       id: "office-payment",
       type: "office",
       name: "Thanh toán tại văn phòng",
-      desc: "Giữ chỗ trong 24h",
+      desc: "Giữ chỗ trong 24h, thanh toán sau",
       img: "/pay.png",
     },
     {
       id: "vnpay-payment",
       type: "full",
-      name: "VNPay QR",
-      desc: "Thanh toán qua ví VNPay",
+      name: "Thanh toán VNPay",
+      desc: "Thanh toán trực tuyến qua VNPay (QR, thẻ ATM, Visa...)",
       img: "/vnpay.png",
-    },
-    {
-      id: "sepay-payment",
-      type: "full",
-      name: "Chuyển khoản (SePay)",
-      desc: "Xác nhận tự động 24/7",
-      img: "/sepay.png",
     },
   ];
 

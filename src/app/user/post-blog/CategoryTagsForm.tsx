@@ -21,9 +21,9 @@ const CATEGORY_OPTIONS = [
   "Khách sạn",
   "Mua sắm",
   "Tâm linh",
-  "1",
-  "2",
-  "3",
+  "Văn hóa",
+  "Giải trí",
+  "Thiên nhiên",
 ];
 
 export default function CategoryTagsForm({

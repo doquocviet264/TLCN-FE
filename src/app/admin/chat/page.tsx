@@ -23,10 +23,10 @@ import {
   getAllSupportChats,
   getAllBookingChats,
   getAllTourChats,
-  getSupportMessages,
+  adminGetSupportMessages,
+  adminSendSupportMessage,
   getBookingMessages,
   getTourGroupMessages,
-  sendSupportMessage,
   sendBookingMessage,
   sendTourGroupMessage,
   closeSupportChat,
@@ -161,7 +161,7 @@ export default function AdminChatPage() {
       if (!silent) setLoadingMessages(true);
       let res: any;
 
-      if (thread.type === "support") res = await getSupportMessages(thread.id);
+      if (thread.type === "support") res = await adminGetSupportMessages(thread.id);
       else if (thread.type === "booking") res = await getBookingMessages(thread.id);
       else if (thread.type === "tour") res = await getTourGroupMessages(thread.id);
 
@@ -205,7 +205,7 @@ export default function AdminChatPage() {
 
     try {
       if (selectedThread.type === "support") {
-        await sendSupportMessage(selectedThread.id, { content });
+        await adminSendSupportMessage(selectedThread.id, { content });
       } else if (selectedThread.type === "booking") {
         await sendBookingMessage(selectedThread.id, content);
       } else {

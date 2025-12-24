@@ -7,7 +7,7 @@ import { leaderAuthApi } from "@/lib/leader/leaderApi";
 
 export default function LeaderLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -17,14 +17,14 @@ export default function LeaderLoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!email || !password) {
-      setError("Vui lòng nhập đầy đủ email và mật khẩu");
+    if (!identifier || !password) {
+      setError("Vui lòng nhập đầy đủ email/username và mật khẩu");
       return;
     }
 
     setIsLoading(true);
     try {
-      await leaderAuthApi.login({ email, password });
+      await leaderAuthApi.login({ identifier, password });
       router.push("/leader/dashboard");
     } catch (err: any) {
       console.error("Login error:", err);
@@ -65,18 +65,18 @@ export default function LeaderLoginPage() {
               </div>
             )}
 
-            {/* Email Field */}
+            {/* Email/Username Field */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Email
+                Email hoặc Username
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="leader@ahhtravel.com"
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="leader1 hoặc leader@ahhtravel.com"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                autoComplete="email"
+                autoComplete="username"
               />
             </div>
 

@@ -208,6 +208,27 @@ const createBlog = async (formData: FormData) => {
   return res.data;
 };
 
+// Lấy danh sách bài viết của user đang đăng nhập
+const getMyPosts = async (page = 1, limit = 10): Promise<BlogsResponse> => {
+  const res = await axiosInstance.get<BlogsResponse>("/blog/user/my-posts", {
+    params: { page, limit },
+  });
+  return res.data;
+};
+
+// Cập nhật bài viết của user
+const updateBlog = async (id: string, formData: FormData) => {
+  const res = await axiosInstance.put(`/blog/user/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
+
+// Xóa bài viết của user
+const deleteBlog = async (id: string): Promise<void> => {
+  await axiosInstance.delete(`/blog/user/${id}`);
+};
+
 export const blogApi = {
   getBlogs,
   getBlogBySlug,
@@ -216,4 +237,7 @@ export const blogApi = {
   updateComment,
   deleteComment,
   createBlog,
+  getMyPosts,
+  updateBlog,
+  deleteBlog,
 };
