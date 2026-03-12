@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, type Variants } from "framer-motion";
+import { toast } from "react-hot-toast";
 import {
   MapPin,
   Phone,
@@ -56,7 +57,7 @@ export default function ContactPage() {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     console.log("Form submitted:", formData);
-    alert("Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất.");
+    toast.success("Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất.");
     setIsSubmitting(false);
     setFormData({ name: "", phone: "", email: "", subject: "", message: "" });
   };

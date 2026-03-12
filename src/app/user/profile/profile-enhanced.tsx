@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "#/stores/auth";
 import { authApi } from "@/lib/auth/authApi";
 import { getUserToken } from "@/lib/auth/tokenManager";
+import { toast } from "react-hot-toast";
 import Image from "next/image";
 import Link from "next/link";
 import { 
@@ -127,10 +128,10 @@ export default function ProfilePage() {
       setUser(updatedProfile as any);
       
       setEditMode(false);
-      alert("Cập nhật thông tin thành công!");
+      toast.success("Cập nhật thông tin thành công!");
     } catch (error) {
       console.error("❌ Error updating profile:", error);
-      alert("Có lỗi xảy ra khi cập nhật thông tin!");
+      toast.error("Có lỗi xảy ra khi cập nhật thông tin!");
     } finally {
       setSaving(false);
     }

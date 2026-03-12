@@ -42,7 +42,7 @@ export default function UserEditPage() {
           address: user.address || "",
         }));
       } catch {
-        alert("Lỗi tải dữ liệu người dùng");
+        showError("Lỗi tải dữ liệu người dùng");
         router.push("/admin/users");
       } finally {
         setIsLoading(false);

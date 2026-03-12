@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getUserToken, getAdminToken } from "@/lib/auth/tokenManager";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
@@ -35,10 +36,7 @@ export interface VoucherListResponse {
 export const voucherApi = {
   // Lấy danh sách voucher của user
   getMyVouchers: async (status?: string): Promise<Voucher[]> => {
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("accessToken")
-        : null;
+    const token = getUserToken();
 
     const params = new URLSearchParams();
     if (status && status !== "all") params.set("status", status);
@@ -64,10 +62,7 @@ export const voucherApi = {
     discountAmount?: number;
     message?: string;
   }> => {
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("accessToken")
-        : null;
+    const token = getUserToken();
 
     const res = await axios.post(
       `${API_URL}/vouchers/validate`,
@@ -138,10 +133,7 @@ export const voucherApi = {
     discountAmount: number;
     message?: string;
   }> => {
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("accessToken")
-        : null;
+    const token = getUserToken();
 
     const res = await axios.post(
       `${API_URL}/vouchers/apply`,
@@ -184,7 +176,7 @@ export const adminVoucherApi = {
     filters: AdminVoucherFilters = {}
   ): Promise<VoucherListResponse> => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+      getAdminToken();
 
     const params = new URLSearchParams();
 
@@ -195,7 +187,7 @@ export const adminVoucherApi = {
     if (filters.type) params.set("type", filters.type);
 
     const res = await axios.get(
-      `${API_URL}/admin/vouchers?${params.toString()}`,
+      `${API_URL}/vouchers/admin?${params.toString()}`,
       {
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),
@@ -207,9 +199,9 @@ export const adminVoucherApi = {
 
   getVoucherById: async (id: string): Promise<Voucher> => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+      getAdminToken();
 
-    const res = await axios.get(`${API_URL}/admin/vouchers/${id}`, {
+    const res = await axios.get(`${API_URL}/vouchers/admin/${id}`, {
       headers: {
         ...(token && { Authorization: `Bearer ${token}` }),
       },
@@ -219,9 +211,9 @@ export const adminVoucherApi = {
 
   createVoucher: async (data: CreateVoucherInput): Promise<Voucher> => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+      getAdminToken();
 
-    const res = await axios.post(`${API_URL}/admin/vouchers`, data, {
+    const res = await axios.post(`${API_URL}/vouchers/admin`, data, {
       headers: {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -234,9 +226,9 @@ export const adminVoucherApi = {
     data: CreateVoucherInput & { quantity: number }
   ): Promise<{ created: number; vouchers: Voucher[] }> => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+      getAdminToken();
 
-    const res = await axios.post(`${API_URL}/admin/vouchers/batch`, data, {
+    const res = await axios.post(`${API_URL}/vouchers/admin/batch`, data, {
       headers: {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -250,9 +242,9 @@ export const adminVoucherApi = {
     data: Partial<CreateVoucherInput>
   ): Promise<Voucher> => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+      getAdminToken();
 
-    const res = await axios.put(`${API_URL}/admin/vouchers/${id}`, data, {
+    const res = await axios.put(`${API_URL}/vouchers/admin/${id}`, data, {
       headers: {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -263,9 +255,9 @@ export const adminVoucherApi = {
 
   deleteVoucher: async (id: string): Promise<void> => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+      getAdminToken();
 
-    await axios.delete(`${API_URL}/admin/vouchers/${id}`, {
+    await axios.delete(`${API_URL}/vouchers/admin/${id}`, {
       headers: {
         ...(token && { Authorization: `Bearer ${token}` }),
       },
@@ -280,9 +272,9 @@ export const adminVoucherApi = {
     totalDiscount: number;
   }> => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+      getAdminToken();
 
-    const res = await axios.get(`${API_URL}/admin/vouchers/stats`, {
+    const res = await axios.get(`${API_URL}/vouchers/admin/stats`, {
       headers: {
         ...(token && { Authorization: `Bearer ${token}` }),
       },
@@ -295,10 +287,10 @@ export const adminVoucherApi = {
     userId: string
   ): Promise<{ success: boolean; message: string }> => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+      getAdminToken();
 
     const res = await axios.post(
-      `${API_URL}/admin/vouchers/${voucherId}/send`,
+      `${API_URL}/vouchers/admin/${voucherId}/send`,
       { userId },
       {
         headers: {

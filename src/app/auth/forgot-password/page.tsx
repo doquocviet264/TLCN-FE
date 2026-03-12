@@ -6,6 +6,7 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { FiEye, FiEyeOff, FiChevronLeft } from "react-icons/fi";
 import { authApi } from "@/lib/auth/authApi";
+import { toast } from "react-hot-toast";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export default function ForgotPasswordPage() {
 
         // Bước 3: Đặt mật khẩu mới
         await authApi.resetPassword(email, resetToken, password);
-        alert("Đặt lại mật khẩu thành công!");
+        toast.success("Đặt lại mật khẩu thành công!");
         router.push("/auth/login?message=Đặt lại mật khẩu thành công! Vui lòng đăng nhập.");
       }
     } catch (err: any) {
@@ -82,7 +83,7 @@ export default function ForgotPasswordPage() {
     try {
       setLoading(true);
       await authApi.forgotPassword(email);
-      alert("Đã gửi lại mã OTP!");
+      toast.success("Đã gửi lại mã OTP!");
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Gửi lại OTP thất bại";
       setError(errorMsg);

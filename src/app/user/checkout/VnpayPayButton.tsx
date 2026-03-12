@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { CreditCard } from "lucide-react";
 import { initBookingPayment } from "@/lib/checkout/checkoutApi";
+import { toast } from "react-hot-toast";
 
 /**
  * Redesigned VNPay payment button
@@ -31,7 +32,7 @@ export default function VnpayPayButton({
     if (loading || disabled) return;
 
     if (!bookingCode) {
-      alert("Không tìm thấy mã đặt chỗ để tạo thanh toán VNPay.");
+      toast.error("Không tìm thấy mã đặt chỗ để tạo thanh toán VNPay.");
       return;
     }
 
@@ -48,11 +49,11 @@ export default function VnpayPayButton({
         const opened = window.open(redirectUrl, "_blank");
         if (!opened) window.location.href = redirectUrl;
       } else {
-        alert("Không tìm thấy link thanh toán VNPay. Vui lòng thử lại sau.");
+        toast.error("Không tìm thấy link thanh toán VNPay. Vui lòng thử lại sau.");
       }
     } catch (err: any) {
       console.error("VNPay payment error:", err);
-      alert(
+      toast.error(
         err?.response?.data?.message ||
           "Không khởi tạo được thanh toán VNPay, vui lòng thử lại."
       );

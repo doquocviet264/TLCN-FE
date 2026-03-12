@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Image from "next/image";
 import {
   Calendar,
@@ -46,14 +48,13 @@ export default function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const bookingCode = decodeURIComponent(id);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const { data: booking, isLoading, isError } = useBookingDetail(bookingCode);
 
   const cancelMut = useCancelBooking({
     onSuccess: () => {
-      alert("Đã hủy đơn hàng thành công");
-      // Không cần setTimeout, react-query sẽ tự refetch nếu key đúng
-      // hoặc dùng router.refresh()
+      toast.success("Đã hủy đơn hàng thành công");
     },
   });
 
@@ -130,6 +131,20 @@ export default function BookingDetailPage() {
   };
 
   return (
+    <>
+    <ConfirmDialog
+      isOpen={showCancelConfirm}
+      title="Hủy đơn hàng"
+      message="Bạn chắc chắn muốn huỷ booking này? Hành động này không thể hoàn tác."
+      confirmText="Hủy đơn"
+      cancelText="Quay lại"
+      type="danger"
+      onConfirm={() => {
+        setShowCancelConfirm(false);
+        cancelMut.mutate(bookingCode);
+      }}
+      onCancel={() => setShowCancelConfirm(false)}
+    />
     <div className="min-h-screen bg-[#f8f9fa] py-8 px-4 md:px-8">
       <div className="mx-auto max-w-5xl">
         {/* Header Navigation */}
@@ -379,15 +394,7 @@ export default function BookingDetailPage() {
                 {/* Nút Hủy */}
                 {isCancelable && (
                   <button
-                    onClick={() => {
-                      if (
-                        confirm(
-                          "Bạn chắc chắn muốn huỷ booking này? Hành động này không thể hoàn tác."
-                        )
-                      ) {
-                        cancelMut.mutate(bookingCode);
-                      }
-                    }}
+                    onClick={() => setShowCancelConfirm(true)}
                     disabled={cancelMut.isPending}
                     className="w-full py-3.5 bg-white border border-rose-200 text-rose-600 font-bold rounded-xl hover:bg-rose-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -411,5 +418,6 @@ export default function BookingDetailPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

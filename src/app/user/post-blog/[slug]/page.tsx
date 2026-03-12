@@ -7,6 +7,7 @@ import Image from "next/image";
 import { blogApi, type BlogDetail, type BlogComment } from "@/lib/blog/blogApi";
 import { Star } from "lucide-react";
 import { useAuthStore } from "#/stores/auth";
+import { toast } from "react-hot-toast";
 
 const renderBlock = (block: any, idx: number) => {
   if (!block) return null;
@@ -98,7 +99,7 @@ export default function BlogDetailPage() {
 
   const handleSubmitComment = async () => {
     if (!isLoggedIn) {
-      alert("Bạn cần đăng nhập để bình luận.");
+      toast.error("Bạn cần đăng nhập để bình luận.");
       return;
     }
     if (!myContent.trim()) return;
@@ -120,7 +121,7 @@ export default function BlogDetailPage() {
       setRatingCount(newCount);
     } catch (err) {
       console.error("createComment error", err);
-      alert("Không gửi được bình luận.");
+      toast.error("Không gửi được bình luận.");
     } finally {
       setSubmitting(false);
     }

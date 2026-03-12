@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -128,7 +128,7 @@ export default function UserHomeMapPage() {
     const fetchTours = async () => {
       try {
         setTourLoading(true);
-        const res = await getTours(1, 4, {});
+        const res = await getTours(1, 8, {}); // Lấy nhiều hơn để còn lọc
         setTours(res.data || []);
       } catch (error) {
         console.error("Lỗi tải tour:", error);
@@ -138,6 +138,21 @@ export default function UserHomeMapPage() {
     };
     fetchTours();
   }, []);
+
+  // Lọc bỏ tour đã khởi hành
+  const activeTours = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return tours.filter((t) => {
+      if (t.startDate) {
+        const startDate = new Date(t.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        if (startDate < today) return false;
+      }
+      return true;
+    }).slice(0, 4); // Giới hạn 4 tour
+  }, [tours]);
 
   /* ================= Loading user ================= */
   if (userLoading) {
@@ -594,7 +609,7 @@ export default function UserHomeMapPage() {
               viewport={{ once: true }}
               className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
             >
-              {tours.map((t) => {
+              {activeTours.map((t) => {
                 const percent = computePercent(t);
                 const slug = t.destinationSlug ?? slugify(t.title);
                 const id = t._id ?? t.id;
@@ -624,6 +639,7 @@ export default function UserHomeMapPage() {
                           ? `Khởi hành: ${fmtDate(t.startDate)}`
                           : undefined)
                       }
+                      startDate={t.startDate}
                     />
                   </motion.div>
                 );

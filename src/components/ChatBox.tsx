@@ -28,6 +28,7 @@ import {
   isStaffRole,
   ROLE_LABELS,
 } from "@/lib/chat/chatApi";
+import { toast } from "react-hot-toast";
 
 export default function ChatBox() {
   // --- HOOKS ---
@@ -147,8 +148,7 @@ export default function ChatBox() {
       setShowStartForm(false);
       clearTourContext();
     } catch (err: any) {
-      // (Bạn có thể thay bằng toast sau; mình giữ nguyên để không đổi scope)
-      alert(err.response?.data?.message || "Lỗi bắt đầu chat");
+      toast.error(err.response?.data?.message || "Lỗi bắt đầu chat");
     } finally {
       setSending(false);
     }
@@ -171,7 +171,7 @@ export default function ChatBox() {
       loadMessages(supportId, true);
     } catch (err: any) {
       setNewMessage(tempContent);
-      alert("Gửi thất bại");
+      toast.error("Gửi thất bại");
     }
   };
 

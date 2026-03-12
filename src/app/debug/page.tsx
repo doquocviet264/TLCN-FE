@@ -10,6 +10,7 @@ import { useAuthStore } from "#/stores/auth";
 import { authApi } from "@/lib/auth/authApi";
 import { getUserToken } from "@/lib/auth/tokenManager";
 import { debugTokenAndUser } from "@/lib/auth/tokenDebug";
+import { toast } from "react-hot-toast";
 
 export default function DebugPage() {
   const [tokenStatus, setTokenStatus] = useState<any>(null);
@@ -69,7 +70,7 @@ export default function DebugPage() {
     localStorage.removeItem("refreshToken");
     setTokenStatus(null);
     setUserProfile(null);
-    alert("Tokens cleared. Please reload the page.");
+    toast.success("Tokens cleared. Please reload the page.");
   };
 
   return (

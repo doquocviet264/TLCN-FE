@@ -38,13 +38,31 @@ function Skeleton() {
   );
 }
 
+// Kiểm tra tour đã khởi hành chưa
+const checkIsDeparted = (startDate?: string | Date): boolean => {
+  if (!startDate) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tourStartDate = new Date(startDate);
+  tourStartDate.setHours(0, 0, 0, 0);
+  return tourStartDate < today;
+};
+
 const HotSearchSection = () => {
   const { data, isLoading, isError } = useGetTours(1, 12);
   const list = data?.data ?? [];
 
+  // Lọc bỏ các tour đã khởi hành
+  const activeTours = useMemo(() => {
+    return list.filter((t) => {
+      const startDateRaw = (t as any).startDate ?? (t as any).start_date;
+      return !checkIsDeparted(startDateRaw);
+    });
+  }, [list]);
+
   const cards: CardHotProps[] = useMemo(
     () =>
-      list.map((t) => {
+      activeTours.map((t) => {
         const id = (t as any)._id ?? (t as any).id ?? "";
         const slug = (t as any).destinationSlug ?? slugify(t.title);
         const href = `/user/destination/${slug}/${id}`;
@@ -78,9 +96,10 @@ const HotSearchSection = () => {
           badgeText: (t as any).discountPercent
             ? `Giảm ${(t as any).discountPercent}%`
             : undefined,
+          startDate: startDateRaw,
         } as CardHotProps;
       }),
-    [list]
+    [activeTours]
   );
 
   return (

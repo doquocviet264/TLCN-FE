@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { LuCopy } from "react-icons/lu";
 import { FaFacebookF, FaInstagram } from "react-icons/fa";
 import { SiZalo } from "react-icons/si";
+import { toast } from "react-hot-toast";
 
 export default function SocialShare() {
   const [currentUrl, setCurrentUrl] = useState("");
@@ -17,7 +18,7 @@ export default function SocialShare() {
   const handleCopyLink = () => {
     if (typeof window !== "undefined") {
       navigator.clipboard.writeText(window.location.href);
-      alert("Đã copy link bài viết!");
+      toast.success("Đã copy link bài viết!");
     }
   };
 
@@ -31,8 +32,9 @@ export default function SocialShare() {
   };
 
   const handleShareInstagram = () => {
-    alert(
-      "Instagram không hỗ trợ chia sẻ trực tiếp. Hãy copy link và dán vào bài đăng Instagram."
+    toast(
+      "Instagram không hỗ trợ chia sẻ trực tiếp. Hãy copy link và dán vào bài đăng Instagram.",
+      { icon: "ℹ️" }
     );
     window.open("https://www.instagram.com/", "_blank");
   };

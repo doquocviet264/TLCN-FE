@@ -198,17 +198,30 @@ function DestinationPageContent() {
     })();
   }, []);
 
-  // ===== 4. Lọc theo Số ngày client =====
+  // ===== 4. Lọc theo Số ngày + loại bỏ tour đã khởi hành =====
   const visibleTours = useMemo(() => {
     const range = bucketToRange(filters.days as DayBucket | "");
-    if (!range) return tours;
-    const [minDays, maxDays] = range;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     return tours.filter((t: any) => {
-      const d = getDurationDays(t);
-      if (!d) return false;
-      if (!Number.isFinite(maxDays)) return d >= minDays;
-      return d >= minDays && d <= maxDays;
+      // Loại bỏ tour đã khởi hành
+      if (t.startDate) {
+        const startDate = new Date(t.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        if (startDate < today) return false;
+      }
+
+      // Lọc theo số ngày (nếu có)
+      if (range) {
+        const [minDays, maxDays] = range;
+        const d = getDurationDays(t);
+        if (!d) return false;
+        if (!Number.isFinite(maxDays)) return d >= minDays;
+        return d >= minDays && d <= maxDays;
+      }
+
+      return true;
     });
   }, [tours, filters.days]);
 
@@ -470,6 +483,7 @@ function DestinationPageContent() {
                                 ? `Khởi hành: ${fmtDate(t.startDate)}`
                                 : undefined)
                             }
+                            startDate={t.startDate}
                           />
                         </motion.div>
                       );

@@ -3,6 +3,10 @@
 import React from "react";
 import Link from "next/link";
 import { useDashboardStats, useOngoingTours } from "@/app/admin/hooks/useAdmin";
+import RevenueChart from "./RevenueChart";
+import BookingsChart from "./BookingsChart";
+import TopRevenueTours from "./TopRevenueTours";
+import BookingStatusChart from "./BookingStatusChart";
 
 /* ===== Helpers ===== */
 const formatCurrency = (amount: number) =>
@@ -81,6 +85,14 @@ export default function AdminDashboard() {
   const recentBookings = stats?.recentBookings || [];
   const popularTours = stats?.popularTours || [];
   const statusDistribution = stats?.statusDistribution || {};
+  const topRevenueTours = stats?.topRevenueTours || [];
+  const monthlyRevenue = stats?.monthlyRevenue || [];
+  const monthlyBookingsChart = stats?.monthlyBookingsChart || [];
+  const bookingStatusStats = stats?.bookingStatusStats || {
+    confirmed: { count: 0, revenue: 0 },
+    pending: { count: 0, revenue: 0 },
+    cancelled: { count: 0, revenue: 0 },
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-8 md:py-8 dark:bg-slate-950">
@@ -332,6 +344,18 @@ export default function AdminDashboard() {
               )}
             </div>
           </div>
+        </section>
+
+        {/* ===== BIỂU ĐỒ DOANH THU + BOOKING ===== */}
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <RevenueChart data={monthlyRevenue} />
+          <BookingsChart data={monthlyBookingsChart} />
+        </section>
+
+        {/* ===== TOP REVENUE TOURS + BOOKING STATUS ===== */}
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <TopRevenueTours data={topRevenueTours} />
+          <BookingStatusChart data={bookingStatusStats} />
         </section>
 
         {/* ===== RECENT BOOKINGS + ONGOING TOURS ===== */}

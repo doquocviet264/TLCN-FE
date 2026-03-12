@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import { FiChevronLeft } from "react-icons/fi";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authApi } from "@/lib/auth/authApi";
+import { toast } from "react-hot-toast";
 
 function RegisterOtpPageContent() {
   const router = useRouter();
@@ -47,10 +48,10 @@ function RegisterOtpPageContent() {
       );
 
       if (isSuccess) {
-        alert("Xác thực OTP thành công! Chuyển sang trang đăng nhập...");
+        toast.success("Xác thực OTP thành công! Chuyển sang trang đăng nhập...");
         setTimeout(() => router.push("/auth/login?message=Xác thực thành công! Vui lòng đăng nhập."), 1500);
       } else {
-        alert(res.message || "Mã OTP không đúng hoặc đã hết hạn");
+        toast.error(res.message || "Mã OTP không đúng hoặc đã hết hạn");
       }
     } catch (error: any) {
       console.error("Error verifying OTP:", error);
@@ -65,10 +66,10 @@ function RegisterOtpPageContent() {
   const handleResendOtp = async () => {
     try {
       await authApi.sendEmailOTP(email, "register");
-      alert("Đã gửi lại OTP mới!");
+      toast.success("Đã gửi lại OTP mới!");
     } catch (error) {
       console.error(error);
-      alert("Gửi lại OTP thất bại");
+      toast.error("Gửi lại OTP thất bại");
     }
   };
 

@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { getAdminLeaders } from "@/lib/admin/adminLeaderApi";
 import {
   useOngoingTours,
@@ -153,6 +154,10 @@ export default function AdminTourDetail() {
   const [expOccurredAt, setExpOccurredAt] = useState<string>(
     new Date().toISOString().slice(0, 16)
   );
+  const [deleteExpenseConfirm, setDeleteExpenseConfirm] = useState<{ isOpen: boolean; expenseId: string | null }>({
+    isOpen: false,
+    expenseId: null,
+  });
 
   // 4. Đồng bộ state leaderId khi load được tour
   useEffect(() => {
@@ -177,6 +182,22 @@ export default function AdminTourDetail() {
     );
 
   return (
+    <>
+    <ConfirmDialog
+      isOpen={deleteExpenseConfirm.isOpen}
+      title="Xóa chi phí"
+      message="Bạn chắc chắn muốn xóa khoản chi phí này?"
+      confirmText="Xóa"
+      cancelText="Hủy"
+      type="danger"
+      onConfirm={() => {
+        if (deleteExpenseConfirm.expenseId) {
+          delExp.mutate(deleteExpenseConfirm.expenseId);
+        }
+        setDeleteExpenseConfirm({ isOpen: false, expenseId: null });
+      }}
+      onCancel={() => setDeleteExpenseConfirm({ isOpen: false, expenseId: null })}
+    />
     <div className="mx-auto w-[95%] max-w-6xl py-8 space-y-8 pb-20">
       {/* Header */}
       <header className="border-b pb-4">
@@ -353,10 +374,7 @@ export default function AdminTourDetail() {
                       <button
                         className="p-1 text-red-600 hover:bg-red-50 rounded"
                         title="Xóa"
-                        onClick={() => {
-                          if (confirm("Xóa khoản chi này?"))
-                            delExp.mutate(e._id);
-                        }}
+                        onClick={() => setDeleteExpenseConfirm({ isOpen: true, expenseId: e._id })}
                       >
                         🗑️
                       </button>
@@ -374,5 +392,6 @@ export default function AdminTourDetail() {
         </div>
       </div>
     </div>
+    </>
   );
 }

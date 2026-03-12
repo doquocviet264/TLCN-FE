@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { placeApi } from "@/lib/place/placeApi";
 import { checkinApi } from "@/lib/checkin/checkinApi";
 import axios, { AxiosError } from "axios";
+import { toast } from "react-hot-toast";
 import useUser from "#/src/hooks/useUser"; // Hook check login của bạn
 import MapBanner from "./MapBanner";
 import VietnamJourneyMap from "@/components/VietnamJourneyMap"; // Đây là MapBox của bạn
@@ -211,12 +212,12 @@ export default function VNMap() {
         handleClosePopup();
 
         // (Tùy chọn) Báo thành công
-        alert(`Đã check-in thành công tại ${selectedName}!`);
+        toast.success(`Đã check-in thành công tại ${selectedName}!`);
       } catch (error: unknown) {
         if (error instanceof AxiosError) {
           // Lấy message lỗi từ Backend trả về (VD: "Đã check-in rồi")
           const msg = error.response?.data?.message || error.message;
-          alert(`Lỗi: ${msg}`);
+          toast.error(`Lỗi: ${msg}`);
           console.error("Lỗi khi checkin:", error.response?.data);
         } else {
           console.error("Lỗi khi checkin:", error);

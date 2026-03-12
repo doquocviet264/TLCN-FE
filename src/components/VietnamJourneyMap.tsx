@@ -15,6 +15,7 @@ import {
 } from "react-icons/fa";
 import { checkinApi } from "@/lib/checkin/checkinApi";
 import { useAuthStore } from "#/stores/auth";
+import { toast } from "react-hot-toast";
 import { VIETNAM_PATHS, MAP_VIEWBOX } from "./VietnamMapPaths"; // Import file data
 
 const COLORS = {
@@ -181,7 +182,7 @@ export default function VietnamJourneyMap() {
       setSelectedProvince(null);
     } catch (error: any) {
       console.error("Lỗi đánh dấu thủ công:", error);
-      alert("Đánh dấu thất bại. Vui lòng thử lại!");
+      toast.error("Đánh dấu thất bại. Vui lòng thử lại!");
     } finally {
       setIsLoadingAction(false);
     }

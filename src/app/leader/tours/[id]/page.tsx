@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 import {
   ArrowLeft,
   Calendar,
@@ -119,7 +120,7 @@ export default function TourDetailPage() {
       setTimelineForm({ eventType: "checkpoint", place: "", note: "" });
       setShowTimelineForm(false);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Lỗi khi thêm sự kiện");
+      toast.error(err.response?.data?.message || "Lỗi khi thêm sự kiện");
     } finally {
       setIsSubmittingTimeline(false);
     }
@@ -147,7 +148,7 @@ export default function TourDetailPage() {
       setExpenseForm({ title: "", amount: "", note: "", visibleToCustomers: true });
       setShowExpenseForm(false);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Lỗi khi thêm chi phí");
+      toast.error(err.response?.data?.message || "Lỗi khi thêm chi phí");
     } finally {
       setIsSubmittingExpense(false);
     }

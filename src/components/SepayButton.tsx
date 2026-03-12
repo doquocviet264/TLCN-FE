@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { CreditCard } from "lucide-react";
+import { toast } from "react-hot-toast";
 // Đảm bảo bạn đã import hàm API mới cho Sepay (sẽ tạo ở bước 2)
 import { initSepayPayment } from "@/lib/checkout/checkoutApi";
 
@@ -33,7 +34,7 @@ export default function SepayPayButton({
     if (loading || disabled) return;
 
     if (!bookingCode) {
-      alert("Không tìm thấy mã đặt chỗ để tạo thanh toán Sepay.");
+      toast.error("Không tìm thấy mã đặt chỗ để tạo thanh toán Sepay.");
       return;
     }
 
@@ -50,11 +51,11 @@ export default function SepayPayButton({
         const opened = window.open(redirectUrl, "_blank");
         if (!opened) window.location.href = redirectUrl;
       } else {
-        alert("Không tìm thấy link thanh toán Sepay. Vui lòng thử lại sau.");
+        toast.error("Không tìm thấy link thanh toán Sepay. Vui lòng thử lại sau.");
       }
     } catch (err: any) {
       console.error("Sepay payment error:", err);
-      alert(
+      toast.error(
         err?.response?.data?.message ||
           "Không khởi tạo được thanh toán Sepay, vui lòng thử lại."
       );

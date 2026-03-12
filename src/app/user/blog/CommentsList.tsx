@@ -13,6 +13,7 @@ import Image from "next/image";
 import { useAuthStore } from "#/stores/auth";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface CommentsListProps {
   slug: string;
@@ -38,6 +39,10 @@ const CommentsList = forwardRef<CommentsListHandle, CommentsListProps>(
   ({ slug, refresh }, ref) => {
     const [comments, setComments] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; commentId: string | null }>({
+      isOpen: false,
+      commentId: null,
+    });
 
     // lấy cả user và userId trong store
     const { user, userId } = useAuthStore();
@@ -146,16 +151,22 @@ const CommentsList = forwardRef<CommentsListHandle, CommentsListProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [slug]);
 
-    const handleDeleteComment = async (commentId: string) => {
-      if (!confirm("Bạn chắc chắn muốn xóa bình luận này?")) return;
+    const handleDeleteClick = (commentId: string) => {
+      setDeleteConfirm({ isOpen: true, commentId });
+    };
+
+    const handleConfirmDelete = async () => {
+      if (!deleteConfirm.commentId) return;
 
       try {
-        await blogApi.deleteComment(slug, commentId);
-        setComments((prev) => prev.filter((c) => c.id !== commentId));
+        await blogApi.deleteComment(slug, deleteConfirm.commentId);
+        setComments((prev) => prev.filter((c) => c.id !== deleteConfirm.commentId));
         toast.success("Xóa bình luận thành công!");
       } catch (error) {
         console.error("Delete comment error:", error);
         toast.error("Không thể xóa bình luận. Vui lòng thử lại.");
+      } finally {
+        setDeleteConfirm({ isOpen: false, commentId: null });
       }
     };
 
@@ -210,6 +221,17 @@ const CommentsList = forwardRef<CommentsListHandle, CommentsListProps>(
     }
 
     return (
+      <>
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Xóa bình luận"
+        message="Bạn chắc chắn muốn xóa bình luận này? Hành động này không thể hoàn tác."
+        confirmText="Xóa"
+        cancelText="Hủy"
+        type="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, commentId: null })}
+      />
       <div className="space-y-4">
         <AnimatePresence>
           {comments.map((comment, index) => {
@@ -299,7 +321,7 @@ const CommentsList = forwardRef<CommentsListHandle, CommentsListProps>(
                       {/* Delete button - only for owner */}
                       {isOwner && (
                         <button
-                          onClick={() => handleDeleteComment(comment.id)}
+                          onClick={() => handleDeleteClick(comment.id)}
                           className="opacity-0 group-hover:opacity-100 p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all"
                           title="Xóa bình luận"
                         >
@@ -325,6 +347,7 @@ const CommentsList = forwardRef<CommentsListHandle, CommentsListProps>(
           })}
         </AnimatePresence>
       </div>
+      </>
     );
   }
 );

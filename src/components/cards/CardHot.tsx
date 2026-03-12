@@ -19,6 +19,7 @@ export type CardHotProps = {
   destination?: string;
   schedule?: string;
   seats?: number | string;
+  startDate?: string | Date; // Ngày khởi hành để kiểm tra đã qua chưa
   meta?: {
     duration?: string;
     destination?: string;
@@ -43,6 +44,16 @@ const vnd = (n?: number) =>
       }).format(n) + "đ"
     : "—";
 
+// Kiểm tra tour đã khởi hành chưa
+const checkIsDeparted = (startDate?: string | Date): boolean => {
+  if (!startDate) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tourStartDate = new Date(startDate);
+  tourStartDate.setHours(0, 0, 0, 0);
+  return tourStartDate < today;
+};
+
 /* ============== component ============== */
 export default function CardHot(props: CardHotProps) {
   const {
@@ -55,7 +66,11 @@ export default function CardHot(props: CardHotProps) {
     discountPercent,
     discountAmount,
     href = "#",
+    startDate,
   } = props;
+
+  // Kiểm tra tour đã khởi hành
+  const isDeparted = checkIsDeparted(startDate);
 
   // ---- pricing ----
   const originalNum = toNumber(originalPrice);
@@ -102,11 +117,24 @@ export default function CardHot(props: CardHotProps) {
         {/* overlay nhẹ khi hover */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-        {badgeText && (
+        {/* Overlay mờ khi tour đã khởi hành */}
+        {isDeparted && (
+          <div className="absolute inset-0 bg-slate-900/40 z-10" />
+        )}
+
+        {/* Badge: Đã khởi hành hoặc badge tùy chỉnh */}
+        {isDeparted ? (
+          <div className="absolute left-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full bg-rose-500/95 px-3 py-1 text-[11px] font-bold text-white shadow-lg">
+            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none">
+              <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Đã khởi hành
+          </div>
+        ) : badgeText ? (
           <div className="absolute left-3 top-3 rounded-full bg-orange-500/95 px-3 py-1 text-[11px] font-semibold text-white shadow">
             {badgeText}
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* body */}
