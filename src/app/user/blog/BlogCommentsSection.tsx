@@ -15,6 +15,7 @@ const BlogCommentsSection = ({ slug }: BlogCommentsSectionProps) => {
   }>(null);
 
   const [refreshKey, setRefreshKey] = useState(0);
+  const [commentCount, setCommentCount] = useState<number | null>(null);
 
   const handleCommentAddedInBox = (commentData: {
     userId: string;
@@ -36,7 +37,12 @@ const BlogCommentsSection = ({ slug }: BlogCommentsSectionProps) => {
             <MessageSquare className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-slate-900">Bình luận</h3>
+            <h3 className="text-xl font-bold text-slate-900">
+              Bình luận
+              {commentCount !== null && (
+                <span className="ml-2 text-base font-semibold text-orange-500">({commentCount})</span>
+              )}
+            </h3>
             <p className="text-xs text-slate-500">
               Chia sẻ cảm nhận của bạn về bài viết
             </p>
@@ -51,7 +57,7 @@ const BlogCommentsSection = ({ slug }: BlogCommentsSectionProps) => {
 
       {/* Comments List */}
       <div>
-        <CommentsList slug={slug} ref={commentsListRef} refresh={refreshKey > 0} />
+        <CommentsList slug={slug} ref={commentsListRef} refresh={refreshKey > 0} onCountChange={setCommentCount} />
       </div>
     </section>
   );

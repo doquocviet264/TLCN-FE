@@ -6,7 +6,8 @@ export type GetAdminBlogsParams = {
   page?: number;
   limit?: number;
   search?: string;
-  status?: "draft" | "published" | "archived";
+  status?: "draft" | "pending" | "published" | "archived" | "rejected";
+  privacy?: "public" | "private" | "";
 };
 
 /** Body để tạo blog */
@@ -17,7 +18,8 @@ export type CreateBlogBody = {
   tags?: string[];
   coverImageUrl?: string;
   coverImagePublicId?: string;
-  status?: "draft" | "published" | "archived";
+  status?: "draft" | "pending" | "published" | "archived" | "rejected";
+  privacy?: "public" | "private";
 };
 
 /** Body để cập nhật blog */
@@ -62,7 +64,7 @@ export async function deleteBlog(id: string) {
 }
 
 /** Cập nhật status blog */
-export async function updateBlogStatus(id: string, status: "draft" | "published" | "archived") {
-  const { data } = await adminApi.patch<{ message: string; post: BlogPost }>(`/blog/admin/${id}/status`, { status });
+export async function updateBlogStatus(id: string, body: { status: "draft" | "pending" | "published" | "archived" | "rejected", rejectReason?: string }) {
+  const { data } = await adminApi.patch<{ message: string; post: BlogPost }>(`/blog/admin/${id}/status`, body);
   return data;
 }

@@ -162,6 +162,8 @@ export const authApi = {
       gender: u.gender ?? undefined,
       dob: u.dob ?? u.dateOfBirth ?? undefined,
       city: u.city ?? u.address?.city ?? undefined,
+      hasPassword: u.hasPassword,
+      isGoogleLogin: u.isGoogleLogin,
       emails: u.emails ?? undefined,
       phoneNumbers: u.phoneNumbers ?? undefined,
 

@@ -16,6 +16,7 @@ import {
 import { useAuthStore } from "#/stores/auth";
 import { getUserToken } from "@/lib/auth/tokenManager";
 import CardHot from "@/components/cards/CardHot";
+import CompareTourDialog from "@/components/ui/CompareTourDialog";
 import { toast } from "react-hot-toast";
 
 /* ============ helpers ============ */
@@ -190,6 +191,9 @@ export default function TourDetailPage() {
   const [reviewRating, setReviewRating] = React.useState(5);
   const [reviewComment, setReviewComment] = React.useState("");
   const [submittingReview, setSubmittingReview] = React.useState(false);
+
+  // So sánh Tour
+  const [isCompareOpen, setIsCompareOpen] = React.useState(false);
 
   // Auth
   const { token } = useAuthStore();
@@ -537,7 +541,7 @@ export default function TourDetailPage() {
                   </p>
                 )}
 
-                <div className="mt-5 flex gap-3">
+                <div className="mt-5 flex flex-wrap gap-3">
                   {isDeparted ? (
                     <div className="flex-1 rounded-2xl bg-slate-500/50 px-4 py-3 text-center text-sm font-bold text-white/80 cursor-not-allowed">
                       Tour đã khởi hành
@@ -563,9 +567,19 @@ export default function TourDetailPage() {
                   >
                     Tư vấn
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCompareOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-500/20 border border-blue-400/30 px-4 py-3 text-sm font-bold text-blue-100 backdrop-blur-md transition hover:bg-blue-500/30 active:scale-[0.98]"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    So sánh tour
+                  </button>
                 </div>
 
-                <p className="mt-3 text-[11px] text-blue-200">
+                <p className="mt-3 text-[11px] text-blue-200 text-center">
                   {isDeparted
                     ? "Tour này đã khởi hành. Vui lòng chọn tour khác."
                     : "Giá đã bao gồm nhiều ưu đãi, số chỗ có hạn."
@@ -1151,6 +1165,13 @@ export default function TourDetailPage() {
           )}
         </div>
       </section>
+
+      <CompareTourDialog
+        isOpen={isCompareOpen}
+        onClose={() => setIsCompareOpen(false)}
+        baseTour={tour}
+        allTours={(recRaw as any)?.data || recRaw || []}
+      />
     </div>
   );
 }

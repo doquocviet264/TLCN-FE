@@ -8,6 +8,9 @@ import RecentPosts from "../RecentPosts";
 import PopularPostsSection from "../../home/TourList";
 import BlogCommentsSection from "../BlogCommentsSection";
 import SocialShare from "../SocialShare";
+import ReadingProgressBar from "../ReadingProgressBar";
+import BackToTopButton from "../BackToTopButton";
+import RelatedPosts from "../RelatedPosts";
 
 import { dataReviews } from "@/data/dataReviews";
 import { blogApi } from "@/lib/blog/blogApi";
@@ -85,6 +88,9 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
 
     return (
       <main className="relative overflow-hidden">
+        {/* Reading Progress Bar */}
+        <ReadingProgressBar />
+
         {/* background blur */}
         <div
           className="pointer-events-none absolute h-[500px] w-[500px] bg-[var(--secondary)] opacity-50 blur-[250px]"
@@ -140,6 +146,9 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
               </div>
 
               <BlogCommentsSection slug={slug} />
+
+              {/* Related Posts */}
+              <RelatedPosts tags={post.tags ?? []} currentSlug={slug} />
             </div>
 
             {/* Sidebar */}
@@ -153,6 +162,9 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
             <PopularPostsSection />
           </div>
         </div>
+
+        {/* Back to Top Button */}
+        <BackToTopButton />
       </main>
     );
   } catch (error) {

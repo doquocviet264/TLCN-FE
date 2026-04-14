@@ -77,8 +77,16 @@ export default function RegisterPage() {
 
     if (!password.trim()) {
       newErrors.password = "Vui lòng nhập mật khẩu";
-    } else if (passwordStrength < 5) {
-      newErrors.password = "Mật khẩu chưa đủ mạnh";
+    } else {
+      const pwdErrors = [];
+      if (password.length < 8) pwdErrors.push("ít nhất 8 ký tự");
+      if (!/[a-z]/.test(password)) pwdErrors.push("1 chữ thường");
+      if (!/[A-Z]/.test(password)) pwdErrors.push("1 chữ hoa");
+      if (!/[0-9]/.test(password)) pwdErrors.push("1 chữ số");
+      if (!/[!@#$%^&*(),.?":{}|<>_\-+=~`[\]\\;/]/.test(password)) pwdErrors.push("1 ký tự đặc biệt");
+      if (pwdErrors.length > 0) {
+        newErrors.password = `Mật khẩu cần có: ${pwdErrors.join(", ")}`;
+      }
     }
 
     if (!confirmPassword.trim()) {

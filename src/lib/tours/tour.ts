@@ -143,14 +143,26 @@ export const searchTours = async (
     // BE sử dụng 'q' cho keyword
     params.q = query.search;
   }
+  if (query?.q) {
+    params.q = query.q;
+  }
+  if (query?.from) {
+    params.from = query.from;
+  }
   if (query?.destination) {
     params.destination = query.destination;
   }
   if (typeof query?.minPrice === "number") {
     params.budgetMin = query.minPrice;
   }
+  if (typeof query?.budgetMin === "number") {
+    params.budgetMin = query.budgetMin;
+  }
   if (typeof query?.maxPrice === "number") {
     params.budgetMax = query.maxPrice;
+  }
+  if (typeof query?.budgetMax === "number") {
+    params.budgetMax = query.budgetMax;
   }
 
   const res = await axiosInstance.get<ToursResponse>("/tours/search", {

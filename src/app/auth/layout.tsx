@@ -1,6 +1,5 @@
 // src/app/auth/layout.tsx
 import { Inter } from "next/font/google";
-import "@/styles/globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -18,8 +17,6 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi" className={inter.variable}>
-      <body>{children}</body>
-    </html>
+    <div className={inter.variable}>{children}</div>
   );
 }

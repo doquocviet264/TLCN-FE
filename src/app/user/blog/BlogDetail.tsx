@@ -1,12 +1,15 @@
 // /app/user/blog/BlogDetail.tsx
 "use client";
 
-import { CalendarDays, User2, Tag, Star, Clock, Eye } from "lucide-react";
+import { CalendarDays, User2, Tag, Star, Clock, Eye, ExternalLink } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   BlogDetail as BlogDetailType,
   BlogContentBlock,
 } from "@/lib/blog/blogApi";
+import { useEffect, useState } from "react";
+import { MapPin } from "lucide-react";
 
 type Props = {
   post: BlogDetailType;
@@ -25,6 +28,9 @@ const calcReadingTime = (text: string): number => {
 };
 
 export default function BlogDetail({ post }: Props) {
+  const wardName = (post as any).ward || "";
+  const provinceName = (post as any).province || "";
+
   const cover =
     post.cover ||
     post.coverImageUrl ||
@@ -201,18 +207,32 @@ export default function BlogDetail({ post }: Props) {
 
       {/* Body */}
       <div className="px-6 pb-10 pt-8 md:px-10">
-        {/* Tags */}
+        {/* Tags — clickable links */}
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors cursor-pointer"
-              >
-                <Tag className="h-3 w-3" />
-                {tag}
-              </span>
-            ))}
+            {tags.map((tag) => {
+              const cleanTag = tag.startsWith("#") ? tag.slice(1) : tag;
+              return (
+                <Link
+                  key={tag}
+                  href={`/user/blog?tag=${encodeURIComponent(cleanTag)}`}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-all duration-200 cursor-pointer"
+                >
+                  <Tag className="h-3 w-3" />
+                  #{cleanTag}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Location */}
+        {(post.locationDetail || wardName || provinceName) && (
+          <div className="flex items-center gap-2 mb-6 text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <MapPin className="h-5 w-5 text-orange-500 flex-shrink-0" />
+            <span className="text-sm font-medium">
+              {[post.locationDetail, wardName, provinceName].filter(Boolean).join(", ")}
+            </span>
           </div>
         )}
 

@@ -12,14 +12,14 @@ export function mapBlogToPost(blog: any): Post {
     title: blog.title,
     image: blog.coverImageUrl || "/Logo.svg",
 
-    // categories (not in backend, use tags instead)
-    category: blog.tags?.[0] || "Khác",
-    categories: blog.tags || [],
+    // categories
+    category: blog.categories?.[0] || blog.tags?.[0] || "Khác",
+    categories: blog.categories || [],
     tags: blog.tags || [],
 
     // author
     author: typeof blog.authorId === "object"
-      ? `${blog.authorId.firstName || ""} ${blog.authorId.lastName || ""}`.trim() || "Admin"
+      ? (blog.authorId.fullName || blog.authorId.name || blog.authorId.username || blog.authorId.email || "Admin").trim()
       : "Admin",
     authorAvatar: typeof blog.authorId === "object"
       ? blog.authorId.avatar || "/Logo.svg"
@@ -27,8 +27,8 @@ export function mapBlogToPost(blog: any): Post {
 
     // time & location
     date: blog.publishedAt || blog.createdAt,
-    address: blog.summary || "",
-    ward: "",
+    address: blog.locationDetail || "",
+    ward: blog.locationDetail || "Chưa cập nhật",
 
     // content & album
     content: blog.content ? [{ type: 'text', value: blog.content }] : [],

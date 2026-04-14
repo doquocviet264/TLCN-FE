@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAllUsers, deleteUser } from "@/lib/admin/usersApi";
+import { getAllUsers, deleteUser, toggleUserStatus } from "@/lib/admin/usersApi";
 import { Toast, useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const queryClient = useQueryClient();
   const { toast, showSuccess, showError, hideToast } = useToast();
   const [confirmDelete, setConfirmDelete] = useState<{
@@ -19,12 +20,13 @@ export default function UsersPage() {
   }>({ isOpen: false, userId: "", userName: "" });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["adminUsers", page, searchTerm],
+    queryKey: ["adminUsers", page, searchTerm, statusFilter],
     queryFn: () =>
       getAllUsers({
         page,
         limit: 20,
         search: searchTerm || undefined,
+        status: statusFilter || undefined,
       }),
   });
 
@@ -38,6 +40,17 @@ export default function UsersPage() {
     onError: (error: any) => {
       showError(error.response?.data?.message || "Không thể xóa người dùng");
       setConfirmDelete({ isOpen: false, userId: "", userName: "" });
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: (id: string) => toggleUserStatus(id),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      showSuccess(res.message || "Đã cập nhật trạng thái");
+    },
+    onError: (error: any) => {
+      showError(error.response?.data?.message || "Lỗi cập nhật trạng thái");
     },
   });
 
@@ -98,6 +111,21 @@ export default function UsersPage() {
               }}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
+          </div>
+          {/* Status Filter */}
+          <div className="md:w-48">
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-slate-700"
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="active">Hoạt động</option>
+              <option value="inactive">Bị khóa</option>
+            </select>
           </div>
         </div>
       </div>
@@ -198,28 +226,35 @@ export default function UsersPage() {
                         {formatDate(user.createdDate || user.createdAt || "")}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex gap-2 justify-center">
+                        <div className="flex gap-3 justify-center items-center">
                           <Link
                             href={`/admin/users/${user._id}`}
-                            title="Chỉnh sửa"
-                            className="p-2 text-orange-600 hover:bg-emerald-50 rounded-lg transition"
+                            className="text-orange-600 hover:underline font-medium"
                           >
-                            <i className="ri-pencil-line text-lg"></i>
+                            Sửa
                           </Link>
                           <Link
                             href={`/admin/users/${user._id}/reset-password`}
+                            className="text-blue-600 hover:underline font-medium"
                             title="Đặt lại mật khẩu"
-                            className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition"
                           >
-                            <i className="ri-key-line text-lg"></i>
+                            Mật khẩu
                           </Link>
+                          <button
+                            onClick={() => toggleMutation.mutate(user._id)}
+                            disabled={toggleMutation.isPending}
+                            className={`font-medium hover:underline disabled:opacity-50 ${
+                              user.isActive === "y" ? "text-amber-600" : "text-emerald-600"
+                            }`}
+                          >
+                            {user.isActive === "y" ? "Khóa" : "Mở khóa"}
+                          </button>
                           <button
                             onClick={() => handleDelete(user._id, user.fullName)}
                             disabled={deleteMutation.isPending}
-                            title="Xóa"
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                            className="text-red-600 hover:underline font-medium disabled:opacity-50"
                           >
-                            <i className="ri-delete-bin-6-line text-lg"></i>
+                            Xóa
                           </button>
                         </div>
                       </td>

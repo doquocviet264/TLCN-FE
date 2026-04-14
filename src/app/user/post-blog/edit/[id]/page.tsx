@@ -1,8 +1,8 @@
 // /app/user/post-blog/page.tsx
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -22,13 +22,14 @@ import {
 import { toast } from "react-hot-toast";
 import useUser from "@/hooks/useUser";
 import { blogApi } from "@/lib/blog/blogApi";
-import PostForm from "./PostForm";
-import CoverUpload from "./CoverUpload";
-import CategoryTagsForm from "./CategoryTagsForm";
-import PostPrivacySettings from "./PostPrivacySettings";
+import PostForm from "../../PostForm";
+import CoverUpload from "../../CoverUpload";
+import CategoryTagsForm from "../../CategoryTagsForm";
+import PostPrivacySettings from "../../PostPrivacySettings";
 
-export default function CreateBlogPage() {
+export default function EditBlogPage() {
   const router = useRouter();
+  const { id } = useParams<{ id: string }>();
   const { user, loading: userLoading } = useUser();
 
   // Form state
@@ -49,7 +50,41 @@ export default function CreateBlogPage() {
   // UI state
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeStep, setActiveStep] = useState(1);
+  const [isLoadingPost, setIsLoadingPost] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchPost = async () => {
+      try {
+        setIsLoadingPost(true);
+        const post = await blogApi.getOwnPostById(id);
+        setTitle(post.title || "");
+        setSummary(post.summary || "");
+        
+        let c = "";
+        if (typeof post.content === "string") {
+            c = post.content;
+        } else if (Array.isArray(post.content)) {
+            c = JSON.stringify(post.content);
+        }
+        setContent(c);
+        
+        setCoverPreview(post.coverImageUrl || post.cover || post.thumbnail || null);
+        setCategories(post.categories || []);
+        setTags(post.tags || []);
+        setAddress(post.locationDetail || "");
+        setProvinceName(post.province || "");
+        setWardName(post.ward || "");
+        setPrivacy((post.privacy as any) || "public");
+      } catch (err) {
+         toast.error("Không tải được dữ liệu bài viết");
+         router.push("/user/profile?tab=posts");
+      } finally {
+         setIsLoadingPost(false);
+      }
+    };
+    fetchPost();
+  }, [id, router]);
 
   // Handle cover image
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -120,17 +155,15 @@ export default function CreateBlogPage() {
         formData.append("ward", wardName);
       }
 
-      const result = await blogApi.createBlog(formData);
+      const result = await blogApi.updateBlog(id, formData);
 
-      toast.success("Đăng bài viết thành công! Bài viết đang chờ duyệt.");
-
-      // Chuyển về trang profile mục bài viết (vì cần admin duyệt trước)
+      toast.success("Cập nhật bài viết thành công!");
       router.push("/user/profile?tab=posts");
     } catch (error: any) {
-      console.error("Create blog error:", error);
+      console.error("Update blog error:", error);
       const errorMsg =
         error?.response?.data?.message ||
-        "Có lỗi khi đăng bài viết. Vui lòng thử lại.";
+        "Có lỗi khi cập nhật bài viết. Vui lòng thử lại.";
       toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
@@ -138,7 +171,7 @@ export default function CreateBlogPage() {
   };
 
   // Loading state
-  if (userLoading) {
+  if (userLoading || isLoadingPost) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
@@ -211,9 +244,9 @@ export default function CreateBlogPage() {
               <Pen className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">Viết bài mới</h1>
+              <h1 className="text-3xl font-bold text-white">Cập nhật bài viết</h1>
               <p className="text-blue-200 mt-1">
-                Chia sẻ câu chuyện và kinh nghiệm du lịch của bạn
+                Chỉnh sửa câu chuyện và kinh nghiệm du lịch của bạn
               </p>
             </div>
           </div>
@@ -383,7 +416,7 @@ export default function CreateBlogPage() {
                 ) : (
                   <>
                     <Send size={18} />
-                    Đăng bài viết
+                    Cập nhật bài viết
                   </>
                 )}
               </button>

@@ -154,8 +154,8 @@ function DestinationPageContent() {
 
   // Query thực gửi BE
   const [apiQuery, setApiQuery] = useState<SearchQuery>({
-    q: normalizeForSearch(qFromUrl) || undefined,
-    destination: normalizeForSearch(destFromUrl) || undefined,
+    q: qFromUrl || undefined,
+    destination: destFromUrl || undefined,
     from: fromDateUrl,
     budgetMin: budgetMinUrl || 0,
     budgetMax: budgetMaxUrl || 1_000_000_000,
@@ -198,20 +198,11 @@ function DestinationPageContent() {
     })();
   }, []);
 
-  // ===== 4. Lọc theo Số ngày + loại bỏ tour đã khởi hành =====
+  // ===== 4. Lọc theo Số ngày =====
   const visibleTours = useMemo(() => {
     const range = bucketToRange(filters.days as DayBucket | "");
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     return tours.filter((t: any) => {
-      // Loại bỏ tour đã khởi hành
-      if (t.startDate) {
-        const startDate = new Date(t.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        if (startDate < today) return false;
-      }
-
       // Lọc theo số ngày (nếu có)
       if (range) {
         const [minDays, maxDays] = range;
@@ -275,8 +266,8 @@ function DestinationPageContent() {
 
   const handleSubmitFilter = () => {
     const nextQuery: SearchQuery = {
-      q: normalizeForSearch(filters.keyword),
-      destination: normalizeForSearch(filters.to),
+      q: filters.keyword,
+      destination: filters.to,
       from: filters.date || undefined,
       budgetMin: filters.budget?.[0] ?? 0,
       budgetMax: filters.budget?.[1] ?? 1_000_000_000,

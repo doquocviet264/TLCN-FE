@@ -18,6 +18,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 interface CommentsListProps {
   slug: string;
   refresh?: boolean;
+  onCountChange?: (count: number) => void;
 }
 
 interface CommentWithUserCache {
@@ -36,7 +37,7 @@ export interface CommentsListHandle {
 }
 
 const CommentsList = forwardRef<CommentsListHandle, CommentsListProps>(
-  ({ slug, refresh }, ref) => {
+  ({ slug, refresh, onCountChange }, ref) => {
     const [comments, setComments] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; commentId: string | null }>({
@@ -95,6 +96,7 @@ const CommentsList = forwardRef<CommentsListHandle, CommentsListProps>(
         });
 
         setComments(commentsData);
+        onCountChange?.(commentsData.length);
       } catch (error) {
         console.error("Fetch comments error:", error);
         setComments([]);

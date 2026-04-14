@@ -159,10 +159,17 @@ export default function Header() {
     { name: "Vouchers", href: "/user/vouchers", icon: BookOpen },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    setAvatarOpen(false); // Đóng dropdown ngay
+    try {
+      await authApi.logout(); // Gọi API xóa cookie phía backend
+    } catch {
+      // Bỏ qua lỗi API vì token có thể đã hết hạn
+    }
+    // Chỉ xóa phiên đăng nhập, GIỮ LẠI email/password đã ghi nhớ
     resetAuth(); // Xóa toàn bộ state + persist
     clearAllTokens(); // Clear tokens from tokenManager
-    router.push("/auth/login");
+    router.push("/"); // Về trang Home
   };
 
   if (!mounted) return null;

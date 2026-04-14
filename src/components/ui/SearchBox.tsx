@@ -31,10 +31,9 @@ const SearchBox = () => {
     e.preventDefault();
     const qs = new URLSearchParams();
 
-    // gửi cả q (giữ nguyên người dùng gõ) và destination (slug)
+    // chỉ gửi q (giữ nguyên người dùng gõ) để tìm theo keyword / title
     if (where.trim()) {
       qs.set("q", where.trim()); // ví dụ "Thanh Hoá"
-      qs.set("destination", slugify(where)); // => "thanh-hoa"
     }
     if (fromPlace.trim()) {
       qs.set("fromPlace", fromPlace.trim()); // Nơi khởi hành

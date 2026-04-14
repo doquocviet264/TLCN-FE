@@ -22,6 +22,7 @@ export type GetUsersParams = {
   page?: number;
   limit?: number;
   search?: string;
+  status?: string;
 };
 
 export type CreateUserBody = {
@@ -84,5 +85,11 @@ export async function resetUserPassword(id: string, body: ResetPasswordBody) {
 /** Xóa user */
 export async function deleteUser(id: string) {
   const { data } = await adminApi.delete<{ message: string }>(`/users/${id}`);
+  return data;
+}
+
+/** Khóa/Mở khóa user */
+export async function toggleUserStatus(id: string) {
+  const { data } = await adminApi.patch<{ message: string; isActive: string }>(`/users/${id}/toggle-status`);
   return data;
 }

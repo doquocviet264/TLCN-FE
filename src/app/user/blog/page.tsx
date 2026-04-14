@@ -1,10 +1,10 @@
 // /app/user/blog/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, type Variants } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Calendar,
   ArrowRight,
@@ -13,34 +13,39 @@ import {
   User,
   Star,
   Search,
+  Lock,
+  Clock,
 } from "lucide-react";
-import { useGetAllBlogs } from "#/hooks/blogs-hook/useBlogs";
+import { useGetBlogs } from "#/hooks/blogs-hook/useBlogs";
 import useUser from "@/hooks/useUser";
 import { useMyBookings } from "#/hooks/bookings-hook/useBooking";
 import CreateBlogCTA from "./CreateBlogCTA";
+import { useSearchParams } from "next/navigation";
 
-// --- Animation Variants ---
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
-};
+// --- CSS Animation via style tag ---
+const fadeInStyle = {
+  animation: "blogFadeIn 0.4s ease-out both",
+} as const;
 
 export default function BlogListPage() {
+  const searchParams = useSearchParams();
+  const initialTag = searchParams.get("tag") ?? "";
+
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedTag, setSelectedTag] = useState(initialTag);
+
+  // Khi URL thay đổi (e.g. người dùng back/forward), đồng bộ lại state
+  useEffect(() => {
+    const tag = searchParams.get("tag") ?? "";
+    setSelectedTag(tag);
+    setPage(1);
+  }, [searchParams]);
   const limit = 9;
 
-  const { data, isLoading, isError } = useGetAllBlogs(page, limit);
+  const { data, isLoading, isError } = useGetBlogs(page, limit, searchQuery, selectedCategory, selectedTag);
   const { user } = useUser();
 
   // Fetch completed tours để hiển thị CTA
@@ -51,17 +56,13 @@ export default function BlogListPage() {
 
   const blogs = data?.data ?? [];
   const total = data?.total ?? 0;
+  const totalComments = data?.totalComments ?? 0;
+  const totalAuthors = data?.totalAuthors ?? 0;
 
   const totalPages = total > 0 ? Math.ceil(total / limit) : 1;
 
-  // Filter blogs by search
-  const filteredBlogs = searchQuery
-    ? blogs.filter(
-        (b) =>
-          b.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          b.excerpt?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : blogs;
+  // Use API result directly
+  const filteredBlogs = blogs;
 
   return (
     <main className="relative min-h-screen bg-slate-50 font-sans text-slate-600">
@@ -76,9 +77,9 @@ export default function BlogListPage() {
           }}
         />
         {/* Gradient blobs */}
-        <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-orange-500/20 blur-[100px]" />
-        <div className="absolute top-1/2 right-0 h-80 w-80 -translate-y-1/2 rounded-full bg-orange-500/15 blur-[100px]" />
-        <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-blue-500/20 blur-[80px]" />
+        <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-orange-500/20 blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 right-0 h-80 w-80 -translate-y-1/2 rounded-full bg-orange-500/15 blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-blue-500/20 blur-[80px] pointer-events-none" />
 
         <div className="container relative z-10 mx-auto max-w-6xl px-4 text-center">
           <motion.div
@@ -113,15 +114,61 @@ export default function BlogListPage() {
                 <input
                   type="text"
                   placeholder="Tìm kiếm bài viết..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setSearchQuery(searchInput);
+                      setPage(1);
+                    }
+                  }}
                   className="flex-1 bg-transparent text-white placeholder:text-blue-300 outline-none text-sm py-2"
                 />
-                <button className="px-5 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl text-sm hover:from-orange-600 hover:to-orange-700 transition-all">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery(searchInput);
+                    setPage(1);
+                  }}
+                  className="px-5 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl text-sm hover:from-orange-600 hover:to-orange-700 transition-all cursor-pointer relative z-20">
                   Tìm kiếm
                 </button>
               </div>
             </div>
+
+            {/* Category Filter */}
+            <div className="mt-8 flex flex-wrap justify-center gap-2">
+              {["Tất cả", "Du lịch", "Ẩm thực", "Trải nghiệm", "Review", "Cẩm nang", "Kinh nghiệm", "Nghỉ dưỡng"].map((cat) => {
+                const isSelected = cat === "Tất cả" ? selectedCategory === "" : selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setSelectedCategory(cat === "Tất cả" ? "" : cat);
+                      setPage(1);
+                    }}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      isSelected
+                        ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                        : "bg-white/10 text-blue-100 hover:bg-white/20 border border-white/10"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selected Tag Indicator */}
+            {selectedTag && (
+              <div className="mt-4 flex justify-center">
+                <div className="inline-flex items-center gap-2 bg-blue-900/50 border border-blue-400/30 text-blue-200 px-4 py-1.5 rounded-lg text-sm">
+                  <span>Đang lọc theo HashTag: </span>
+                  <span className="font-bold text-orange-400">#{selectedTag}</span>
+                  <button onClick={() => { setSelectedTag(""); setPage(1); }} className="ml-2 hover:text-white transition-colors bg-white/10 rounded-full w-5 h-5 flex items-center justify-center">&times;</button>
+                </div>
+              </div>
+            )}
 
             {/* Stats */}
             <div className="mt-8 flex justify-center gap-8">
@@ -132,14 +179,14 @@ export default function BlogListPage() {
               <div className="w-px bg-white/20" />
               <div className="text-center">
                 <p className="text-3xl font-bold text-white">
-                  {blogs.reduce((acc, b) => acc + (b.commentsCount || 0), 0)}
+                  {totalComments}
                 </p>
                 <p className="text-xs text-blue-300">Bình luận</p>
               </div>
               <div className="w-px bg-white/20" />
               <div className="text-center">
                 <p className="text-3xl font-bold text-white">
-                  {new Set(blogs.map((b) => b.author?.name)).size}
+                  {totalAuthors}
                 </p>
                 <p className="text-xs text-blue-300">Tác giả</p>
               </div>
@@ -252,14 +299,17 @@ export default function BlogListPage() {
           </div>
         ) : (
           <>
+            {/* keyframes animation */}
+            <style>{`
+              @keyframes blogFadeIn {
+                from { opacity: 0; transform: translateY(16px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+            `}</style>
+
             {/* GRID 3 CỘT */}
-            <motion.section
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
-            >
-              {filteredBlogs.map((post) => {
+            <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredBlogs.map((post, idx) => {
                 const img = post.cover || post.thumbnail || "/hot1.jpg";
                 const createdDate = post.createdAt
                   ? new Date(post.createdAt).toLocaleDateString("vi-VN")
@@ -270,14 +320,19 @@ export default function BlogListPage() {
                     ? post.categories
                     : ["Du lịch"];
 
+                const isPrivate = post.privacy === "private";
+                const isPending = post.status === "pending" || post.status === "rejected";
+                const isOwnHidden = isPrivate || isPending;
+                const linkHref = isOwnHidden ? `/user/blog/preview/${post.slug}` : `/user/blog/${post.slug}`;
+
                 return (
-                  <motion.article
+                  <article
                     key={post.slug}
-                    variants={itemVariants}
-                    className="group flex flex-col h-full overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-orange-100/50 hover:border-orange-200 transition-all duration-300"
+                    style={{ ...fadeInStyle, animationDelay: `${idx * 60}ms` }}
+                    className={`group flex flex-col h-full overflow-hidden rounded-2xl bg-white shadow-sm border ${isOwnHidden ? "border-amber-200" : "border-slate-100"} hover:shadow-xl hover:shadow-orange-100/50 hover:border-orange-200 transition-all duration-300`}
                   >
                     <Link
-                      href={`/user/blog/${post.slug}`}
+                      href={linkHref}
                       className="relative h-52 w-full overflow-hidden block"
                     >
                       <Image
@@ -299,6 +354,16 @@ export default function BlogListPage() {
                             {c}
                           </span>
                         ))}
+                        {isPrivate && (
+                           <span className="bg-slate-800/90 backdrop-blur-sm text-white flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border border-slate-700 shadow-sm">
+                             <Lock size={10} /> Riêng tư
+                           </span>
+                        )}
+                        {isPending && (
+                           <span className="bg-amber-500/90 backdrop-blur-sm text-white flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg shadow-sm">
+                             <Clock size={10} /> Chờ duyệt
+                           </span>
+                        )}
                       </div>
 
                       {/* Rating badge */}
@@ -324,7 +389,7 @@ export default function BlogListPage() {
 
                       {/* Title */}
                       <Link
-                        href={`/user/blog/${post.slug}`}
+                        href={linkHref}
                         className="block mb-3"
                       >
                         <h2 className="text-lg font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-orange-600 transition-colors">
@@ -332,11 +397,37 @@ export default function BlogListPage() {
                         </h2>
                       </Link>
 
-                      {/* Excerpt */}
-                      <p className="mb-5 text-sm text-slate-500 line-clamp-2 leading-relaxed">
+                      {/* View & Excerpt */}
+                      <p className="mb-4 text-sm text-slate-500 line-clamp-2 leading-relaxed">
                         {post.excerpt ||
                           "Chia sẻ kinh nghiệm và những trải nghiệm du lịch thú vị..."}
                       </p>
+
+                      {/* Tags Fast Filter */}
+                      {post.tags && post.tags.length > 0 && (
+                        <div className="mb-5 flex flex-wrap gap-2">
+                          {post.tags.slice(0, 3).map((t: string) => {
+                            const cleanTag = t.startsWith("#") ? t.substring(1) : t;
+                            return (
+                              <button
+                                key={t}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setSelectedTag(cleanTag);
+                                  setSearchQuery("");
+                                  setSearchInput("");
+                                  setSelectedCategory("");
+                                  setPage(1);
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className="text-[10px] font-bold tracking-wide text-orange-600 bg-orange-50 border border-orange-100 px-2 py-1 rounded-md hover:bg-orange-500 hover:text-white transition-all duration-300"
+                              >
+                                #{cleanTag}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
 
                       {/* Footer */}
                       <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
@@ -350,7 +441,7 @@ export default function BlogListPage() {
                         </div>
 
                         <Link
-                          href={`/user/blog/${post.slug}`}
+                          href={linkHref}
                           className="group/btn inline-flex items-center gap-1 text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors"
                         >
                           Đọc tiếp
@@ -361,10 +452,10 @@ export default function BlogListPage() {
                         </Link>
                       </div>
                     </div>
-                  </motion.article>
+                  </article>
                 );
               })}
-            </motion.section>
+            </section>
 
             {/* PAGINATION */}
             {totalPages > 1 && (

@@ -28,15 +28,16 @@ function LoginPageContent() {
   const [successMessage, setSuccessMessage] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
+  // Lần đầu vào trang: đọc email+password đã lưu, điền sẵn vào form
   useEffect(() => {
-    localStorage.removeItem("remember_password");
-    const rememberedEmail = localStorage.getItem("remember_email");
-    const rememberedToken = localStorage.getItem("remember_token");
-
-    if (rememberedEmail && rememberedToken) {
-      setEmail(rememberedEmail);
+    const savedEmail = localStorage.getItem("remember_email");
+    const savedPassword = localStorage.getItem("remember_password");
+    if (savedEmail) {
+      setEmail(savedEmail);
       setRememberMe(true);
-      handleAutoLogin(rememberedEmail, rememberedToken);
+    }
+    if (savedPassword) {
+      setPassword(savedPassword);
     }
 
     const message = searchParams?.get("message");
@@ -45,38 +46,6 @@ function LoginPageContent() {
       setTimeout(() => setSuccessMessage(""), 5000);
     }
   }, [searchParams]);
-
-  const handleAutoLogin = async (email: string, token: string) => {
-    try {
-      const data = await authApi.loginWithRememberToken(email, token);
-      setToken({ accessToken: data.accessToken, refreshToken: data.refreshToken });
-      setUserToken(data.accessToken);
-      setRefreshToken(data.refreshToken);
-
-      if (data.rememberToken) {
-        localStorage.setItem("remember_token", data.rememberToken);
-      }
-
-      if (data.user) {
-        setUser({
-          id: data.user.id,
-          fullName: data.user.fullName,
-          username: data.user.username,
-          email: data.user.email,
-          phone: data.user.phone,
-          avatar: data.user.avatar,
-          points: data.user.points,
-          memberStatus: data.user.memberStatus,
-        });
-        setUserId(data.user.id);
-      }
-
-      router.replace("/");
-    } catch (error) {
-      localStorage.removeItem("remember_email");
-      localStorage.removeItem("remember_token");
-    }
-  };
 
   const { mutate: signinMutate, isPending } = useSignin();
 
@@ -105,18 +74,13 @@ function LoginPageContent() {
           setUserId(data.user.id);
         }
 
-        debugTokenAndUser.logAuthStateChange("Login.onSuccess", {
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
-          userId: data.user?.id,
-        });
-
-        if (rememberMe && data.rememberToken) {
+        // Lưu hoặc xóa thông tin đã ghi nhớ
+        if (rememberMe) {
           localStorage.setItem("remember_email", email);
-          localStorage.setItem("remember_token", data.rememberToken);
+          localStorage.setItem("remember_password", password);
         } else {
           localStorage.removeItem("remember_email");
-          localStorage.removeItem("remember_token");
+          localStorage.removeItem("remember_password");
         }
 
         router.replace("/");

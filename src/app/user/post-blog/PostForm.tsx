@@ -10,18 +10,22 @@ const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 
 interface PostFormProps {
   title: string;
+  summary: string;
   content: string;
   privacy: string;
   onTitleChange: (value: string) => void;
+  onSummaryChange: (value: string) => void;
   onContentChange: (value: string) => void;
   onPrivacyClick: () => void;
 }
 
 export default function PostForm({
   title,
+  summary,
   content,
   privacy,
   onTitleChange,
+  onSummaryChange,
   onContentChange,
   onPrivacyClick,
 }: PostFormProps) {
@@ -245,8 +249,25 @@ export default function PostForm({
         type="text"
         value={title}
         onChange={(e) => onTitleChange(e.target.value)}
+        placeholder="Nhập tiêu đề bài viết..."
         className="w-full bg-[#F9F9FC] border border-[var(--gray-5)] rounded-lg p-3 mb-4 outline-none focus:ring-2 focus:ring-[var(--primary)]"
       />
+
+      {/* Summary */}
+      <label className="block mb-4">
+        <span className="font-medium text-[var(--gray-2)] block mb-2">
+          Tóm tắt <span className="text-slate-400 font-normal text-xs"></span>
+        </span>
+        <textarea
+          value={summary}
+          onChange={(e) => onSummaryChange(e.target.value)}
+          placeholder="Nhập một đoạn tóm tắt ngắn về bài viết của bạn (không bắt buộc)..."
+          maxLength={300}
+          rows={3}
+          className="w-full bg-[#F9F9FC] border border-[var(--gray-5)] rounded-lg p-3 outline-none focus:ring-2 focus:ring-[var(--primary)] resize-none text-sm"
+        />
+        <div className="text-right text-xs text-slate-400 mt-1">{summary.length}/300</div>
+      </label>
 
       <div className="flex justify-between items-center mb-2 pt-2">
         <span className="font-medium text-[var(--gray-2)]">Nội dung</span>

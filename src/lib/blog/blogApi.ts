@@ -3,6 +3,7 @@ import axiosInstance from "@/lib/axiosInstance";
 /* ===== Types ===== */
 
 export type BlogSummary = {
+  _id?: string;
   slug: string;
   title: string;
   excerpt?: string;
@@ -20,6 +21,9 @@ export type BlogSummary = {
   };
   rating?: number; // trung bình
   commentsCount?: number;
+  status?: "pending" | "published" | "rejected" | "archived";
+  privacy?: "public" | "private";
+  rejectReason?: string;
 };
 
 export type BlogContentBlock = {
@@ -36,6 +40,7 @@ export type BlogDetail = BlogSummary & {
   mediaUrls?: string[];
   wardName?: string;
   ward?: string;
+  province?: string;
   locationDetail?: string;
 };
 
@@ -45,6 +50,8 @@ export type BlogsResponse = {
   total: number;
   page: number;
   limit: number;
+  totalComments?: number;
+  totalAuthors?: number;
 };
 
 export const getBlogBySlug = async (slug: string): Promise<BlogDetail> => {
@@ -75,13 +82,17 @@ export type BlogCommentsResponse = {
 export const getBlogs = async (
   page = 1,
   limit = 9,
-  q?: string
+  q?: string,
+  category?: string,
+  tag?: string
 ): Promise<BlogsResponse> => {
   const res = await axiosInstance.get<BlogsResponse>("/blog", {
     params: {
       page,
       limit,
       q: q?.trim() || undefined,
+      category: category || undefined,
+      tag: tag || undefined,
     },
   });
 
@@ -202,7 +213,7 @@ const deleteComment = async (
 };
 
 const createBlog = async (formData: FormData) => {
-  const res = await axiosInstance.post("/blog", formData, {
+  const res = await axiosInstance.post("/blog/user", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return res.data;
@@ -229,6 +240,25 @@ const deleteBlog = async (id: string): Promise<void> => {
   await axiosInstance.delete(`/blog/user/${id}`);
 };
 
+const getOwnPostById = async (id: string): Promise<BlogDetail> => {
+  const res = await axiosInstance.get<BlogDetail>(`/blog/user/${id}`);
+  return res.data;
+};
+
+const previewOwnPost = async (slug: string): Promise<BlogDetail> => {
+  const res = await axiosInstance.get<BlogDetail>(`/blog/user/preview/${slug}`);
+  return res.data;
+};
+
+const togglePrivacy = async (id: string, privacy: "public" | "private"): Promise<any> => {
+  const formData = new FormData();
+  formData.append("privacy", privacy);
+  const res = await axiosInstance.put(`/blog/user/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
+
 export const blogApi = {
   getBlogs,
   getBlogBySlug,
@@ -240,4 +270,7 @@ export const blogApi = {
   getMyPosts,
   updateBlog,
   deleteBlog,
+  getOwnPostById,
+  previewOwnPost,
+  togglePrivacy,
 };

@@ -39,8 +39,11 @@ export interface BlogPost {
   tags: string[];
   coverImageUrl?: string;
   coverImagePublicId?: string;
-  status: "draft" | "published" | "archived";
-  authorId?: string;
+  status: "draft" | "pending" | "published" | "archived" | "rejected";
+  privacy?: "public" | "private";
+  rejectReason?: string;
+  authorId?: string | Author | any;
+  authorModel?: string;
   publishedAt?: string;
   ratingAvg: number;
   ratingCount: number;
