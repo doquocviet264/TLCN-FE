@@ -140,7 +140,7 @@ export function BlogForm({ initialData, isEditing = false }: BlogFormProps) {
             {isEditing ? 'Cập Nhật Bài Viết' : 'Tạo Bài Viết Mới'}
           </h1>
           <p className="text-slate-500 mt-1 text-sm font-medium">
-            {isEditing ? 'Chỉnh sửa nội dung ấn phẩm' : 'Bắt đầu soạn thảo ấn phẩm mới'}
+            {isEditing ? 'Chỉnh sửa nội dung blog' : 'Bắt đầu soạn thảo blog mới'}
           </p>
         </div>
         <button
@@ -278,7 +278,7 @@ export function BlogForm({ initialData, isEditing = false }: BlogFormProps) {
 
                {/* Cover Image */}
                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-5">Ảnh Bìa Ấn Phẩm</h3>
+                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-5">Ảnh Bìa Blog</h3>
                  <div className="space-y-4">
                     <input
                       type="text"

@@ -24,6 +24,7 @@ import {
   LeaderTour,
   TimelineEvent,
   Expense,
+  Passenger,
 } from "@/lib/leader/leaderApi";
 
 const statusColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -57,8 +58,9 @@ export default function TourDetailPage() {
 
   const [tour, setTour] = useState<LeaderTour | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"timeline" | "expenses">("timeline");
+  const [activeTab, setActiveTab] = useState<"timeline" | "expenses" | "passengers">("timeline");
 
   // Timeline Form
   const [showTimelineForm, setShowTimelineForm] = useState(false);
@@ -84,12 +86,14 @@ export default function TourDetailPage() {
     const fetchData = async () => {
       if (!tourId) return;
       try {
-        const [tourData, expenseData] = await Promise.all([
+        const [tourData, expenseResp, passengersResp] = await Promise.all([
           leaderToursApi.getTourDetail(tourId),
-          leaderToursApi.getTourExpenses(tourId).catch(() => []),
+          leaderToursApi.getTourExpenses(tourId).catch(() => ({ data: [], total: 0, count: 0 })),
+          leaderToursApi.getPassengers(tourId).catch(() => ({ data: [], total: 0 })),
         ]);
         setTour(tourData);
-        setExpenses(expenseData);
+        setExpenses(expenseResp.data ?? []);
+        setPassengers(passengersResp.data ?? []);
       } catch (err) {
         console.error("Error fetching tour:", err);
       } finally {
@@ -142,7 +146,7 @@ export default function TourDetailPage() {
 
       // Refresh expenses
       const updatedExpenses = await leaderToursApi.getTourExpenses(tourId);
-      setExpenses(updatedExpenses);
+      setExpenses(updatedExpenses.data ?? []);
 
       // Reset form
       setExpenseForm({ title: "", amount: "", note: "", visibleToCustomers: true });
@@ -294,6 +298,17 @@ export default function TourDetailPage() {
         >
           <Clock className="w-5 h-5" />
           Timeline
+        </button>
+        <button
+          onClick={() => setActiveTab("passengers")}
+          className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+            activeTab === "passengers"
+              ? "bg-white text-emerald-600 shadow-sm"
+              : "text-slate-600 hover:text-slate-800"
+          }`}
+        >
+          <Users className="w-5 h-5" />
+          Hành khách ({passengers.length})
         </button>
         <button
           onClick={() => setActiveTab("expenses")}
@@ -455,6 +470,60 @@ export default function TourDetailPage() {
         </div>
       )}
 
+      {/* Passengers Tab */}
+      {activeTab === "passengers" && (
+        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+          {passengers.length === 0 ? (
+            <div className="text-center py-10">
+              <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500">Chưa có hành khách đặt chỗ</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Mã đặt vé</th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Tên khách</th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600">SĐT</th>
+                    <th className="px-4 py-3 text-center font-semibold text-slate-600">Người lớn</th>
+                    <th className="px-4 py-3 text-center font-semibold text-slate-600">Trẻ em</th>
+                    <th className="px-4 py-3 text-right font-semibold text-slate-600">Tổng tiền</th>
+                    <th className="px-4 py-3 text-center font-semibold text-slate-600">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {passengers.map((p, i) => {
+                    const name = p.userId?.fullName ?? p.fullName ?? "—";
+                    const phone = p.userId?.phoneNumber ?? p.phoneNumber ?? "—";
+                    return (
+                      <tr key={p._id || i} className="hover:bg-slate-50 transition">
+                        <td className="px-4 py-3 font-mono text-xs text-slate-700">{p.code}</td>
+                        <td className="px-4 py-3 font-medium text-slate-800">{name}</td>
+                        <td className="px-4 py-3 text-slate-600">{phone}</td>
+                        <td className="px-4 py-3 text-center">{p.numAdults}</td>
+                        <td className="px-4 py-3 text-center">{p.numChildren}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-emerald-700">
+                          {p.totalPrice?.toLocaleString("vi-VN")} đ
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            p.bookingStatus === "confirmed" ? "bg-green-100 text-green-800" :
+                            p.bookingStatus === "cancelled" ? "bg-red-100 text-red-800" :
+                            "bg-yellow-100 text-yellow-800"
+                          }`}>
+                            {p.bookingStatus}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
       {/* Expenses Tab */}
       {activeTab === "expenses" && (
         <div className="space-y-4">

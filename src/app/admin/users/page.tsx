@@ -226,35 +226,40 @@ export default function UsersPage() {
                         {formatDate(user.createdDate || user.createdAt || "")}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex gap-3 justify-center items-center">
+                        <div className="flex gap-2 justify-center items-center">
                           <Link
                             href={`/admin/users/${user._id}`}
-                            className="text-orange-600 hover:underline font-medium"
+                            className="p-1.5 text-orange-500 hover:bg-orange-50 hover:text-orange-600 rounded-lg transition"
+                            title="Sửa"
                           >
-                            Sửa
+                            <i className="ri-pencil-line text-lg"></i>
                           </Link>
                           <Link
                             href={`/admin/users/${user._id}/reset-password`}
-                            className="text-blue-600 hover:underline font-medium"
+                            className="p-1.5 text-blue-500 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition"
                             title="Đặt lại mật khẩu"
                           >
-                            Mật khẩu
+                            <i className="ri-key-line text-lg"></i>
                           </Link>
                           <button
                             onClick={() => toggleMutation.mutate(user._id)}
                             disabled={toggleMutation.isPending}
-                            className={`font-medium hover:underline disabled:opacity-50 ${
-                              user.isActive === "y" ? "text-amber-600" : "text-emerald-600"
+                            title={user.isActive === "y" ? "Khóa" : "Mở khóa"}
+                            className={`p-1.5 rounded-lg transition disabled:opacity-50 ${
+                              user.isActive === "y" 
+                                ? "text-amber-500 hover:bg-amber-50 hover:text-amber-600" 
+                                : "text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600"
                             }`}
                           >
-                            {user.isActive === "y" ? "Khóa" : "Mở khóa"}
+                            <i className={`text-lg ${user.isActive === "y" ? "ri-lock-2-line" : "ri-lock-unlock-line"}`}></i>
                           </button>
                           <button
                             onClick={() => handleDelete(user._id, user.fullName)}
                             disabled={deleteMutation.isPending}
-                            className="text-red-600 hover:underline font-medium disabled:opacity-50"
+                            title="Xóa"
+                            className="p-1.5 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition disabled:opacity-50"
                           >
-                            Xóa
+                            <i className="ri-delete-bin-6-line text-lg"></i>
                           </button>
                         </div>
                       </td>

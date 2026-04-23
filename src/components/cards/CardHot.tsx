@@ -26,6 +26,13 @@ export type CardHotProps = {
     schedule?: string;
     seats?: number | string;
   };
+  upcomingDepartures?: Array<{
+    _id: string;
+    startDate: string;
+    max_guests: number;
+    current_guests: number;
+    priceAdult: number;
+  }>;
 };
 
 /* ============== helpers ============== */
@@ -162,17 +169,45 @@ export default function CardHot(props: CardHotProps) {
                 <span>{destinationTxt}</span>
               </li>
             )}
-            {scheduleText && (
-              <li className="flex items-start gap-2">
-                <CalendarDays className="mt-[2px] h-4 w-4 text-orange-500" />
-                <span>{scheduleText}</span>
+            
+            {/* Hiển thị các ngày khởi hành thay vì "Còn X chỗ" */}
+            {props.upcomingDepartures && props.upcomingDepartures.length > 0 ? (
+              <li className="flex flex-col gap-1.5 pt-1">
+                <div className="flex items-start gap-2">
+                   <CalendarDays className="mt-[2px] h-4 w-4 text-orange-500" />
+                   <span className="font-semibold text-slate-800">Lịch khởi hành:</span>
+                </div>
+                <div className="flex flex-wrap gap-2 pl-6">
+                  {props.upcomingDepartures.slice(0, 3).map((dep) => (
+                    <span 
+                      key={dep._id} 
+                      className="px-2 py-0.5 rounded-md bg-orange-50 border border-orange-100 text-[11px] font-medium text-orange-700"
+                    >
+                      {new Date(dep.startDate).toLocaleDateString("vi-VN")}
+                    </span>
+                  ))}
+                  {props.upcomingDepartures.length > 3 && (
+                    <span className="text-[11px] text-slate-400 self-center">
+                      +{props.upcomingDepartures.length - 3} ngày khác
+                    </span>
+                  )}
+                </div>
               </li>
-            )}
-            {seatsText != null && seatsText !== "" && (
-              <li className="flex items-start gap-2">
-                <Users2 className="mt-[2px] h-4 w-4 text-orange-500" />
-                <span>Còn {seatsText} chỗ</span>
-              </li>
+            ) : (
+                <>
+                  {scheduleText && (
+                    <li className="flex items-start gap-2">
+                      <CalendarDays className="mt-[2px] h-4 w-4 text-orange-500" />
+                      <span>{scheduleText}</span>
+                    </li>
+                  )}
+                  {seatsText != null && seatsText !== "" && (
+                    <li className="flex items-start gap-2">
+                      <Users2 className="mt-[2px] h-4 w-4 text-orange-500" />
+                      <span>Còn {seatsText} chỗ</span>
+                    </li>
+                  )}
+                </>
             )}
           </ul>
         )}

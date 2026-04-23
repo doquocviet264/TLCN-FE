@@ -444,7 +444,7 @@ function DestinationPageContent() {
                   ) : (
                     visibleTours.map((t: any) => {
                       const percent = computePercent(t) ?? DEFAULT_PERCENT;
-                      const id = t._id ?? t.id ?? "";
+                      const id = String(t._id ?? t.id ?? "");
                       const slug = t.destinationSlug ?? slugify(t.title);
 
                       return (
@@ -470,11 +470,12 @@ function DestinationPageContent() {
                             seats={t.quantity ?? t.seats ?? 0}
                             schedule={
                               t.startText ??
-                              (t.startDate
-                                ? `Khởi hành: ${fmtDate(t.startDate)}`
+                              (t.nextDepartureDate
+                                ? `Khởi hành: ${fmtDate(t.nextDepartureDate)}`
                                 : undefined)
                             }
-                            startDate={t.startDate}
+                            startDate={t.nextDepartureDate}
+                            upcomingDepartures={t.upcomingDepartures}
                           />
                         </motion.div>
                       );

@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCreateTour, useUpdateTour, useTourDetail } from "../hooks/useAdmin";
 import { getAdminLeaders } from "@/lib/admin/adminLeaderApi";
 import { Toast, useToast } from "@/components/ui/Toast";
-import type { TourInput } from "@/lib/admin/adminApi";
+import { type TourInput } from "@/lib/admin/adminApi";
 
 type TourFormProps = {
   tourId?: string;
@@ -17,7 +17,7 @@ type TourFormProps = {
 type ItinerarySegment = {
   timeOfDay: "morning" | "afternoon" | "evening";
   title: string;
-  items: string[];
+  items: Array<string | { text: string; imageUrl?: string }>;
 };
 
 type ItineraryDay = {
@@ -28,8 +28,24 @@ type ItineraryDay = {
   photos: string[];
 };
 
-// 👇 1. Tạo kiểu dữ liệu mới mở rộng từ TourInput để thêm leaderId
-type TourFormInput = TourInput & {
+// TourFormInput: bao gồm cả các field legacy (time, startDate...) để form vẫn hoạt động
+// Lưu ý: sau khi submit, các field này sẽ được bỏ qua bởới backend (trường hợp Tour Template)
+type TourFormInput = {
+  title?: string;
+  time?: string;                 // legacy
+  description?: string;
+  quantity?: number;             // legacy
+  priceAdult?: number;
+  priceChild?: number;
+  destination?: string;
+  startDate?: string | Date;     // legacy (giờ nằm ở Departure)
+  endDate?: string | Date;       // legacy
+  min_guests?: number;           // legacy
+  current_guests?: number;       // legacy
+  status?: string;               // legacy
+  images?: string[];
+  includes?: string[];
+  excludes?: string[];
   leaderId?: string;
   itinerary?: ItineraryDay[];
 };
@@ -70,30 +86,29 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
     itinerary: [],
   });
 
-  // Load existing data when editing
+  // Track files to be uploaded on submit
+  const [pendingFiles, setPendingFiles] = useState<Record<string, File>>({});
+
   useEffect(() => {
     if (mode === "edit" && existingTour) {
+      const t = existingTour as any; // cast to any for legacy fields
       setFormData({
-        title: existingTour.title || "",
-        time: existingTour.time || "",
-        description: existingTour.description || "",
-        quantity: existingTour.quantity || 30,
-        priceAdult: existingTour.priceAdult || 0,
-        priceChild: existingTour.priceChild || 0,
-        destination: existingTour.destination || "",
-        startDate: existingTour.startDate
-          ? new Date(existingTour.startDate).toISOString().slice(0, 10)
-          : "",
-        endDate: existingTour.endDate
-          ? new Date(existingTour.endDate).toISOString().slice(0, 10)
-          : "",
-        min_guests: existingTour.min_guests || 10,
-        current_guests: existingTour.current_guests || 0,
-        status: existingTour.status as any,
-        images: existingTour.images || [],
-        // @ts-expect-error - Bỏ qua lỗi check type ở đây nếu API trả về leader object
-        leaderId: existingTour.leader?._id || "",
-        itinerary: existingTour.itinerary || [],
+        title:           t.title || "",
+        time:            t.time  || "",
+        description:     t.description || "",
+        quantity:        t.quantity || 30,
+        priceAdult:      t.priceAdult  || 0,
+        priceChild:      t.priceChild  || 0,
+        destination:     t.destination || "",
+        startDate:       t.startDate ? new Date(t.startDate).toISOString().slice(0, 10) : "",
+        endDate:         t.endDate   ? new Date(t.endDate).toISOString().slice(0, 10)   : "",
+        min_guests:      t.min_guests     || 10,
+        current_guests:  t.current_guests || 0,
+        status:          t.status         || "pending",
+        images:          t.images  || [],
+        includes:        t.includes || [],
+        excludes:        t.excludes || [],
+        itinerary:       t.itinerary || [],
       });
     }
   }, [mode, existingTour]);
@@ -101,25 +116,37 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.destination) {
-      showError("Vui lòng nhập tiêu đề và điểm đến!");
+    if (!formData.title || !formData.destination || !formData.time) {
+      showError("Vui lòng nhập tiêu đề, điểm đến và thời gian hành trình!");
+      return;
+    }
+    if ((formData.priceAdult ?? 0) <= 0) {
+      showError("Vui lòng nhập giá người lớn hợp lệ!");
+      return;
+    }
+    if ((formData.priceChild ?? 0) < 0) {
+      showError("Giá trẻ em không được âm!");
       return;
     }
 
     try {
-      const submitData = { ...formData };
+      const isCreate = mode === "create";
+      
+      // Build FormData for integrated upload
+      const form = new FormData();
+      form.append("data", JSON.stringify(formData));
+      
+      // Append files
+      Object.entries(pendingFiles).forEach(([key, file]) => {
+        form.append(key, file);
+      });
 
-      if (submitData.leaderId === "") {
-        delete submitData.leaderId;
-      }
-
-      if (mode === "create") {
-        // 👇 3. Ép kiểu về any hoặc TourInput để tránh lỗi TS khi gọi hàm mutate
-        await createTour.mutateAsync(submitData as any);
+      if (isCreate) {
+        await createTour.mutateAsync(form as any);
         showSuccess("Tạo tour thành công!");
         setTimeout(() => router.push("/admin/tours"), 1500);
       } else {
-        await updateTour.mutateAsync(submitData as any);
+        await updateTour.mutateAsync(form as any);
         showSuccess("Cập nhật tour thành công!");
         setTimeout(() => router.push("/admin/tours"), 1500);
       }
@@ -147,7 +174,25 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
   const handleImageChange = (index: number, value: string) => {
     const newImages = [...(formData.images || [])];
     newImages[index] = value;
+    // Clear pending file if URL is manually changed
+    const key = `main_image_${index}`;
+    if (pendingFiles[key]) {
+      const newFiles = { ...pendingFiles };
+      delete newFiles[key];
+      setPendingFiles(newFiles);
+    }
     setFormData((prev) => ({ ...prev, images: newImages }));
+  };
+
+  const handleSelectMainImage = (index: number, file: File) => {
+    const key = `main_image_${index}`;
+    setPendingFiles(prev => ({ ...prev, [key]: file }));
+    
+    // Create preview
+    const previewUrl = URL.createObjectURL(file);
+    const newImages = [...(formData.images || [])];
+    newImages[index] = previewUrl;
+    setFormData(prev => ({ ...prev, images: newImages }));
   };
 
   const addImage = () => {
@@ -160,6 +205,19 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
   const removeImage = (index: number) => {
     const newImages = [...(formData.images || [])];
     newImages.splice(index, 1);
+    
+    // Also remove from pending files and shift others
+    const newFiles: Record<string, File> = {};
+    Object.entries(pendingFiles).forEach(([key, file]) => {
+      if (key.startsWith("main_image_")) {
+        const kIdx = parseInt(key.split("_")[2]);
+        if (kIdx < index) newFiles[key] = file;
+        if (kIdx > index) newFiles[`main_image_${kIdx - 1}`] = file;
+      } else {
+        newFiles[key] = file;
+      }
+    });
+    setPendingFiles(newFiles);
     setFormData((prev) => ({ ...prev, images: newImages }));
   };
 
@@ -231,8 +289,8 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
   };
 
   const addSegmentItem = (dayIndex: number, segmentIndex: number) => {
-    const itinerary = [...(formData.itinerary || [])];
-    itinerary[dayIndex].segments[segmentIndex].items.push("");
+    const itinerary = JSON.parse(JSON.stringify(formData.itinerary || []));
+    itinerary[dayIndex].segments[segmentIndex].items.push({ text: "", imageUrl: "" });
     setFormData((prev) => ({ ...prev, itinerary }));
   };
 
@@ -241,7 +299,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
     segmentIndex: number,
     itemIndex: number
   ) => {
-    const itinerary = [...(formData.itinerary || [])];
+    const itinerary = JSON.parse(JSON.stringify(formData.itinerary || []));
     itinerary[dayIndex].segments[segmentIndex].items.splice(itemIndex, 1);
     setFormData((prev) => ({ ...prev, itinerary }));
   };
@@ -250,11 +308,36 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
     dayIndex: number,
     segmentIndex: number,
     itemIndex: number,
+    field: "text" | "imageUrl",
     value: string
   ) => {
-    const itinerary = [...(formData.itinerary || [])];
-    itinerary[dayIndex].segments[segmentIndex].items[itemIndex] = value;
+    const itinerary = JSON.parse(JSON.stringify(formData.itinerary || []));
+    const currentItem = itinerary[dayIndex].segments[segmentIndex].items[itemIndex];
+
+    if (typeof currentItem === "string") {
+      itinerary[dayIndex].segments[segmentIndex].items[itemIndex] = {
+        text: field === "text" ? value : currentItem,
+        imageUrl: field === "imageUrl" ? value : "",
+      };
+    } else {
+      itinerary[dayIndex].segments[segmentIndex].items[itemIndex][field] = value;
+    }
+
     setFormData((prev) => ({ ...prev, itinerary }));
+  };
+
+  const handleSelectSegmentItemImage = (
+    dayIndex: number,
+    segmentIndex: number,
+    itemIndex: number,
+    file: File
+  ) => {
+    const key = `item_image_${dayIndex}_${segmentIndex}_${itemIndex}`;
+    setPendingFiles(prev => ({ ...prev, [key]: file }));
+    
+    // Create local preview URL
+    const previewUrl = URL.createObjectURL(file);
+    updateSegmentItem(dayIndex, segmentIndex, itemIndex, "imageUrl", previewUrl);
   };
 
   const timeOfDayLabels: Record<string, string> = {
@@ -262,6 +345,27 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
     afternoon: "Buổi chiều",
     evening: "Buổi tối",
   };
+
+  // ========== INCLUDES/EXCLUDES HANDLERS ==========
+  const addArrayItem = (field: "includes" | "excludes") => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: [...(prev[field] || []), ""],
+    }));
+  };
+
+  const removeArrayItem = (field: "includes" | "excludes", index: number) => {
+    const newArr = [...(formData[field] || [])];
+    newArr.splice(index, 1);
+    setFormData((prev) => ({ ...prev, [field]: newArr }));
+  };
+
+  const updateArrayItem = (field: "includes" | "excludes", index: number, value: string) => {
+    const newArr = [...(formData[field] || [])];
+    newArr[index] = value;
+    setFormData((prev) => ({ ...prev, [field]: newArr }));
+  };
+
 
   const isLoading = createTour.isPending || updateTour.isPending;
 
@@ -303,16 +407,21 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="mb-2 block font-semibold text-slate-900">
-                Thời gian
+                Thời gian hành trình
               </label>
-              <input
-                type="text"
+              <select
                 name="time"
-                value={formData.time}
+                value={formData.time || ""}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="3 ngày 2 đêm"
-              />
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+              >
+                <option value="">-- Chọn --</option>
+                <option value="1 ngày">1 ngày</option>
+                <option value="2 ngày 1 đêm">2 ngày 1 đêm</option>
+                <option value="3 ngày 2 đêm">3 ngày 2 đêm</option>
+                <option value="4 ngày 3 đêm">4 ngày 3 đêm</option>
+                <option value="5 ngày 4 đêm">5 ngày 4 đêm</option>
+              </select>
             </div>
             <div>
               <label className="mb-2 block font-semibold text-slate-900">
@@ -330,43 +439,6 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
             </div>
           </div>
 
-          {/* --- Leader Selection Section --- */}
-          <div>
-            <label className="mb-2 block font-semibold text-slate-900">
-              Hướng dẫn viên (Leader)
-            </label>
-            <div className="relative">
-              <select
-                name="leaderId"
-                value={formData.leaderId || ""}
-                onChange={handleChange}
-                disabled={isLoadingLeaders}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent appearance-none bg-white"
-              >
-                <option value="">-- Chưa gán leader --</option>
-                {leaders.map((leader: any) => (
-                  <option key={leader._id} value={leader._id}>
-                    {leader.fullName} ({leader.username})
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <svg
-                  className="fill-current h-4 w-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                </svg>
-              </div>
-            </div>
-            {isLoadingLeaders && (
-              <p className="text-sm text-gray-500 mt-1">
-                Đang tải danh sách leader...
-              </p>
-            )}
-          </div>
-
           {/* Description */}
           <div>
             <label className="mb-2 block font-semibold text-slate-900">
@@ -382,8 +454,8 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
             />
           </div>
 
-          {/* Prices */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Pricing & Quantity */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="mb-2 block font-semibold text-slate-900">
                 Giá người lớn (đ)
@@ -408,41 +480,9 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
-          </div>
-
-          {/* Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="mb-2 block font-semibold text-slate-900">
-                Ngày khởi hành
-              </label>
-              <input
-                type="date"
-                name="startDate"
-                value={typeof formData.startDate === 'string' ? formData.startDate : ''}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block font-semibold text-slate-900">
-                Ngày kết thúc
-              </label>
-              <input
-                type="date"
-                name="endDate"
-                value={typeof formData.endDate === 'string' ? formData.endDate : ''}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          {/* Guests & Status */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="mb-2 block font-semibold text-slate-900">
-                Số lượng
+                Số lượng khách (Max)
               </label>
               <input
                 type="number"
@@ -452,46 +492,47 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
+          </div>
+
+          {/* Includes / Excludes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="mb-2 block font-semibold text-slate-900">
-                Tối thiểu
+                Bao gồm (Includes)
               </label>
-              <input
-                type="number"
-                name="min_guests"
-                value={formData.min_guests}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
+              <div className="space-y-2">
+                {(formData.includes || []).map((inc, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      type="text"
+                      className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                      value={inc}
+                      onChange={(e) => updateArrayItem('includes', i, e.target.value)}
+                    />
+                    <button type="button" onClick={() => removeArrayItem('includes', i)} className="text-red-500 font-bold hover:text-red-600">✕</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => addArrayItem('includes')} className="text-sm text-sky-600 font-medium hover:underline">+ Thêm dòng</button>
+              </div>
             </div>
             <div>
               <label className="mb-2 block font-semibold text-slate-900">
-                Hiện tại
+                Không bao gồm (Excludes)
               </label>
-              <input
-                type="number"
-                name="current_guests"
-                value={formData.current_guests}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block font-semibold text-slate-900">
-                Trạng thái
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              >
-                <option value="pending">Chờ duyệt</option>
-                <option value="confirmed">Đã duyệt</option>
-                <option value="in_progress">Đang diễn ra</option>
-                <option value="completed">Hoàn thành</option>
-                <option value="closed">Đóng</option>
-              </select>
+              <div className="space-y-2">
+                {(formData.excludes || []).map((exc, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      type="text"
+                      className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                      value={exc}
+                      onChange={(e) => updateArrayItem('excludes', i, e.target.value)}
+                    />
+                    <button type="button" onClick={() => removeArrayItem('excludes', i)} className="text-red-500 font-bold hover:text-red-600">✕</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => addArrayItem('excludes')} className="text-sm text-sky-600 font-medium hover:underline">+ Thêm dòng</button>
+              </div>
             </div>
           </div>
 
@@ -627,13 +668,13 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                           </button>
                         </div>
 
-                        {day.segments.length === 0 ? (
+                        {(day.segments || []).length === 0 ? (
                           <p className="text-sm text-slate-400 italic">
                             Chưa có hoạt động. Nhấn "Thêm buổi" để thêm.
                           </p>
                         ) : (
                           <div className="space-y-3">
-                            {day.segments.map((segment, segIdx) => (
+                            {(day.segments || []).map((segment, segIdx) => (
                               <div
                                 key={segIdx}
                                 className="border border-slate-200 rounded-lg p-3 bg-slate-50"
@@ -691,54 +732,67 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                                 </div>
 
                                 {/* Segment Items */}
-                                <div className="ml-4 space-y-2">
-                                  {segment.items.map((item, itemIdx) => (
-                                    <div
-                                      key={itemIdx}
-                                      className="flex items-center gap-2"
-                                    >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
-                                      <input
-                                        type="text"
-                                        value={item}
-                                        onChange={(e) =>
-                                          updateSegmentItem(
-                                            dayIdx,
-                                            segIdx,
-                                            itemIdx,
-                                            e.target.value
-                                          )
-                                        }
-                                        className="flex-1 px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm bg-white"
-                                        placeholder="Chi tiết hoạt động..."
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          removeSegmentItem(dayIdx, segIdx, itemIdx)
-                                        }
-                                        className="p-1 text-slate-400 hover:text-red-500 transition"
-                                      >
-                                        <svg
-                                          className="w-4 h-4"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M6 18L18 6M6 6l12 12"
+                                <div className="ml-4 space-y-3">
+                                  {segment.items.map((item, itemIdx) => {
+                                    const text = typeof item === 'string' ? item : (item.text || "");
+                                    const imageUrl = typeof item === 'string' ? "" : (item.imageUrl || "");
+                                    return (
+                                      <div key={itemIdx} className="flex flex-col gap-2 p-2 bg-slate-50 border border-slate-100 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                                          <input
+                                            type="text"
+                                            value={text}
+                                            onChange={(e) => updateSegmentItem(dayIdx, segIdx, itemIdx, 'text', e.target.value)}
+                                            className="flex-1 px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm bg-white"
+                                            placeholder="Chi tiết hoạt động..."
                                           />
-                                        </svg>
-                                      </button>
-                                    </div>
-                                  ))}
+                                          <label className="cursor-pointer p-1 text-slate-500 hover:text-sky-600 transition" title="Tải ảnh lên">
+                                            <input 
+                                              type="file" 
+                                              accept="image/*" 
+                                              className="hidden" 
+                                              onChange={(e) => {
+                                                if(e.target.files && e.target.files[0]) {
+                                                  handleSelectSegmentItemImage(dayIdx, segIdx, itemIdx, e.target.files[0]);
+                                                }
+                                              }} 
+                                            />
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                            </svg>
+                                          </label>
+                                          <button
+                                            type="button"
+                                            onClick={() => removeSegmentItem(dayIdx, segIdx, itemIdx)}
+                                          className="p-1 text-slate-400 hover:text-red-500 transition"
+                                          >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                          </button>
+                                        </div>
+                                        {imageUrl && (
+                                          <div className="ml-4 relative w-32 h-20 rounded overflow-hidden border border-slate-200">
+                                            <img src={imageUrl} alt="item image" className="object-cover w-full h-full" />
+                                            <button 
+                                              type="button" 
+                                              onClick={() => updateSegmentItem(dayIdx, segIdx, itemIdx, 'imageUrl', "")}
+                                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                                            >
+                                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                              </svg>
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                   <button
                                     type="button"
                                     onClick={() => addSegmentItem(dayIdx, segIdx)}
-                                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 ml-2"
                                   >
                                     <svg
                                       className="w-3 h-3"
@@ -755,8 +809,10 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                                     </svg>
                                     Thêm chi tiết
                                   </button>
+                                  </div>
+
+
                                 </div>
-                              </div>
                             ))}
                           </div>
                         )}
@@ -771,33 +827,55 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
           {/* Images */}
           <div>
             <label className="mb-2 block font-semibold text-slate-900">
-              Hình ảnh (URLs)
+              Hình ảnh (URLs hoặc Tải lên)
             </label>
-            <div className="space-y-2">
+            <div className="space-y-4">
               {(formData.images || []).map((img, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={img}
-                    onChange={(e) => handleImageChange(idx, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="https://example.com/image.jpg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(idx)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                  >
-                    Xóa
-                  </button>
+                <div key={idx} className="flex flex-col gap-2 p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={img}
+                      onChange={(e) => handleImageChange(idx, e.target.value)}
+                      className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                      placeholder="https://example.com/image.jpg"
+                    />
+                    <label className="cursor-pointer px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition text-sm flex items-center gap-2 border border-slate-300">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          if(e.target.files && e.target.files[0]) {
+                            handleSelectMainImage(idx, e.target.files[0]);
+                          }
+                        }} 
+                      />
+                      📷 Tải ảnh
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeImage(idx)}
+                      className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition border border-red-200"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  {img && (
+                    <div className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 bg-slate-50">
+                      <img src={img} alt={`preview ${idx}`} className="w-full h-full object-cover" />
+                    </div>
+                  )}
                 </div>
               ))}
               <button
                 type="button"
                 onClick={addImage}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                className="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-600 hover:border-orange-400 hover:text-orange-500 transition flex items-center justify-center gap-2 font-medium"
               >
-                + Thêm ảnh
+                + Thêm hình ảnh mới
               </button>
             </div>
           </div>

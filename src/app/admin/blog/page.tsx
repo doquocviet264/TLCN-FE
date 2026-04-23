@@ -109,7 +109,7 @@ const Page = () => {
       <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 mb-1">
-            Quản Lý Ấn Phẩm
+            Quản Lý Blog
           </h1>
           <p className="text-slate-500 font-medium text-sm">Điều phối và biên tập nội dung blog hệ thống</p>
         </div>
@@ -162,7 +162,7 @@ const Page = () => {
         </div>
       ) : error ? (
         <div className="bg-red-50/50 border border-red-100 rounded-2xl p-6 text-center">
-          <p className="text-red-800 font-semibold">Không thể tải dữ liệu ấn phẩm</p>
+          <p className="text-red-800 font-semibold">Không thể tải dữ liệu blog</p>
           <p className="text-red-500 text-sm mt-1">{(error as any).message}</p>
         </div>
       ) : !filteredData || filteredData.length === 0 ? (
@@ -171,7 +171,7 @@ const Page = () => {
              <span className="text-2xl text-slate-300">📝</span>
           </div>
           <h3 className="text-slate-700 font-bold mb-1">Chưa có bài viết nào</h3>
-          <p className="text-slate-500 text-sm font-medium">Bắt đầu bằng cách tạo một Ấn phẩm mới</p>
+          <p className="text-slate-500 text-sm font-medium">Bắt đầu bằng cách tạo một Blog mới</p>
         </div>
       ) : (
         <>
@@ -270,25 +270,25 @@ const Page = () => {
                              <button
                                onClick={() => setApprovalState({ isOpen: true, blogTitle: blog.title, blogId: blog._id! || '', isSubmitting: false })}
                                title="Kiểm duyệt"
-                               className="px-2.5 py-1.5 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                               className="p-1.5 text-amber-500 hover:bg-amber-50 hover:text-amber-600 rounded-lg transition"
                              >
-                                Duyệt
+                                <i className="ri-shield-check-line text-lg"></i>
                              </button>
                           )}
                           <Link
                             href={`/admin/blog/${blog._id}`}
                             title="Chỉnh sửa chi tiết"
-                            className="px-2.5 py-1.5 text-xs font-bold text-slate-400 hover:bg-slate-50 hover:text-blue-500 rounded-lg transition"
+                            className="p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-500 rounded-lg transition"
                           >
-                            Sửa
+                            <i className="ri-pencil-line text-lg"></i>
                           </Link>
                           <button
                             onClick={() => handleDelete(blog._id!, blog.title)}
                             disabled={deleteMutation.isPending}
                             title="Xóa vĩnh viễn"
-                            className="px-2.5 py-1.5 text-xs font-bold text-slate-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition disabled:opacity-50"
+                            className="p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition disabled:opacity-50"
                           >
-                            Xóa
+                            <i className="ri-delete-bin-6-line text-lg"></i>
                           </button>
                         </div>
                       </td>
@@ -302,7 +302,7 @@ const Page = () => {
           {/* Footer Info & Pagination */}
           <div className="flex flex-col md:flex-row items-center justify-between text-sm">
             <p className="text-slate-500 font-medium mb-4 md:mb-0">
-              Tìm thấy <span className="font-bold text-slate-800">{data?.total}</span> ấn phẩm | Trang{" "}
+              Tìm thấy <span className="font-bold text-slate-800">{data?.total}</span> Blog | Trang{" "}
               <span className="font-bold text-slate-800">{page}</span> /{" "}
               <span>{totalPages}</span>
             </p>

@@ -4,10 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import React, { useMemo, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { useChatStore } from "#/stores/chatStore";
-import { useGetTourById } from "#/hooks/tours-hook/useTourDetail";
+import { useGetTourById, useGetTourDepartures } from "#/hooks/tours-hook/useTourDetail";
 import { useGetTours } from "#/hooks/tours-hook/useTours";
 import {
   useGetTourReviews,
@@ -153,7 +153,7 @@ function DaysAccordion({ items }: { items: DayItem[] }) {
                 isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
               }`}
             >
-              <div className="min-h-0 overflow-hidden">
+              <div className={isOpen ? "overflow-visible" : "overflow-hidden"}>
                 <div className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-[15px] leading-relaxed text-slate-800">
                   {it.content ?? (
                     <p className="text-slate-500">
@@ -170,7 +170,69 @@ function DaysAccordion({ items }: { items: DayItem[] }) {
   );
 }
 
-/* ============ Page ============ */
+function ItineraryImageHover({ url, title, isHovered }: { url: string; title: string, isHovered: boolean }) {
+  return (
+    <div className="relative inline-block ml-2 align-middle">
+      <div 
+        className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${
+          isHovered ? "bg-blue-600 text-white border-blue-600" : "bg-blue-50 text-blue-600 border-blue-200"
+        }`}
+      >
+        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        ẢNH
+      </div>
+
+      <AnimatePresence>
+        {isHovered && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            className="absolute bottom-full left-1/2 z-[100] mb-3 w-64 -translate-x-1/2 pointer-events-none"
+          >
+            <div className="overflow-hidden rounded-2xl bg-white p-1.5 shadow-2xl border border-slate-200 ring-4 ring-black/5">
+              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl">
+                <Image 
+                  src={url} 
+                  alt={title} 
+                  fill 
+                  className="object-cover" 
+                  unoptimized
+                />
+              </div>
+              <div className="p-2 text-center">
+                <p className="truncate text-[11px] font-bold text-slate-800">{title}</p>
+              </div>
+              <div className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-b border-r border-slate-200 bg-white" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+function DaySegmentItem({ text, img }: { text: string; img: string | null }) {
+  const [isHovered, setIsHovered] = React.useState(false);
+  return (
+    <li 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="space-y-2 group cursor-pointer"
+    >
+      <div className="flex items-start gap-2 text-[15px] text-slate-700 transition-colors group-hover:text-orange-600">
+        <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-orange-500 flex-shrink-0 ring-offset-2 transition-all group-hover:ring-2 group-hover:ring-orange-400" />
+        <span className="flex-1">
+          {text}
+          {img && <ItineraryImageHover url={img} title={text} isHovered={isHovered} />}
+        </span>
+      </div>
+    </li>
+  );
+}
+
 export default function TourDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -195,13 +257,41 @@ export default function TourDetailPage() {
   // So sánh Tour
   const [isCompareOpen, setIsCompareOpen] = React.useState(false);
 
-  // Auth
   const { token } = useAuthStore();
   const accessToken = token?.accessToken || getUserToken();
   const isLoggedIn = !!accessToken;
 
-  const priceAdult = toNum(tour?.priceAdult);
-  const priceChild = toNum(tour?.priceChild);
+  // Itinerary Image Modal
+  const [activeItineraryImg, setActiveItineraryImg] = React.useState<{url: string, title: string} | null>(null);
+
+  // Fetch Departures
+  const { data: departuresData, isLoading: isLoadingDeps } = useGetTourDepartures(id);
+  const departures = useMemo(() => {
+    const list = departuresData?.data || [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return list.filter((d: any) => {
+      if (!d.startDate) return false;
+      const start = new Date(d.startDate);
+      start.setHours(0, 0, 0, 0);
+      return start >= today;
+    });
+  }, [departuresData]);
+  const [selectedDeparture, setSelectedDeparture] = React.useState<any>(null);
+
+  // Không tự chọn mặc định nữa để ép người dùng phải chọn (theo yêu cầu)
+  // useEffect(() => {
+  //   if (departures.length > 0 && !selectedDeparture) {
+  //     setSelectedDeparture(departures[0]);
+  //   }
+  // }, [departures, selectedDeparture]);
+
+  const priceAdult = selectedDeparture 
+    ? toNum(selectedDeparture.priceAdult) 
+    : toNum(tour?.priceAdult);
+  const priceChild = selectedDeparture
+    ? toNum(selectedDeparture.priceChild)
+    : toNum(tour?.priceChild);
 
   const gallery = useMemo(() => {
     const imgs = [
@@ -354,16 +444,16 @@ export default function TourDetailPage() {
                         </span>
                       </div>
                       {Array.isArray(segment.items) && segment.items.length > 0 && (
-                        <ul className="ml-6 space-y-1.5">
-                          {segment.items.map((item: string, itemIdx: number) => (
-                            <li
-                              key={itemIdx}
-                              className="flex items-start gap-2 text-[15px] text-slate-700"
-                            >
-                              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-orange-500 flex-shrink-0" />
-                              <span>{item}</span>
-                            </li>
-                          ))}
+                        <ul className="ml-6 space-y-3">
+                          {segment.items.map((item: any, itemIdx: number) => {
+                            const isObj = typeof item === 'object' && item !== null;
+                            const text = isObj ? item.text : item;
+                            const img = isObj ? item.imageUrl : null;
+
+                            return (
+                              <DaySegmentItem key={itemIdx} text={text} img={img} />
+                            );
+                          })}
                         </ul>
                       )}
                     </div>
@@ -377,13 +467,7 @@ export default function TourDetailPage() {
               ) : Array.isArray(day.activities) && day.activities.length > 0 ? (
                 <ul className="space-y-2">
                   {day.activities.map((a: string, idx: number) => (
-                    <li
-                      key={idx}
-                      className="flex items-start gap-2 text-[15px] text-slate-700"
-                    >
-                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-orange-500" />
-                      <span>{a}</span>
-                    </li>
+                    <DaySegmentItem key={idx} text={a} img={null} />
                   ))}
                 </ul>
               ) : (
@@ -541,17 +625,63 @@ export default function TourDetailPage() {
                   </p>
                 )}
 
+                {/* Danh sách các ngày khởi hành */}
+                {departures.length > 0 && (
+                  <div className="mt-4 mb-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-200 mb-2">
+                      Chọn ngày khởi hành
+                    </p>
+                    <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+                      {departures.map((dep: any) => {
+                        const isSelected = selectedDeparture?._id === dep._id;
+                        return (
+                          <button
+                            key={dep._id}
+                            type="button"
+                            onClick={() => setSelectedDeparture(dep)}
+                            className={`flex flex-col p-3 rounded-xl border transition-all text-left ${
+                              isSelected
+                                ? "border-amber-400 bg-amber-400/10"
+                                : "border-white/10 bg-white/5 hover:bg-white/10"
+                            }`}
+                          >
+                            <div className="flex justify-between items-center w-full">
+                              <span className={`font-bold ${isSelected ? "text-amber-400" : "text-white"}`}>
+                                {new Date(dep.startDate).toLocaleDateString("vi-VN")}
+                              </span>
+                              <span className="text-[10px] text-blue-200">
+                                {dep.current_guests}/{dep.max_guests} chỗ
+                              </span>
+                            </div>
+                            <div className="text-xs text-blue-100 mt-1">
+                              Giá: <span className="text-amber-300 font-semibold">{vnd(dep.priceAdult)}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-5 flex flex-wrap gap-3">
-                  {isDeparted ? (
+                  {departures.length === 0 ? (
                     <div className="flex-1 rounded-2xl bg-slate-500/50 px-4 py-3 text-center text-sm font-bold text-white/80 cursor-not-allowed">
-                      Tour đã khởi hành
+                      Hết lịch khởi hành
+                    </div>
+                  ) : !selectedDeparture ? (
+                    <div className="flex-1 rounded-2xl bg-white/10 border border-white/20 px-4 py-3 text-center text-sm font-bold text-white/60">
+                      Vui lòng chọn ngày khởi hành
+                    </div>
+                  ) : isDeparted ? (
+                    <div className="flex-1 rounded-2xl bg-slate-500/50 px-4 py-3 text-center text-sm font-bold text-white/80 cursor-not-allowed">
+                      Hành trình đã bắt đầu
                     </div>
                   ) : (
                     <button
                       onClick={() =>
                         router.push(
                           `/user/checkout?id=${encodeURIComponent(
-                            String(tour._id ?? id)
+                            String(selectedDeparture._id)
                           )}&adults=1&children=0`
                         )
                       }
@@ -938,173 +1068,118 @@ export default function TourDetailPage() {
             {/* RIGHT column – booking sidebar */}
             <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
               <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md">
-                <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Thông tin đặt tour
+                <div className="border-b border-slate-200 bg-slate-50 px-6 py-4 text-center">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                    Chi tiết thanh toán
                   </p>
                 </div>
                 <div className="p-6 space-y-5">
-                  <div>
-                    <p className="text-xs text-slate-500">Giá người lớn</p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {priceAdult ? vnd(priceAdult) : "Liên hệ"}
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1">Người lớn</p>
+                      <p className="text-xl font-extrabold text-slate-900">
+                        {priceAdult ? vnd(priceAdult) : "Liên hệ"}
+                      </p>
+                    </div>
+                    {typeof priceChild === "number" && (
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500 mb-1">Trẻ em</p>
+                        <p className="text-lg font-bold text-slate-600">
+                          {vnd(priceChild)}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {typeof priceChild === "number" && (
-                    <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm">
-                      <span className="text-slate-600">Giá trẻ em</span>
-                      <span className="font-semibold text-slate-900">
-                        {vnd(priceChild)}
-                      </span>
-                    </div>
-                  )}
-                  <div className="space-y-3 text-sm">
+
+                  <div className="space-y-3 rounded-2xl bg-slate-50 p-4 text-sm border border-slate-100">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Thời gian</span>
-                      <span className="font-semibold text-slate-900">
-                        {tour.time || "Đang cập nhật"}
-                      </span>
+                      <span className="text-slate-500">Thời gian:</span>
+                      <span className="font-bold text-slate-800">{tour.time || "—"}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Khởi hành</span>
-                      <span className="font-semibold text-slate-900">
-                        {tour.startDate
-                          ? new Date(tour.startDate as any).toLocaleDateString(
-                              "vi-VN"
-                            )
-                          : "Linh hoạt"}
+                      <span className="text-slate-500">Ngày đi:</span>
+                      <span className="font-bold text-orange-600">
+                        {selectedDeparture 
+                          ? new Date(selectedDeparture.startDate).toLocaleDateString("vi-VN")
+                          : "Vui lòng chọn ngày"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Số chỗ còn lại</span>
-                      <span className="font-semibold text-emerald-600">
-                        {getSeatsValue(tour.quantity ?? (tour as any).seats) || "—"}
+                      <span className="text-slate-500">Số chỗ còn:</span>
+                      <span className="font-bold text-emerald-600">
+                        {selectedDeparture 
+                          ? `${selectedDeparture.max_guests - (selectedDeparture.current_guests || 0)} chỗ`
+                          : "—"}
                       </span>
                     </div>
                   </div>
 
-                  {isDeparted ? (
-                    <div className="w-full rounded-2xl bg-slate-400 px-6 py-3.5 text-center text-sm font-bold text-white cursor-not-allowed">
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                          <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Đã khởi hành
-                      </span>
+                  {!selectedDeparture ? (
+                    <div className="rounded-xl bg-orange-50 border border-orange-100 p-3 text-center">
+                      <p className="text-xs font-semibold text-orange-700">
+                        * Hãy chọn một ngày khởi hành ở phía trên hoặc trong phần lịch trình để tiếp tục.
+                      </p>
+                    </div>
+                  ) : isDeparted ? (
+                    <div className="w-full rounded-2xl bg-slate-200 py-4 text-center text-sm font-bold text-slate-500">
+                      Đã hết hạn đặt chỗ
                     </div>
                   ) : (
                     <button
                       onClick={() =>
                         router.push(
-                          `/user/checkout?id=${encodeURIComponent(
-                            String(tour._id ?? id)
-                          )}&adults=1&children=0`
+                          `/user/checkout?id=${encodeURIComponent(String(selectedDeparture._id))}&adults=1&children=0`
                         )
                       }
-                      className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-orange-500 to-amber-400 px-6 py-3.5 text-center text-sm font-bold text-white shadow-md transition hover:brightness-[1.05] active:scale-[0.99]"
+                      className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 py-4 text-center text-sm font-bold text-white shadow-lg shadow-orange-500/30 transition-all hover:brightness-110 active:scale-95"
                     >
-                      <span className="relative z-10 flex items-center justify-center gap-2">
-                        Đặt tour ngay
-                        <svg
-                          className="h-4 w-4 transition-transform group-hover:translate-x-1"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                        >
-                          <path
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            d="M13 7l5 5-5 5M6 12h12"
-                          />
-                        </svg>
-                      </span>
-                      <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-500 group-hover:translate-x-full" />
+                      Xác nhận đặt tour
+                      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 group-hover:translate-x-full" />
                     </button>
                   )}
 
                   <button
-                    type="button"
                     onClick={handleConsult}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-emerald-500 hover:text-emerald-600"
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-emerald-500/20 bg-emerald-50 py-3.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-500 hover:text-white"
                   >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <path
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        d="M21 15a2 2 0 01-2 2h-4l-4 4v-4H7a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2v10z"
-                      />
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M21 15a2 2 0 01-2 2h-4l-4 4v-4H7a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2v10z"/>
                     </svg>
-                    Tư vấn qua chat
+                    Tư vấn trực tuyến
                   </button>
-
-                  <p className="text-center text-xs text-slate-500">
-                    Hỗ trợ 24/7 · Miễn phí tư vấn trước khi đặt.
-                  </p>
                 </div>
               </div>
 
-              {/* Support card */}
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600">
-                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
-                      <path
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        d="M12 6v6h4m5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+              {/* Support info card */}
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md">
+                <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <div className="w-2 h-6 bg-orange-500 rounded-full" />
+                  Hỗ trợ trực tiếp
+                </h4>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 group">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Hotline 24/7</p>
+                      <p className="font-bold text-slate-900">+000 (123) 456 88</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      Cần trợ giúp?
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Đội ngũ AHH luôn sẵn sàng hỗ trợ bạn.
-                    </p>
+                  <div className="flex items-center gap-4 group">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 4h16v16H4zm0 3l8 6 8-6" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Email phản hồi</p>
+                      <p className="font-bold text-slate-900">support@travel.com</p>
+                    </div>
                   </div>
                 </div>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <svg
-                      className="h-4 w-4 text-emerald-600"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <path
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                      />
-                    </svg>
-                    <span className="font-medium text-slate-800">
-                      +000 (123) 456 88
-                    </span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <svg
-                      className="h-4 w-4 text-orange-500"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <path
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        d="M4 4h16v16H4z"
-                      />
-                      <path
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        d="M4 7l8 6 8-6"
-                      />
-                    </svg>
-                    <a
-                      href="mailto:quochung.dev@gmail.com"
-                      className="font-medium text-slate-800 hover:text-orange-600"
-                    >
-                      quochung.dev@gmail.com
-                    </a>
-                  </li>
-                </ul>
               </div>
             </aside>
           </div>
@@ -1172,6 +1247,40 @@ export default function TourDetailPage() {
         baseTour={tour}
         allTours={(recRaw as any)?.data || recRaw || []}
       />
+
+      {/* Itinerary Image Lightbox */}
+      {activeItineraryImg && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-5 backdrop-blur-sm transition-all animate-in fade-in zoom-in duration-300">
+          <div className="relative max-w-4xl w-full">
+            <button
+              onClick={() => setActiveItineraryImg(null)}
+              className="absolute -top-12 right-0 flex items-center gap-2 text-white/80 hover:text-white"
+            >
+              <span className="text-sm font-medium">Đóng</span>
+              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            </button>
+            <div className="overflow-hidden rounded-3xl bg-white p-2 shadow-2xl">
+              <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl">
+                <Image
+                  src={activeItineraryImg.url}
+                  alt={activeItineraryImg.title}
+                  fill
+                  className="object-cover"
+                  unoptimized // avoid 400 bad request for local dev images
+                />
+              </div>
+              <div className="p-4 text-center">
+                <p className="text-lg font-bold text-slate-900">{activeItineraryImg.title}</p>
+              </div>
+            </div>
+          </div>
+          <div className="absolute inset-0 -z-10 cursor-pointer" onClick={() => setActiveItineraryImg(null)} />
+        </div>
+      )}
     </div>
   );
 }

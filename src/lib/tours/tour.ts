@@ -175,3 +175,13 @@ export const getTourById = async (id: string | number): Promise<TourDetail> => {
   const res = await axiosInstance.get<TourDetail>(`/tours/${id}`);
   return res.data;
 };
+
+export const getTourDepartures = async (id: string | number): Promise<any> => {
+  const res = await axiosInstance.get(`/tours/${id}/departures`);
+  return res.data;
+};
+
+export const getDepartureById = async (id: string | number): Promise<any> => {
+  const res = await axiosInstance.get(`/tours/departures/${id}`);
+  return res.data;
+};

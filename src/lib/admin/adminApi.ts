@@ -157,6 +157,10 @@ export async function deleteExpense(expenseId: string) {
 }
 
 /* ====================================
+ *  IMAGE UPLOAD (Admin) - DEPRECATED (Integrated into Tours)
+ * ==================================== */
+
+/* ====================================
  *  TOURS CRUD (Admin)
  * ==================================== */
 
@@ -164,15 +168,10 @@ export type TourInput = {
   title: string;
   time?: string;
   description?: string;
-  quantity?: number;
   priceAdult?: number;
   priceChild?: number;
+  quantity?: number;
   destination: string;
-  startDate?: string | Date;
-  endDate?: string | Date;
-  min_guests?: number;
-  current_guests?: number;
-  status?: "pending" | "confirmed" | "in_progress" | "completed" | "closed";
   images?: string[];
   itinerary?: Array<{
     day: number;
@@ -181,10 +180,12 @@ export type TourInput = {
     segments?: Array<{
       timeOfDay: "morning" | "afternoon" | "evening";
       title: string;
-      items: string[];
+      items: Array<string | { text: string; imageUrl?: string }>;
     }>;
     photos?: string[];
   }>;
+  includes?: string[];
+  excludes?: string[];
 };
 
 export type TourResponse = {
@@ -192,18 +193,48 @@ export type TourResponse = {
   title: string;
   time?: string;
   description?: string;
-  quantity?: number;
   priceAdult?: number;
   priceChild?: number;
+  quantity?: number;
   destination: string;
   destinationSlug?: string;
-  startDate?: string;
-  endDate?: string;
-  min_guests?: number;
-  current_guests?: number;
-  status: string;
   images: string[];
   itinerary?: any[];
+  includes?: string[];
+  excludes?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+// ── Departure Types ───────────────────────────────────────
+export type DepartureInput = {
+  startDate: string | Date;
+  endDate: string | Date;
+  min_guests?: number;
+  max_guests?: number;
+  current_guests?: number;
+  priceAdult?: number;
+  priceChild?: number;
+  status?: "pending" | "confirmed" | "in_progress" | "completed" | "closed";
+  leaderId?: string | null;
+};
+
+export type DepartureResponse = {
+  _id: string;
+  tourId: string | TourResponse;
+  startDate: string;
+  endDate: string;
+  min_guests: number;
+  max_guests?: number;
+  current_guests: number;
+  priceAdult?: number;
+  priceChild?: number;
+  status: "pending" | "confirmed" | "in_progress" | "completed" | "closed";
+  leaderId?: string | { _id: string; fullName: string; phoneNumber: string; email: string } | null;
+  timeline?: any[];
+  departedAt?: string;
+  arrivedAt?: string;
+  finishedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -236,10 +267,14 @@ export async function getTourByIdAdmin(tourId: string) {
 }
 
 /** Tạo tour mới */
-export async function createTourAdmin(payload: TourInput) {
+export async function createTourAdmin(payload: TourInput | FormData) {
+  const isFormData = payload instanceof FormData;
   const { data } = await adminApi.post<{ message: string; tour: TourResponse }>(
     "/tours",
-    payload
+    payload,
+    {
+      headers: isFormData ? { "Content-Type": "multipart/form-data" } : {},
+    }
   );
   return data;
 }
@@ -247,11 +282,15 @@ export async function createTourAdmin(payload: TourInput) {
 /** Cập nhật tour */
 export async function updateTourAdmin(
   tourId: string,
-  payload: Partial<TourInput>
+  payload: Partial<TourInput> | FormData
 ) {
+  const isFormData = payload instanceof FormData;
   const { data } = await adminApi.put<{ message: string; tour: TourResponse }>(
     `/tours/${tourId}`,
-    payload
+    payload,
+    {
+      headers: isFormData ? { "Content-Type": "multipart/form-data" } : {},
+    }
   );
   return data;
 }
@@ -293,4 +332,61 @@ export async function updateTourStatusAdmin(
     { status }
   );
   return data;
+}
+
+// ========================================================
+// DEPARTURE CRUD (Admin)
+// ========================================================
+
+/** Tạo lịch khởi hành mới cho Tour */
+export async function createDepartureAdmin(tourId: string, payload: DepartureInput) {
+  const { data } = await adminApi.post<{ message: string; departure: DepartureResponse }>(
+    `/admin/tours/${tourId}/departures`,
+    payload
+  );
+  return data;
+}
+
+/** Liệt kê các lịch khởi hành của 1 Tour */
+export async function listDeparturesAdmin(tourId: string, params?: { status?: string; page?: number; limit?: number }) {
+  const { data } = await adminApi.get<{ total: number; page: number; limit: number; data: DepartureResponse[] }>(
+    `/admin/tours/${tourId}/departures`,
+    { params }
+  );
+  return data;
+}
+
+/** Chi tiết 1 Departure */
+export async function getDepartureAdmin(departureId: string) {
+  const { data } = await adminApi.get<DepartureResponse>(`/admin/departures/${departureId}`);
+  return data;
+}
+
+/** Cập nhật trạng thái Departure */
+export async function patchDepartureStatus(
+  departureId: string,
+  status: DepartureResponse["status"]
+) {
+  const { data } = await adminApi.patch<{ message: string; departure: DepartureResponse }>(
+    `/admin/departures/${departureId}/status`,
+    { status }
+  );
+  return data;
+}
+
+/** Phân công Leader cho Departure */
+export async function assignLeaderToDeparture(departureId: string, leaderId: string | null) {
+  const { data } = await adminApi.patch<{ message: string; departure: DepartureResponse }>(
+    `/admin/departures/${departureId}/leader`,
+    { leaderId }
+  );
+  return data;
+}
+
+/** Lấy danh sách Departure đang diễn ra */
+export async function getOngoingDepartures() {
+  const response = await adminApi.get<{ total: number; data: DepartureResponse[] }>(
+    "/admin/departures/ongoing"
+  );
+  return response.data?.data ?? [];
 }

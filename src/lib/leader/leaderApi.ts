@@ -63,18 +63,40 @@ export const leaderAuthApi = {
 };
 
 // ======= TOURS API =======
-export interface LeaderTour {
+export interface TourTemplate {
   _id: string;
   title: string;
   destination: string;
   destinationSlug: string;
+  images: string[];
+  itinerary?: any[];
+  includes?: string[];
+  excludes?: string[];
+  priceAdult?: number;
+  priceChild?: number;
+}
+
+export interface LeaderDeparture {
+  _id: string;
+  tourId: TourTemplate;
   startDate: string;
   endDate: string;
   status: "pending" | "confirmed" | "in_progress" | "completed" | "closed";
-  quantity: number;
-  bookedCount?: number;
+  min_guests: number;
+  current_guests: number;
+  priceAdult?: number;
+  priceChild?: number;
   timeline?: TimelineEvent[];
+  leaderId?: string;
 }
+
+/** @deprecated use LeaderDeparture */
+export type LeaderTour = LeaderDeparture & {
+  title: string;     // computed from tourId.title
+  destination: string;
+  quantity?: number;
+  bookedCount?: number;
+};
 
 export interface TimelineEvent {
   _id?: string;
@@ -87,13 +109,29 @@ export interface TimelineEvent {
 
 export interface Expense {
   _id?: string;
-  tourId: string;
+  tourDepartureId: string;
   title: string;
   amount: number;
   occurredAt: string;
   note?: string;
   visibleToCustomers: boolean;
   addedBy?: string;
+}
+
+export interface Passenger {
+  _id: string;
+  code: string;
+  userId?: { _id: string; fullName: string; email: string; phoneNumber: string; avatar?: string };
+  fullName?: string;
+  email?: string;
+  phoneNumber?: string;
+  numAdults: number;
+  numChildren: number;
+  totalPrice: number;
+  bookingStatus: string;
+  paidAmount: number;
+  depositPaid: boolean;
+  createdAt: string;
 }
 
 // ======= CHAT API =======
@@ -167,27 +205,48 @@ export const leaderBookingApi = {
   },
 };
 
-// ======= TOURS API =======
+// ======= TOURS/DEPARTURES API =======
 export const leaderToursApi = {
-  // Lấy danh sách tour được phân công
+  // Lấy danh sách departure được phân công
   getMyTours: async (params?: { status?: string; onlyToday?: boolean }) => {
     const queryParams = new URLSearchParams();
     if (params?.status) queryParams.append("status", params.status);
     if (params?.onlyToday) queryParams.append("onlyToday", "1");
 
-    const res = await leaderAxios.get(`/leader/tours?${queryParams.toString()}`);
-    return res.data as LeaderTour[];
+    const res = await leaderAxios.get(`/leader/departures?${queryParams.toString()}`);
+    // Map departure data sang dạng LeaderTour cho backward-compat
+    const departures = res.data as LeaderDeparture[];
+    return departures.map(d => ({
+      ...d,
+      title:       d.tourId?.title ?? "Tour",
+      destination: d.tourId?.destination ?? "",
+      quantity:    d.min_guests,
+      bookedCount: d.current_guests,
+    } as LeaderTour));
   },
 
-  // Lấy chi tiết một tour
-  getTourDetail: async (tourId: string) => {
-    const res = await leaderAxios.get(`/leader/tours/${tourId}`);
-    return res.data as LeaderTour;
+  // Lấy chi tiết 1 departure
+  getTourDetail: async (departureId: string) => {
+    const res = await leaderAxios.get(`/leader/departures/${departureId}`);
+    const d = res.data as LeaderDeparture;
+    return {
+      ...d,
+      title:       d.tourId?.title ?? "Tour",
+      destination: d.tourId?.destination ?? "",
+      quantity:    d.min_guests,
+      bookedCount: d.current_guests,
+    } as LeaderTour;
+  },
+
+  // Lấy danh sách hành khách
+  getPassengers: async (departureId: string) => {
+    const res = await leaderAxios.get(`/leader/departures/${departureId}/passengers`);
+    return res.data as { total: number; data: Passenger[] };
   },
 
   // Thêm sự kiện timeline
   addTimeline: async (
-    tourId: string,
+    departureId: string,
     event: {
       eventType: TimelineEvent["eventType"];
       at?: string;
@@ -195,13 +254,13 @@ export const leaderToursApi = {
       note?: string;
     }
   ) => {
-    const res = await leaderAxios.post(`/leader/tours/${tourId}/timeline`, event);
+    const res = await leaderAxios.patch(`/leader/departures/${departureId}/timeline`, event);
     return res.data;
   },
 
   // Thêm chi phí phát sinh
   addExpense: async (
-    tourId: string,
+    departureId: string,
     expense: {
       title: string;
       amount: number;
@@ -209,13 +268,13 @@ export const leaderToursApi = {
       visibleToCustomers?: boolean;
     }
   ) => {
-    const res = await leaderAxios.post(`/leader/tours/${tourId}/expenses`, expense);
+    const res = await leaderAxios.post(`/leader/departures/${departureId}/expenses`, expense);
     return res.data;
   },
 
-  // Lấy danh sách chi phí của tour
-  getTourExpenses: async (tourId: string) => {
-    const res = await leaderAxios.get(`/leader/tours/${tourId}/expenses`);
-    return res.data as Expense[];
+  // Lấy danh sách chi phí của departure
+  getTourExpenses: async (departureId: string) => {
+    const res = await leaderAxios.get(`/leader/departures/${departureId}/expenses`);
+    return res.data as { total: number; count: number; data: Expense[] };
   },
 };

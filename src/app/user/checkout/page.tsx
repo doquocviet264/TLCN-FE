@@ -20,7 +20,7 @@ import {
   Check,
 } from "lucide-react";
 
-import { useGetTourById } from "#/hooks/tours-hook/useTourDetail";
+import { useGetTourById, useGetDepartureById } from "#/hooks/tours-hook/useTourDetail";
 import {
   createBooking,
   initBookingPayment,
@@ -103,11 +103,14 @@ function CheckoutContent() {
   const { token, user } = useAuthStore();
   const accessToken = token?.accessToken || getUserToken();
 
-  const id = (search.get("id") ?? "").toString();
+  const id = (search.get("id") ?? "").toString(); // Đây là departureId
   const initAdults = Math.max(1, Number(search.get("adults") ?? 1));
   const initChildren = Math.max(0, Number(search.get("children") ?? 0));
 
-  const { data: tour, isLoading, isError } = useGetTourById(id);
+  const { data: departure, isLoading: isLoadingDep, isError: isErrorDep } = useGetDepartureById(id);
+  const tour = departure?.tourId;
+  const isLoading = isLoadingDep;
+  const isError = isErrorDep;
 
   /* ---------- Form state ---------- */
   const [formData, setFormData] = React.useState({
@@ -192,8 +195,8 @@ function CheckoutContent() {
   }, []);
 
   /* ---------- Giá / tổng tiền ---------- */
-  const priceAdult = toNum(tour?.priceAdult) ?? 0;
-  const priceChild = toNum(tour?.priceChild) ?? 0;
+  const priceAdult = toNum(departure?.priceAdult ?? tour?.priceAdult) ?? 0;
+  const priceChild = toNum(departure?.priceChild ?? tour?.priceChild) ?? 0;
   const coverImg =
     tour?.images?.[0] || tour?.image || tour?.cover || "/hot1.jpg";
 
@@ -279,7 +282,7 @@ function CheckoutContent() {
     const total = Number(totalDisplay) || 0;
 
     const payload: CreateBookingBody = {
-      tourId: String(tour?._id ?? id),
+      tourId: String(id), // Giữ nguyên tên key là tourId để BE dễ parse nếu cần, nhưng nội dung là departureId
       contact: {
         fullName: formData.fullName.trim(),
         phone: formData.phone.trim(),
