@@ -19,7 +19,6 @@ import CardHot from "@/components/cards/CardHot";
 import CompareTourDialog from "@/components/ui/CompareTourDialog";
 import { toast } from "react-hot-toast";
 
-/* ============ helpers ============ */
 const toNum = (v?: number | string) => {
   if (typeof v === "number") return v;
   if (typeof v === "string") {
