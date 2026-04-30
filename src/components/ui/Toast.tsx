@@ -22,46 +22,25 @@ export function Toast({ message, type, isVisible, onClose, autoClose = 3000 }: T
 
   if (!isVisible) return null;
 
-  const getToastStyles = () => {
-    switch (type) {
-      case "success":
-        return "bg-emerald-50 border-emerald-200 text-emerald-800";
-      case "error":
-        return "bg-red-50 border-red-200 text-red-800";
-      case "warning":
-        return "bg-yellow-50 border-yellow-200 text-yellow-800";
-      case "info":
-        return "bg-blue-50 border-blue-200 text-blue-800";
-      default:
-        return "bg-gray-50 border-gray-200 text-gray-800";
-    }
-  };
-
-  const getIcon = () => {
-    switch (type) {
-      case "success":
-        return "✅";
-      case "error":
-        return "❌";
-      case "warning":
-        return "⚠️";
-      case "info":
-        return "ℹ️";
-      default:
-        return "📝";
-    }
-  };
+  const config = {
+    success: { icon: "ri-checkbox-circle-fill", iconColor: "text-emerald-500", border: "border-emerald-100", bg: "bg-white" },
+    error:   { icon: "ri-close-circle-fill",    iconColor: "text-red-500",     border: "border-red-100", bg: "bg-white" },
+    warning: { icon: "ri-alert-fill",           iconColor: "text-amber-500",   border: "border-amber-100", bg: "bg-white" },
+    info:    { icon: "ri-information-fill",     iconColor: "text-blue-500",    border: "border-blue-100", bg: "bg-white" },
+  }[type] || { icon: "ri-information-fill", iconColor: "text-slate-500", border: "border-slate-100", bg: "bg-white" };
 
   return (
-    <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
-      <div className={`flex items-center gap-3 p-4 border rounded-lg shadow-lg max-w-md ${getToastStyles()}`}>
-        <span className="text-lg">{getIcon()}</span>
-        <p className="font-medium flex-1">{message}</p>
+    <div className="fixed top-6 right-6 z-[9999] animate-in slide-in-from-right fade-in duration-300">
+      <div className={`flex items-start gap-3 p-4 rounded-xl shadow-lg border ${config.border} ${config.bg} min-w-[300px] max-w-md`}>
+        <i className={`${config.icon} ${config.iconColor} text-2xl leading-none`}></i>
+        <div className="flex-1 pt-0.5">
+          <p className="font-medium text-slate-800 text-sm leading-snug">{message}</p>
+        </div>
         <button
           onClick={onClose}
-          className="text-gray-500 hover:text-gray-700 transition"
+          className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-md transition flex-shrink-0 leading-none"
         >
-          ✕
+          <i className="ri-close-line text-lg"></i>
         </button>
       </div>
     </div>

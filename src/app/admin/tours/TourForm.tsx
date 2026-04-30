@@ -80,8 +80,8 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
     endDate: "",
     min_guests: 10,
     current_guests: 0,
-    status: "pending",
-    images: [],
+    status: "active",
+    images: ["", "", "", "", ""],
     leaderId: "",
     itinerary: [],
   });
@@ -104,8 +104,8 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
         endDate:         t.endDate   ? new Date(t.endDate).toISOString().slice(0, 10)   : "",
         min_guests:      t.min_guests     || 10,
         current_guests:  t.current_guests || 0,
-        status:          t.status         || "pending",
-        images:          t.images  || [],
+        status:          t.status         || "active",
+        images:          t.images?.length >= 5 ? t.images : [...(t.images || []), ...Array(5 - (t.images?.length || 0)).fill("")],
         includes:        t.includes || [],
         excludes:        t.excludes || [],
         itinerary:       t.itinerary || [],
@@ -126,6 +126,12 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
     }
     if ((formData.priceChild ?? 0) < 0) {
       showError("Giá trẻ em không được âm!");
+      return;
+    }
+
+    const validImages = formData.images?.filter(img => img.trim() !== "") || [];
+    if (validImages.length < 5) {
+      showError("Vui lòng cung cấp ít nhất 5 hình ảnh cho tour!");
       return;
     }
 
@@ -204,20 +210,36 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
 
   const removeImage = (index: number) => {
     const newImages = [...(formData.images || [])];
-    newImages.splice(index, 1);
     
-    // Also remove from pending files and shift others
-    const newFiles: Record<string, File> = {};
-    Object.entries(pendingFiles).forEach(([key, file]) => {
-      if (key.startsWith("main_image_")) {
-        const kIdx = parseInt(key.split("_")[2]);
-        if (kIdx < index) newFiles[key] = file;
-        if (kIdx > index) newFiles[`main_image_${kIdx - 1}`] = file;
-      } else {
-        newFiles[key] = file;
+    // Nếu có hơn 5 ảnh, cho phép xóa hẳn ô nhập. Nếu không, chỉ làm rỗng ô.
+    if (newImages.length > 5) {
+      newImages.splice(index, 1);
+      
+      // Cũng phải cập nhật pending files nếu xóa hẳn ô
+      const newFiles: Record<string, File> = {};
+      Object.entries(pendingFiles).forEach(([key, file]) => {
+        if (key.startsWith("main_image_")) {
+          const kIdx = parseInt(key.split("_")[2]);
+          if (kIdx < index) newFiles[key] = file;
+          if (kIdx > index) newFiles[`main_image_${kIdx - 1}`] = file;
+        } else {
+          newFiles[key] = file;
+        }
+      });
+      setPendingFiles(newFiles);
+    } else {
+      // Chỉ xóa trắng dữ liệu
+      newImages[index] = "";
+      
+      // Xóa file tương ứng trong pending
+      const key = `main_image_${index}`;
+      if (pendingFiles[key]) {
+        const newFiles = { ...pendingFiles };
+        delete newFiles[key];
+        setPendingFiles(newFiles);
       }
-    });
-    setPendingFiles(newFiles);
+    }
+    
     setFormData((prev) => ({ ...prev, images: newImages }));
   };
 
@@ -371,7 +393,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
             {mode === "create" ? "Tạo Tour Mới" : "Chỉnh Sửa Tour"}
@@ -403,8 +425,8 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
             />
           </div>
 
-          {/* Time & Destination */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Time & Destination & Status */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="mb-2 block font-semibold text-slate-900">
                 Thời gian hành trình
@@ -436,6 +458,21 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                 placeholder="Quảng Ninh"
                 required
               />
+            </div>
+            <div>
+              <label className="mb-2 block font-semibold text-slate-900">
+                Trạng thái hiển thị
+              </label>
+              <select
+                name="status"
+                value={formData.status || "active"}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+              >
+                <option value="active">Hoạt động (Hiển thị)</option>
+                <option value="hidden">Ẩn (Không hiển thị)</option>
+                <option value="paused">Tạm ngưng</option>
+              </select>
             </div>
           </div>
 
@@ -598,8 +635,8 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                     {/* Day Header */}
                     <div className="bg-gradient-to-r from-orange-50 to-amber-50 px-4 py-3 border-b border-slate-200">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500 text-white font-bold text-sm">
+                        <div className="flex items-center gap-3 flex-1 mr-4">
+                          <span className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white font-bold text-sm">
                             {day.day}
                           </span>
                           <input
@@ -608,7 +645,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                             onChange={(e) =>
                               updateDay(dayIdx, "title", e.target.value)
                             }
-                            className="font-semibold text-slate-900 bg-transparent border-none focus:outline-none focus:ring-0 text-lg"
+                            className="font-semibold text-slate-900 bg-transparent border-none focus:outline-none focus:ring-0 text-lg w-full"
                             placeholder={`Ngày ${day.day}`}
                           />
                         </div>

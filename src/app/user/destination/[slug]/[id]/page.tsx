@@ -116,24 +116,24 @@ type DayItem = { title: string; content?: React.ReactNode };
 function DaysAccordion({ items }: { items: DayItem[] }) {
   const [open, setOpen] = React.useState(0);
   return (
-    <div className="mt-6 space-y-3">
+    <div className="mt-6 space-y-3 relative z-10">
       {items.map((it, idx) => {
         const isOpen = open === idx;
         return (
           <div
             key={idx}
-            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+            className="rounded-2xl border border-slate-200 bg-white shadow-sm"
           >
             <button
               type="button"
               onClick={() => setOpen(isOpen ? -1 : idx)}
-              className={`flex w-full items-center justify-between gap-3 px-5 py-4 text-left ${
-                isOpen ? "bg-orange-50" : "hover:bg-slate-50"
+              className={`flex w-full items-center justify-between gap-3 px-5 py-4 text-left rounded-2xl transition-colors ${
+                isOpen ? "bg-orange-50 rounded-b-none" : "hover:bg-slate-50"
               }`}
             >
               <div className="flex items-center gap-3">
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold transition-colors ${
                     isOpen
                       ? "bg-orange-500 text-white"
                       : "bg-slate-100 text-slate-700"
@@ -153,7 +153,7 @@ function DaysAccordion({ items }: { items: DayItem[] }) {
               }`}
             >
               <div className={isOpen ? "overflow-visible" : "overflow-hidden"}>
-                <div className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-[15px] leading-relaxed text-slate-800">
+                <div className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-[15px] leading-relaxed text-slate-800 rounded-b-2xl">
                   {it.content ?? (
                     <p className="text-slate-500">
                       Lịch trình sẽ được cập nhật chi tiết.
@@ -171,26 +171,14 @@ function DaysAccordion({ items }: { items: DayItem[] }) {
 
 function ItineraryImageHover({ url, title, isHovered }: { url: string; title: string, isHovered: boolean }) {
   return (
-    <div className="relative inline-block ml-2 align-middle">
-      <div 
-        className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${
-          isHovered ? "bg-blue-600 text-white border-blue-600" : "bg-blue-50 text-blue-600 border-blue-200"
-        }`}
-      >
-        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-          <path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-        ẢNH
-      </div>
-
+    <div className="relative inline-block z-50 align-middle">
       <AnimatePresence>
         {isHovered && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 10 }}
-            className="absolute bottom-full left-1/2 z-[100] mb-3 w-64 -translate-x-1/2 pointer-events-none"
+            initial={{ opacity: 0, scale: 0.8, x: -10 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.8, x: -10 }}
+            className="absolute top-1/2 left-0 z-[100] ml-4 w-64 -translate-y-1/2 pointer-events-none"
           >
             <div className="overflow-hidden rounded-2xl bg-white p-1.5 shadow-2xl border border-slate-200 ring-4 ring-black/5">
               <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl">
@@ -205,7 +193,8 @@ function ItineraryImageHover({ url, title, isHovered }: { url: string; title: st
               <div className="p-2 text-center">
                 <p className="truncate text-[11px] font-bold text-slate-800">{title}</p>
               </div>
-              <div className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-b border-r border-slate-200 bg-white" />
+              {/* Left pointing arrow */}
+              <div className="absolute top-1/2 -left-2 h-4 w-4 -translate-y-1/2 rotate-45 border-b border-l border-slate-200 bg-white" />
             </div>
           </motion.div>
         )}
@@ -229,6 +218,177 @@ function DaySegmentItem({ text, img }: { text: string; img: string | null }) {
         </span>
       </div>
     </li>
+  );
+}
+
+function TourCalendar({ departures, selectedDeparture, onSelect }: any) {
+  const [currentMonthStr, setCurrentMonthStr] = React.useState<string>("");
+
+  const months = React.useMemo(() => {
+    if (!departures || departures.length === 0) return [];
+    const map = new Map<string, Date>();
+    departures.forEach((dep: any) => {
+      const d = new Date(dep.startDate);
+      const mStr = `${d.getMonth() + 1}/${d.getFullYear()}`;
+      if (!map.has(mStr)) {
+        map.set(mStr, new Date(d.getFullYear(), d.getMonth(), 1));
+      }
+    });
+    const sorted = Array.from(map.entries()).sort((a, b) => a[1].getTime() - b[1].getTime());
+    return sorted.map(s => s[0]);
+  }, [departures]);
+
+  React.useEffect(() => {
+    if (months.length > 0 && (!currentMonthStr || !months.includes(currentMonthStr))) {
+      setCurrentMonthStr(months[0]);
+    }
+  }, [months, currentMonthStr]);
+
+  const handlePrevMonth = () => {
+    const idx = months.indexOf(currentMonthStr);
+    if (idx > 0) setCurrentMonthStr(months[idx - 1]);
+  };
+  const handleNextMonth = () => {
+    const idx = months.indexOf(currentMonthStr);
+    if (idx >= 0 && idx < months.length - 1) setCurrentMonthStr(months[idx + 1]);
+  };
+
+  const currentIdx = months.indexOf(currentMonthStr);
+  const canPrev = currentIdx > 0;
+  const canNext = currentIdx >= 0 && currentIdx < months.length - 1;
+
+  const calendarDays = React.useMemo(() => {
+    if (!currentMonthStr) return [];
+    const [m, y] = currentMonthStr.split('/');
+    const year = Number(y);
+    const month = Number(m) - 1;
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    let startOffset = firstDay.getDay() - 1;
+    if (startOffset < 0) startOffset = 6;
+    
+    const days = [];
+    for (let i = 0; i < startOffset; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      days.push(new Date(year, month, i));
+    }
+    return days;
+  }, [currentMonthStr]);
+
+  if (!departures || departures.length === 0) return null;
+
+  const formatK = (price: number) => {
+    return (price / 1000).toLocaleString('en-US') + 'K';
+  };
+
+  return (
+    <div className="mb-8">
+      <h3 className="text-center text-2xl font-bold text-slate-900 mb-6 uppercase">
+        Lịch khởi hành
+      </h3>
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="w-full md:w-48 shrink-0 flex flex-col gap-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm h-fit">
+          <p className="font-bold text-slate-900 mb-2 px-2 text-center md:text-left">Chọn tháng</p>
+          <div className="flex md:flex-col gap-2 overflow-x-auto pb-2 md:pb-0 custom-scrollbar">
+            {months.map(m => (
+              <button
+                key={m}
+                onClick={() => setCurrentMonthStr(m)}
+                className={`px-4 py-3 text-sm font-bold rounded-xl transition whitespace-nowrap text-center ${
+                  currentMonthStr === m
+                    ? "bg-[#0b5cba] text-white"
+                    : "text-[#0b5cba] hover:bg-blue-50"
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-center gap-6 mb-8">
+            <button 
+              onClick={handlePrevMonth}
+              disabled={!canPrev}
+              className={`p-2 rounded-full ${canPrev ? "hover:bg-slate-100 text-slate-700" : "text-slate-300 cursor-not-allowed"}`}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </button>
+            <h4 className="text-xl font-bold text-[#0b5cba] uppercase min-w-[150px] text-center">
+              Tháng {currentMonthStr}
+            </h4>
+            <button 
+              onClick={handleNextMonth}
+              disabled={!canNext}
+              className={`p-2 rounded-full ${canNext ? "hover:bg-slate-100 text-slate-700 bg-slate-50" : "text-slate-300 cursor-not-allowed"}`}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-2 text-center mb-4">
+            {['T2', 'T3', 'T4', 'T5', 'T6'].map(d => (
+              <div key={d} className="font-bold text-slate-900 text-[15px] py-2">{d}</div>
+            ))}
+            <div className="font-bold text-red-600 text-[15px] py-2">T7</div>
+            <div className="font-bold text-red-600 text-[15px] py-2">CN</div>
+          </div>
+
+          <div className="grid grid-cols-7 gap-x-2 gap-y-4">
+            {calendarDays.map((dateObj, i) => {
+              if (!dateObj) {
+                return <div key={`empty-${i}`} className="p-2"></div>;
+              }
+              const depsForDay = departures.filter((dep: any) => {
+                const d = new Date(dep.startDate);
+                return d.getDate() === dateObj.getDate() && 
+                       d.getMonth() === dateObj.getMonth() && 
+                       d.getFullYear() === dateObj.getFullYear();
+              });
+              
+              const dep = depsForDay[0];
+              const isSelected = selectedDeparture && selectedDeparture._id === dep?._id;
+              
+              if (!dep) {
+                return (
+                  <div key={i} className="flex flex-col items-center justify-center p-2 h-16 text-slate-700 text-[15px]">
+                    {dateObj.getDate()}
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  key={i}
+                  onClick={() => onSelect(dep)}
+                  className={`flex flex-col items-center justify-center p-1 h-16 rounded-xl border transition group ${
+                    isSelected 
+                      ? "border-red-500" 
+                      : "border-transparent hover:border-red-500 hover:bg-red-50/10"
+                  }`}
+                >
+                  <span className={`font-semibold text-[15px] ${isSelected ? "text-slate-900" : "text-slate-900"}`}>
+                    {dateObj.getDate()}
+                  </span>
+                  <span className="text-[11px] font-bold text-red-600 mt-0.5">
+                    {formatK(dep.priceAdult)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -624,44 +784,6 @@ export default function TourDetailPage() {
                   </p>
                 )}
 
-                {/* Danh sách các ngày khởi hành */}
-                {departures.length > 0 && (
-                  <div className="mt-4 mb-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-200 mb-2">
-                      Chọn ngày khởi hành
-                    </p>
-                    <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
-                      {departures.map((dep: any) => {
-                        const isSelected = selectedDeparture?._id === dep._id;
-                        return (
-                          <button
-                            key={dep._id}
-                            type="button"
-                            onClick={() => setSelectedDeparture(dep)}
-                            className={`flex flex-col p-3 rounded-xl border transition-all text-left ${
-                              isSelected
-                                ? "border-amber-400 bg-amber-400/10"
-                                : "border-white/10 bg-white/5 hover:bg-white/10"
-                            }`}
-                          >
-                            <div className="flex justify-between items-center w-full">
-                              <span className={`font-bold ${isSelected ? "text-amber-400" : "text-white"}`}>
-                                {new Date(dep.startDate).toLocaleDateString("vi-VN")}
-                              </span>
-                              <span className="text-[10px] text-blue-200">
-                                {dep.current_guests}/{dep.max_guests} chỗ
-                              </span>
-                            </div>
-                            <div className="text-xs text-blue-100 mt-1">
-                              Giá: <span className="text-amber-300 font-semibold">{vnd(dep.priceAdult)}</span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
                 <div className="mt-5 flex flex-wrap gap-3">
                   {departures.length === 0 ? (
                     <div className="flex-1 rounded-2xl bg-slate-500/50 px-4 py-3 text-center text-sm font-bold text-white/80 cursor-not-allowed">
@@ -696,16 +818,6 @@ export default function TourDetailPage() {
                   >
                     Tư vấn
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsCompareOpen(true)}
-                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-500/20 border border-blue-400/30 px-4 py-3 text-sm font-bold text-blue-100 backdrop-blur-md transition hover:bg-blue-500/30 active:scale-[0.98]"
-                  >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                    </svg>
-                    So sánh tour
-                  </button>
                 </div>
 
                 <p className="mt-3 text-[11px] text-blue-200 text-center">
@@ -739,7 +851,7 @@ export default function TourDetailPage() {
       <section className="-mt-4 pb-16">
         <div className="mx-auto max-w-7xl px-5">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-            {/* LEFT column */}
+            {/* LEFT column – Main Content */}
             <div className="space-y-8">
               {/* Gallery grid (small) */}
               <motion.div
@@ -855,6 +967,13 @@ export default function TourDetailPage() {
                   </ul>
                 </div>
               </div>
+
+              {/* Lịch khởi hành mới */}
+              <TourCalendar 
+                departures={departures} 
+                selectedDeparture={selectedDeparture} 
+                onSelect={setSelectedDeparture} 
+              />
 
               {/* Itinerary */}
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
@@ -1063,51 +1182,49 @@ export default function TourDetailPage() {
                 )}
               </div>
             </div>
-
             {/* RIGHT column – booking sidebar */}
             <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
               <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md">
-                <div className="border-b border-slate-200 bg-slate-50 px-6 py-4 text-center">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                    Chi tiết thanh toán
+                <div className="border-b border-slate-200 bg-blue-50/30 px-6 py-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-600">
+                    Thông tin đặt tour
                   </p>
                 </div>
                 <div className="p-6 space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">Người lớn</p>
-                      <p className="text-xl font-extrabold text-slate-900">
-                        {priceAdult ? vnd(priceAdult) : "Liên hệ"}
-                      </p>
-                    </div>
-                    {typeof priceChild === "number" && (
-                      <div className="text-right">
-                        <p className="text-xs text-slate-500 mb-1">Trẻ em</p>
-                        <p className="text-lg font-bold text-slate-600">
-                          {vnd(priceChild)}
-                        </p>
-                      </div>
-                    )}
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-500 font-medium">Giá người lớn</p>
+                    <p className="text-3xl font-extrabold text-slate-900">
+                      {priceAdult ? vnd(priceAdult) : "Liên hệ"}
+                    </p>
                   </div>
 
-                  <div className="space-y-3 rounded-2xl bg-slate-50 p-4 text-sm border border-slate-100">
+                  {typeof priceChild === "number" && (
+                    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-2.5">
+                      <span className="text-xs text-slate-500 font-medium">Giá trẻ em</span>
+                      <span className="text-sm font-bold text-slate-800">
+                        {vnd(priceChild)}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="space-y-3 pt-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Thời gian:</span>
-                      <span className="font-bold text-slate-800">{tour.time || "—"}</span>
+                      <span className="text-sm text-slate-500">Thời gian:</span>
+                      <span className="text-sm font-bold text-slate-900">{tour.time || "—"}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Ngày đi:</span>
-                      <span className="font-bold text-orange-600">
+                      <span className="text-sm text-slate-500">Khởi hành:</span>
+                      <span className="text-sm font-bold text-slate-900">
                         {selectedDeparture 
                           ? new Date(selectedDeparture.startDate).toLocaleDateString("vi-VN")
                           : "Vui lòng chọn ngày"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Số chỗ còn:</span>
-                      <span className="font-bold text-emerald-600">
+                      <span className="text-sm text-slate-500">Số chỗ còn lại:</span>
+                      <span className="text-sm font-bold text-emerald-600">
                         {selectedDeparture 
-                          ? `${selectedDeparture.max_guests - (selectedDeparture.current_guests || 0)} chỗ`
+                          ? (selectedDeparture.max_guests - (selectedDeparture.current_guests || 0))
                           : "—"}
                       </span>
                     </div>
@@ -1132,51 +1249,53 @@ export default function TourDetailPage() {
                       }
                       className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 py-4 text-center text-sm font-bold text-white shadow-lg shadow-orange-500/30 transition-all hover:brightness-110 active:scale-95"
                     >
-                      Xác nhận đặt tour
+                      Đặt tour ngay &rarr;
                       <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 group-hover:translate-x-full" />
                     </button>
                   )}
 
                   <button
                     onClick={handleConsult}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-emerald-500/20 bg-emerald-50 py-3.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-500 hover:text-white"
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 active:scale-95"
                   >
-                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M21 15a2 2 0 01-2 2h-4l-4 4v-4H7a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2v10z"/>
+                    <svg className="h-5 w-5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
                     </svg>
-                    Tư vấn trực tuyến
+                    Tư vấn qua chat
                   </button>
+
+                  <p className="text-center text-[11px] text-slate-400">
+                    Hỗ trợ 24/7 · Miễn phí tư vấn trước khi đặt.
+                  </p>
                 </div>
               </div>
 
               {/* Support info card */}
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md">
-                <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  <div className="w-2 h-6 bg-orange-500 rounded-full" />
-                  Hỗ trợ trực tiếp
-                </h4>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 group">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Hotline 24/7</p>
-                      <p className="font-bold text-slate-900">+000 (123) 456 88</p>
-                    </div>
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
-                  <div className="flex items-center gap-4 group">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
-                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M4 4h16v16H4zm0 3l8 6 8-6" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Email phản hồi</p>
-                      <p className="font-bold text-slate-900">support@travel.com</p>
-                    </div>
+                  <div>
+                    <h4 className="text-base font-bold text-slate-900">Cần trợ giúp?</h4>
+                    <p className="mt-1 text-sm text-slate-500">Đội ngũ AHH luôn sẵn sàng hỗ trợ bạn.</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <svg className="h-5 w-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <span className="text-base font-bold text-slate-700">+000 (123) 456 88</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <svg className="h-5 w-5 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-base font-bold text-slate-700">quochung.dev@gmail.com</span>
                   </div>
                 </div>
               </div>
@@ -1283,3 +1402,4 @@ export default function TourDetailPage() {
     </div>
   );
 }
+

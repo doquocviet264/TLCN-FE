@@ -56,6 +56,12 @@ export default function AdminTourDetail() {
   });
   const departures: DepartureResponse[] = depData?.data ?? [];
 
+  // ─── State: Bộ lọc trạng thái ─────────────────────────────────
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const filteredDeps = statusFilter
+    ? departures.filter(d => d.status === statusFilter)
+    : departures;
+
   // ─── Leaders (để gán) ─────────────────────────────────────────
   const { data: leadersResp } = useQuery({
     queryKey: ["adminLeaders", "all"],
@@ -348,128 +354,183 @@ export default function AdminTourDetail() {
         </div>
       )}
 
-      <div className="mx-auto w-[95%] max-w-6xl py-8 space-y-8 pb-20">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
         {/* Header */}
-        <header className="border-b pb-4">
-          <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-            <Link href="/admin/tours" className="hover:text-orange-500 transition">
-              ← Quản lý Tours
-            </Link>
-          </div>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-extrabold text-slate-900">{tour.title}</h1>
+              <Link
+                href="/admin/tours"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm text-sm font-medium text-slate-600 hover:text-orange-600 hover:shadow-md transition mb-4"
+              >
+                <i className="ri-arrow-left-line"></i>
+                Quản lý Tours
+              </Link>
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900">{tour.title}</h1>
               <p className="text-slate-600 mt-1">📍 {tour.destination}</p>
             </div>
-            <Link
-              href={`/admin/tours/edit/${tourId}`}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition shadow-md"
-            >
-              ✏️ Sửa Tour Template
-            </Link>
           </div>
-        </header>
+        </div>
 
         {/* Tour Info Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             { label: "Giá người lớn", value: fmtVND(tour.priceAdult) },
             { label: "Giá trẻ em",   value: fmtVND(tour.priceChild) },
             { label: "Số lịch KH",   value: String(departures.length) },
             { label: "Đang diễn ra", value: String(departures.filter(d => d.status === "in_progress").length) },
           ].map(card => (
-            <div key={card.label} className="bg-white rounded-xl border shadow-sm p-4">
+            <div key={card.label} className="bg-white rounded-lg shadow-md p-4">
               <div className="text-xs text-slate-500 mb-1">{card.label}</div>
               <div className="text-xl font-bold text-slate-900">{card.value}</div>
             </div>
           ))}
         </div>
 
-        {/* ═══════════════════════════════════════════
-            BẢNG LỊCH KHỞI HÀNH (DEPARTURES)
-        ════════════════════════════════════════════ */}
-        <section className="bg-white rounded-2xl border shadow p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl font-bold text-slate-800">📅 Các Lịch Khởi Hành</h2>
+        {/* Bộ lọc trạng thái */}
+        <div className="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end">
+            <div className="w-full md:w-56">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Trạng thái
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); }}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+              >
+                <option value="">Tất cả trạng thái</option>
+                <option value="pending">Chờ xác nhận</option>
+                <option value="confirmed">Đã xác nhận</option>
+                <option value="in_progress">Đang diễn ra</option>
+                <option value="completed">Hoàn thành</option>
+                <option value="closed">Đã đóng</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* BẢNG LỊCH KHỞI HÀNH */}
+        <div className="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i className="ri-calendar-event-fill text-orange-500 text-xl"></i>
+              Danh Sách Lịch Khởi Hành
+            </h2>
             <button
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition shadow-md text-sm"
+              className={`px-5 py-2.5 rounded-lg font-semibold transition text-sm flex items-center gap-2 ${
+                showCreateForm 
+                  ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
+                  : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/25'
+              }`}
               onClick={() => setShowCreateForm(v => !v)}
             >
-              {showCreateForm ? "✕ Hủy" : "+ Tạo lịch khởi hành mới"}
+              {showCreateForm ? (
+                <><i className="ri-close-line text-lg"></i> Đóng</>
+              ) : (
+                <><i className="ri-add-line text-lg"></i> Tạo lịch mới</>
+              )}
             </button>
           </div>
 
           {/* Form tạo departure mới */}
           {showCreateForm && (
-            <div className="mb-6 p-4 bg-orange-50 rounded-xl border border-orange-200 flex flex-col gap-3">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="mb-6 p-4 md:p-6 bg-slate-50 rounded-lg flex flex-col gap-4">
+              <h3 className="text-sm font-medium text-slate-700 pb-3 border-b border-slate-200 flex items-center gap-2">
+                <i className="ri-calendar-check-line text-orange-500 text-lg"></i>
+                Thiết lập thông tin lịch khởi hành
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Ngày khởi hành *</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Ngày khởi hành <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="date"
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 outline-none"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
                     value={newDep.startDate}
                     onChange={e => handleStartDateChange(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Ngày về *</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Ngày về (Tự động)
+                  </label>
                   <input
                     type="date"
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 outline-none"
+                    disabled
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed"
                     value={newDep.endDate}
-                    onChange={e => setNewDep(d => ({ ...d, endDate: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Số lượng tối thiểu</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Số khách tối thiểu
+                  </label>
                   <input
                     type="number"
                     min={1}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 outline-none"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
                     value={newDep.min_guests}
                     onChange={e => setNewDep(d => ({ ...d, min_guests: Number(e.target.value) }))}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Số lượng tối đa</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Số khách tối đa
+                  </label>
                   <input
                     type="number"
                     min={1}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 outline-none"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
                     value={newDep.max_guests}
                     onChange={e => setNewDep(d => ({ ...d, max_guests: Number(e.target.value) }))}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Giá người lớn (Mặc định: {fmtVND(tour.priceAdult)})</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Giá người lớn (Mặc định: {fmtVND(tour.priceAdult)})
+                  </label>
                   <input
                     type="number"
                     min={0}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 outline-none"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
                     value={newDep.priceAdult}
                     onChange={e => setNewDep(d => ({ ...d, priceAdult: Number(e.target.value) }))}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Giá trẻ em (Mặc định: {fmtVND(tour.priceChild)})</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Giá trẻ em (Mặc định: {fmtVND(tour.priceChild)})
+                  </label>
                   <input
                     type="number"
                     min={0}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 outline-none"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
                     value={newDep.priceChild}
                     onChange={e => setNewDep(d => ({ ...d, priceChild: Number(e.target.value) }))}
                   />
                 </div>
                 <button
-                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-4 py-2 font-medium transition text-sm shadow-md disabled:opacity-60 h-[38px] flex items-center justify-center"
+                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-4 py-2 font-semibold transition text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed h-[38px] flex items-center justify-center gap-2"
                   disabled={createDepMut.isPending || !newDep.startDate || !newDep.endDate}
                   onClick={() => createDepMut.mutate()}
                 >
-                  {createDepMut.isPending ? "Đang tạo..." : "✔ Tạo lịch KH"}
+                  {createDepMut.isPending ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                      Đang lưu...
+                    </>
+                  ) : (
+                    <>
+                      <i className="ri-save-line"></i>
+                      Lưu lịch khởi hành
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -477,99 +538,123 @@ export default function AdminTourDetail() {
 
           {/* Bảng danh sách departures */}
           {depLoading ? (
-            <div className="text-center py-8 text-slate-400">Đang tải lịch khởi hành...</div>
-          ) : departures.length === 0 ? (
-            <div className="text-center py-10 text-slate-400">
-              <div className="text-4xl mb-3">📭</div>
-              <p>Chưa có lịch khởi hành nào. Hãy tạo lịch đầu tiên!</p>
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+              <span className="ml-3 text-slate-600">Đang tải dữ liệu...</span>
+            </div>
+          ) : filteredDeps.length === 0 ? (
+            <div className="text-center py-12">
+              <i className="ri-calendar-line text-4xl text-slate-300 block mb-3"></i>
+              <p className="text-slate-500">{statusFilter ? 'Không có lịch khởi hành nào với trạng thái này.' : 'Chưa có lịch khởi hành nào. Hãy tạo lịch đầu tiên!'}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-slate-600">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold">Khởi hành</th>
-                    <th className="px-4 py-3 text-left font-semibold">Kết thúc</th>
-                    <th className="px-4 py-3 text-left font-semibold">Số khách</th>
-                    <th className="px-4 py-3 text-left font-semibold">Leader</th>
-                    <th className="px-4 py-3 text-left font-semibold">Trạng thái</th>
-                    <th className="px-4 py-3 text-center font-semibold">Hành động</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Khởi hành</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Kết thúc</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Số khách</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Leader</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Trạng thái</th>
+                    <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">Hành động</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {departures.map(dep => {
+                  {filteredDeps.map(dep => {
                     const sc = STATUS_COLORS[dep.status] ?? STATUS_COLORS.pending;
                     const leaderObj = typeof dep.leaderId === "object" && dep.leaderId !== null
                       ? dep.leaderId as any
                       : null;
                     return (
-                      <tr key={dep._id} className="hover:bg-slate-50 transition">
-                        <td className="px-4 py-3 font-medium text-slate-800">{fmtDate(dep.startDate)}</td>
-                        <td className="px-4 py-3 text-slate-600">{fmtDate(dep.endDate)}</td>
-                        <td className="px-4 py-3">
-                          <span className="font-semibold">{dep.current_guests}</span>
-                          <span className="text-slate-400">/{dep.min_guests} min</span>
+                      <tr key={dep._id} className="hover:bg-slate-50 transition duration-200 group">
+                        <td className="px-4 py-4 font-medium text-slate-900">{fmtDate(dep.startDate)}</td>
+                        <td className="px-4 py-4 text-slate-600 text-sm">{fmtDate(dep.endDate)}</td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-1">
+                            <i className="ri-group-line text-slate-400"></i>
+                            <span className="font-medium text-slate-700">{dep.current_guests}</span>
+                            <span className="text-slate-400 text-xs ml-1">/ {dep.min_guests} min</span>
+                          </div>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-4">
                           {leaderObj ? (
-                            <span className="text-sky-700 font-medium">{leaderObj.fullName}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-bold text-xs">
+                                {leaderObj.fullName.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-sky-700 font-medium text-sm hover:underline cursor-pointer">{leaderObj.fullName}</span>
+                            </div>
                           ) : (
-                            <span className="text-slate-400 italic text-xs">Chưa gán</span>
+                            <span className="text-slate-400 italic text-sm flex items-center gap-1.5">
+                              <i className="ri-error-warning-line"></i> Chưa gán
+                            </span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${sc.bg} ${sc.text}`}>
+                        <td className="px-4 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${sc.bg} ${sc.text}`}>
                             {sc.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-4">
                           <div className="flex gap-2 justify-center flex-wrap">
                             {/* Xem khách hàng */}
                             <button
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 hover:bg-orange-100 rounded-lg transition text-xs font-semibold border border-orange-200"
+                              className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                              title="Xem danh sách khách"
                               onClick={() => setPassengerModal({
                                 open: true,
                                 departureId: dep._id,
                                 label: fmtDate(dep.startDate),
                               })}
                             >
-                              <i className="ri-group-line" />
-                              Xem khách
+                              <i className="ri-team-line text-lg" />
                             </button>
 
                             {/* Phân công Leader */}
                             <button
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 text-sky-700 hover:bg-sky-100 rounded-lg transition text-xs font-semibold border border-sky-200"
+                              className="p-2 text-sky-600 hover:bg-sky-50 rounded-lg transition"
+                              title="Phân công Leader"
                               onClick={() => setAssignModal({
                                 open: true,
                                 departureId: dep._id,
                                 leaderId: leaderObj?._id ?? "",
                               })}
                             >
-                              <i className="ri-user-star-line" />
-                              Phân công
+                              <i className="ri-user-star-line text-lg" />
                             </button>
 
                             {/* Xác nhận */}
                             {dep.status === "pending" && (
                               <button
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition text-xs font-semibold border border-green-200"
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={
+                                  !leaderObj ? "Cần phân công Leader trước khi xác nhận" :
+                                  dep.current_guests < 1 ? "Cần có ít nhất 1 khách để xác nhận" :
+                                  new Date() > new Date(dep.startDate) ? "Lịch khởi hành đã qua, không thể xác nhận" :
+                                  "Xác nhận lịch khởi hành"
+                                }
+                                disabled={!leaderObj || dep.current_guests < 1 || new Date() > new Date(dep.startDate)}
                                 onClick={() => setConfirmDialog({
                                   open: true,
                                   title: "Xác nhận lịch khởi hành",
-                                  message: `Xác nhận lịch khởi hành ngày ${fmtDate(dep.startDate)}?`,
+                                  message: `Bạn đang xác nhận lịch ngày ${fmtDate(dep.startDate)}.${dep.current_guests < dep.min_guests ? `\n\n⚠️ CẢNH BÁO: Số khách hiện tại (${dep.current_guests}) chưa đạt mức tối thiểu (${dep.min_guests}). Bạn có chắc chắn muốn chạy tour này?` : ""}`,
                                   action: () => statusMut.mutate({ id: dep._id, status: "confirmed" }),
                                 })}
                               >
-                                <i className="ri-check-double-line" />
-                                Xác nhận
+                                <i className="ri-check-double-line text-lg" />
                               </button>
                             )}
 
                             {/* Bắt đầu */}
                             {dep.status === "confirmed" && (
                               <button
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition text-xs font-semibold border border-blue-200"
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={
+                                  Date.now() < new Date(dep.startDate).setHours(0,0,0,0) ? "Chưa đến ngày khởi hành" :
+                                  Date.now() > new Date(dep.endDate).setHours(23,59,59,999) ? "Đã quá ngày kết thúc" :
+                                  "Khởi hành chuyến đi"
+                                }
                                 onClick={() => setConfirmDialog({
                                   open: true,
                                   title: "Khởi hành chuyến đi",
@@ -577,15 +662,19 @@ export default function AdminTourDetail() {
                                   action: () => statusMut.mutate({ id: dep._id, status: "in_progress" }),
                                 })}
                               >
-                                <i className="ri-play-circle-line" />
-                                Khởi hành
+                                <i className="ri-play-circle-line text-lg" />
                               </button>
                             )}
 
                             {/* Hoàn thành */}
                             {dep.status === "in_progress" && (
                               <button
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition text-xs font-semibold border border-emerald-200"
+                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={
+                                  Date.now() < new Date(dep.endDate).setHours(0,0,0,0) ? "Chuyến đi chưa kết thúc" :
+                                  "Kết thúc chuyến đi"
+                                }
+                                disabled={Date.now() < new Date(dep.endDate).setHours(0,0,0,0)}
                                 onClick={() => setConfirmDialog({
                                   open: true,
                                   title: "Kết thúc chuyến đi",
@@ -593,24 +682,23 @@ export default function AdminTourDetail() {
                                   action: () => statusMut.mutate({ id: dep._id, status: "completed" }),
                                 })}
                               >
-                                <i className="ri-checkbox-circle-line" />
-                                Hoàn thành
+                                <i className="ri-checkbox-circle-line text-lg" />
                               </button>
                             )}
 
                             {/* Đóng */}
-                            {(dep.status === "pending" || dep.status === "completed") && (
+                            {dep.status === "pending" && (
                               <button
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 hover:bg-orange-100 rounded-lg transition text-xs font-semibold border border-orange-200"
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                title="Đóng lịch khởi hành"
                                 onClick={() => setConfirmDialog({
                                   open: true,
                                   title: "Đóng lịch khởi hành",
-                                  message: `Đóng lịch khởi hành ngày ${fmtDate(dep.startDate)}?`,
+                                  message: `Đóng lịch khởi hành ngày ${fmtDate(dep.startDate)}? Các thay đổi sẽ không thể hoàn tác.`,
                                   action: () => statusMut.mutate({ id: dep._id, status: "closed" }),
                                 })}
                               >
-                                <i className="ri-close-circle-line" />
-                                Đóng
+                                <i className="ri-close-circle-line text-lg" />
                               </button>
                             )}
                           </div>
@@ -622,7 +710,7 @@ export default function AdminTourDetail() {
               </table>
             </div>
           )}
-        </section>
+        </div>
       </div>
     </>
   );

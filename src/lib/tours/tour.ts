@@ -18,6 +18,7 @@ export type Tour = {
   startDate?: string;
   endDate?: string;
   destination?: string;
+  status?: "active" | "hidden" | "paused" | "deleted";
 };
 
 /** Kiểu chi tiết tour */

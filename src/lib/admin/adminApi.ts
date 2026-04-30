@@ -198,6 +198,7 @@ export type TourResponse = {
   quantity?: number;
   destination: string;
   destinationSlug?: string;
+  status?: "active" | "hidden" | "paused" | "deleted";
   images: string[];
   itinerary?: any[];
   includes?: string[];
@@ -253,11 +254,18 @@ export async function getAllToursAdmin(params?: {
   status?: string;
   destination?: string;
   search?: string;
+  time?: string;
 }) {
   const { data } = await adminApi.get<ToursListResponse>("/tours/admin", {
     params,
   });
   return data;
+}
+
+/** Lấy danh sách các giá trị time (thời gian tour) duy nhất - dùng cho dropdown */
+export async function getTourTimesAdmin(): Promise<string[]> {
+  const { data } = await adminApi.get<{ data: string[] }>("/tours/admin/times");
+  return data.data ?? [];
 }
 
 /** Lấy chi tiết tour */

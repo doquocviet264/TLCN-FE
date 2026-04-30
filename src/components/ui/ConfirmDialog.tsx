@@ -67,7 +67,7 @@ export function ConfirmDialog({
           </div>
           
           {/* Message */}
-          <p className="text-slate-600 mb-6">{message}</p>
+          <p className="text-slate-600 mb-6 whitespace-pre-wrap">{message}</p>
           
           {/* Actions */}
           <div className="flex gap-3 justify-end">
