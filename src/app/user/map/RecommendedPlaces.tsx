@@ -4,16 +4,12 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import DestinationCard from "@/components/cards/DestinationCard";
 import Button from "@/components/ui/Button";
-import { useGetTours } from "#/hooks/tours-hook/useTours"; // <-- Import Hook lấy Tour
-
+import { useRecommendedTours } from "#/hooks/tours-hook/useRecommendedTours"; // ← import hook mới
 export default function RecommendedPlaces() {
   const router = useRouter();
 
-  // 1. Dùng lại Hook useGetTours (Lấy trang 1, 3 phần tử)
-  const { data, isLoading } = useGetTours(1, 3);
-  const tours = data?.data || []; // Lấy mảng tour từ response
+  const { data: tours, isLoading } = useRecommendedTours(); // ← đổi hook
 
-  // Hàm format giá tiền
   const formatPrice = (price?: number) => {
     if (!price) return "Liên hệ";
     return new Intl.NumberFormat("vi-VN", {
@@ -32,13 +28,13 @@ export default function RecommendedPlaces() {
               Tour Gợi Ý Cho Bạn
             </h2>
             <p className="text-sm text-slate-500 mt-2 font-medium">
-              Những hành trình đang được yêu thích nhất
+              Những hành trình phù hợp với bạn nhất
             </p>
           </div>
 
           <Button
             variant="outline-primary"
-            onClick={() => router.push("/user/search")} // Chuyển sang trang tìm kiếm tour
+            onClick={() => router.push("/user/search")}
             className="text-xs sm:text-sm px-5 py-2.5 rounded-xl border-slate-200 hover:border-[#144d7e] hover:text-[#144d7e] transition-all"
           >
             Xem tất cả tour
@@ -47,7 +43,6 @@ export default function RecommendedPlaces() {
 
         {/* Content */}
         {isLoading ? (
-          // Loading Skeleton
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
               <div
@@ -56,11 +51,9 @@ export default function RecommendedPlaces() {
               />
             ))}
           </div>
-        ) : tours.length > 0 ? (
-          // Hiển thị danh sách Tour
+        ) : tours && tours.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {tours.map((tour: any) => {
-              // Lấy ảnh ưu tiên: image -> images[0] -> cover -> default
               const thumb =
                 tour.image ||
                 (Array.isArray(tour.images) ? tour.images[0] : null) ||
@@ -69,8 +62,8 @@ export default function RecommendedPlaces() {
 
               return (
                 <div
-                  key={tour._id}
-                  onClick={() => router.push(`/user/tour/${tour._id}`)}
+                  key={tour.id} // ← id thay vì _id
+                  onClick={() => router.push(`/user/tour/${tour.id}`)} // ← id thay vì _id
                   className="cursor-pointer group"
                 >
                   <DestinationCard
@@ -78,14 +71,13 @@ export default function RecommendedPlaces() {
                     title={tour.title}
                     duration={tour.time || "Liên hệ"}
                     price={formatPrice(tour.priceAdult)}
-                    href={`/user/tour/${tour._id}`}
+                    href={`/user/tour/${tour.id}`} // ← id thay vì _id
                   />
                 </div>
               );
             })}
           </div>
         ) : (
-          // Không có dữ liệu
           <div className="text-center py-10 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
             <p className="text-slate-400">Chưa có tour nào để hiển thị.</p>
           </div>

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { getBookingByCode } from "@/lib/checkout/checkoutApi";
 import VnpayPayButton from "@/app/user/checkout/VnpayPayButton";
+import TourRecommendations from "@/components/TourRecommendations";
 
 /**
  * Trang xác nhận đặt tour
@@ -35,6 +36,7 @@ function BookingSuccessPageContent() {
   const [bookingStatus, setBookingStatus] = useState<string | null>(null);
   const [paidAmount, setPaidAmount] = useState<number>(0);
   const [totalPrice, setTotalPrice] = useState<number>(0);
+  const [tourId, setTourId] = useState<string | null>(null);
 
   // Load booking status
   useEffect(() => {
@@ -49,6 +51,11 @@ function BookingSuccessPageContent() {
         setBookingStatus(booking.bookingStatus);
         setPaidAmount(booking.paidAmount || 0);
         setTotalPrice(booking.totalPrice || 0);
+        // Extract tourId from booking for recommendations
+        const tid = booking.tourDepartureId?.tourId?._id
+          || booking.tourDepartureId?.tourId
+          || booking.tourId;
+        if (tid) setTourId(String(tid));
       } catch (err) {
         console.error("Load booking error:", err);
       } finally {
@@ -260,6 +267,18 @@ function BookingSuccessPageContent() {
             </div>
           </div>
         </motion.div>
+
+        {/* Tour gợi ý sau khi đặt */}
+        {tourId && showSuccess && (
+          <div className="mt-10">
+            <TourRecommendations
+              type="post-booking"
+              tourId={tourId}
+              heading="Bạn có thể thích những tour này"
+              limit={4}
+            />
+          </div>
+        )}
       </div>
     </main>
   );

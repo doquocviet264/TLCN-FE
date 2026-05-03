@@ -17,6 +17,7 @@ import { useAuthStore } from "#/stores/auth";
 import { getUserToken } from "@/lib/auth/tokenManager";
 import CardHot from "@/components/cards/CardHot";
 import CompareTourDialog from "@/components/ui/CompareTourDialog";
+import TourRecommendations from "@/components/TourRecommendations";
 import { toast } from "react-hot-toast";
 
 const toNum = (v?: number | string) => {
@@ -1302,60 +1303,15 @@ export default function TourDetailPage() {
             </aside>
           </div>
 
-          {/* Related tours */}
-          {related.length > 0 && (
-            <section className="mt-14">
-              <div className="mb-6 flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900">
-                    Tour tương tự bạn có thể thích
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Gợi ý thêm các hành trình phù hợp với bạn.
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {related.map((t: any) => (
-                  <CardHot
-                    key={t._id ?? t.id ?? t.title}
-                    title={t.title}
-                    image={
-                      t.cover ||
-                      (Array.isArray(t.images) && t.images.length > 0
-                        ? t.images[0]
-                        : "/hot1.jpg")
-                    }
-                    originalPrice={toNum(t.priceAdult)}
-                    salePrice={t.salePrice}
-                    discountPercent={t.discountPercent}
-                    discountAmount={t.discountAmount}
-                    href={`/user/destination/${
-                      t.destinationSlug ??
-                      (t.title || "")
-                        .toLowerCase()
-                        .normalize("NFD")
-                        .replace(/\p{Diacritic}/gu, "")
-                        .replace(/[^a-z0-9]+/g, "-")
-                        .replace(/(^-|-$)/g, "")
-                    }/${t._id ?? t.id ?? ""}`}
-                    time={t.time}
-                    destination={t.destination ?? tour.destination ?? ""}
-                    schedule={
-                      t.startText ??
-                      (t.startDate
-                        ? `Khởi hành: ${new Date(
-                            t.startDate
-                          ).toLocaleDateString("vi-VN")}`
-                        : undefined)
-                    }
-                    seats={getSeatsValue(t.quantity ?? t.seats)}
-                    startDate={t.startDate}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+          {/* Tour tương tự - Recommendation */}
+          <section className="mt-14">
+            <TourRecommendations
+              type="similar"
+              tourId={id}
+              heading="Tour tương tự bạn có thể thích"
+              limit={4}
+            />
+          </section>
         </div>
       </section>
 
