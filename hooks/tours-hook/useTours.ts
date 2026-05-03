@@ -8,7 +8,7 @@ export const useGetTours = (page = 1, limit = 12, query?: ToursQuery) =>
     queryKey: ["getTours", page, limit, query] as const,
     queryFn: () => {
       // Nếu có query từ filters đặc biệt
-      if (query && (query.budgetMin !== undefined || query.from || query.q || query.destination)) {
+      if (query && (query.budgetMin !== undefined || query.from || query.q || query.destination || query.time)) {
          return searchTours(page, limit, query);
       }
       return getTours(page, limit, query);

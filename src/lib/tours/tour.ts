@@ -74,6 +74,7 @@ export type ToursQuery = Partial<{
   maxPrice: number;         // alias
   priceMin: number;         // alias
   priceMax: number;         // alias
+  time: string;             // cụ thể: "3 ngày 2 đêm"
 }>;
 
 /** Chuẩn hoá query gửi lên để backend nào cũng “ăn” */
@@ -120,6 +121,10 @@ const buildParams = (page = 1, limit = 9, query?: ToursQuery) => {
     params.priceMax = max;
   }
 
+  if (q.time) {
+    params.time = q.time;
+  }
+
   return params;
 };
 
@@ -164,6 +169,9 @@ export const searchTours = async (
   }
   if (typeof query?.budgetMax === "number") {
     params.budgetMax = query.budgetMax;
+  }
+  if (query?.time) {
+    params.time = query.time;
   }
 
   const res = await axiosInstance.get<ToursResponse>("/tours/search", {

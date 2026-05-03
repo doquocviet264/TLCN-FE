@@ -1,14 +1,12 @@
 "use client";
 
 import React from "react";
-
-export type DayBucket = "1-4" | "5-8" | "9-12" | "14+";
+import { FaChevronDown, FaClock } from "react-icons/fa";
 
 export type TourFilterValue = {
-  from?: string;
   to?: string;
   date?: string; // yyyy-mm-dd
-  days?: DayBucket | "";
+  time?: string; // e.g. "3 ngày 2 đêm"
   keyword?: string;
   budget: [number, number]; // VND
 };
@@ -17,8 +15,8 @@ type Props = {
   value: TourFilterValue;
   onChange: (v: TourFilterValue) => void;
   onSubmit: () => void;
-  fromOptions: string[]; // danh sách điểm khởi hành
   toOptions: string[]; // danh sách điểm đến
+  timeOptions: string[]; // danh sách thời gian (time)
 };
 
 const currency = (n: number) =>
@@ -34,56 +32,28 @@ export default function TourFilter({
   value,
   onChange,
   onSubmit,
-  fromOptions,
   toOptions,
+  timeOptions,
 }: Props) {
   const set = (patch: Partial<TourFilterValue>) =>
     onChange({ ...value, ...patch });
 
   // slider kép: 2 input range phối hợp
   const min = 0;
-  const max = 1_000_000_000;
-  const step = 50_000;
+  const max = 100_000_000;
+  const step = 500_000;
 
   const [minVal, maxVal] = value.budget;
 
   return (
-    <aside className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-      {/* FROM */}
-      <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#1d4ed8]">
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          className="text-[#1d4ed8]"
-        >
-          <path
-            fill="currentColor"
-            d="m21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8L2 13v2l8-2.5V19l-2 1.5V22l3-1l3 1v-1.5L11 19v-5.5z"
-          />
-        </svg>
-        Điểm khởi hành
-      </label>
-      <select
-        value={value.from ?? ""}
-        onChange={(e) => set({ from: e.target.value || undefined })}
-        className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">Chọn</option>
-        {fromOptions.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
-
+    <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-black/5">
       {/* TO */}
-      <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#1d4ed8]">
+      <label className="mb-2 flex items-center gap-2 text-[13px] font-bold text-blue-700 uppercase tracking-wide">
         <svg
           width="18"
           height="18"
           viewBox="0 0 24 24"
-          className="rotate-180 text-[#1d4ed8]"
+          className="rotate-180 text-blue-600"
         >
           <path
             fill="currentColor"
@@ -92,26 +62,29 @@ export default function TourFilter({
         </svg>
         Điểm đến
       </label>
-      <select
-        value={value.to ?? ""}
-        onChange={(e) => set({ to: e.target.value || undefined })}
-        className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">Chọn</option>
-        {toOptions.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
+      <div className="relative mb-4">
+        <select
+          value={value.to ?? ""}
+          onChange={(e) => set({ to: e.target.value || undefined })}
+          className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer"
+        >
+          <option value="">Tất cả địa điểm</option>
+          {toOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+        <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400" />
+      </div>
 
       {/* DATE */}
-      <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#1d4ed8]">
+      <label className="mb-2 flex items-center gap-2 text-[13px] font-bold text-blue-700 uppercase tracking-wide">
         <svg
           width="18"
           height="18"
           viewBox="0 0 24 24"
-          className="text-[#1d4ed8]"
+          className="text-blue-600"
         >
           <path
             fill="currentColor"
@@ -124,60 +97,89 @@ export default function TourFilter({
         type="date"
         value={value.date ?? ""}
         onChange={(e) => set({ date: e.target.value || undefined })}
-        className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder="dd/mm/yyyy"
+        className="mb-4 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
       />
 
-      {/* DAYS */}
-      <div className="mb-2 text-sm font-semibold text-[#1d4ed8] flex items-center gap-2">
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          className="text-[#1d4ed8]"
+      {/* TIME (Specific Duration) */}
+      <label className="mb-2 flex items-center gap-2 text-[13px] font-bold text-blue-700 uppercase tracking-wide">
+        <FaClock className="text-blue-600" />
+        Thời gian
+      </label>
+      <div className="relative mb-4">
+        <select
+          value={value.time ?? ""}
+          onChange={(e) => set({ time: e.target.value || undefined })}
+          className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer"
         >
-          <path fill="currentColor" d="M15 11V4H9v7H4v6h5v7h6v-7h5v-6z" />
-        </svg>
-        Số ngày
+          <option value="">Tất cả thời gian</option>
+          {timeOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+        <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400" />
       </div>
-      <div className="mb-3 grid grid-cols-2 gap-2">
-        {(["1-4", "5-8", "9-12", "14+"] as DayBucket[]).map((b) => (
-          <button
-            key={b}
-            type="button"
-            onClick={() => set({ days: value.days === b ? "" : b })}
-            className={`rounded-lg border px-3 py-2 text-sm ${
-              value.days === b
-                ? "border-blue-600 text-blue-700 bg-blue-50"
-                : "border-slate-300 text-slate-700 hover:border-blue-400"
-            }`}
-          >
-            {b === "14+" ? "Trên 14 ngày" : `${b} ngày`}
-          </button>
-        ))}
-      </div>
+
+      <label className="mb-2 flex items-center gap-2 text-[13px] font-bold text-blue-700 uppercase tracking-wide">
+        <FaSearch className="text-blue-600 opacity-0" /> {/* Placeholder spacing */}
+        Tìm kiếm từ khóa
+      </label>
       <input
         value={value.keyword ?? ""}
         onChange={(e) => set({ keyword: e.target.value || undefined })}
-        placeholder="Khác…"
-        className="mb-5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder="Nhập tên tour, mô tả..."
+        className="mb-5 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
       />
 
       {/* BUDGET */}
-      <div className="mb-2 text-sm font-semibold text-[#1d4ed8]">
-        Ngân sách của quý khách
+      <div className="mb-2 text-[13px] font-bold text-blue-700 uppercase tracking-wide">
+        Ngân sách dự kiến
       </div>
-      <div className="mb-2 flex items-center justify-between text-xs text-slate-700">
-        <span>
-          Giá từ: <b>{currency(minVal)}</b>
-        </span>
-        <span>
-          đến: <b>{currency(maxVal)}</b>
-        </span>
+      <div className="mb-3 flex flex-col gap-1 text-xs text-slate-600">
+        <div className="flex justify-between">
+          <span>Tối thiểu:</span>
+          <b className="text-slate-900">{currency(minVal)}</b>
+        </div>
+        <div className="flex justify-between">
+          <span>Tối đa:</span>
+          <b className="text-slate-900">{currency(maxVal)}</b>
+        </div>
       </div>
 
-      {/* twin range sliders */}
-      <div className="relative my-3">
+      {/* Slider */}
+      <div className="relative mt-4 mb-8 px-2">
+        <style jsx>{`
+          .range-input {
+            pointer-events: none;
+            position: absolute;
+            height: 6px;
+            width: 100%;
+            appearance: none;
+            background: none;
+            left: 0;
+          }
+          .range-input::-webkit-slider-thumb {
+            pointer-events: auto;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #f97316;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .range-input::-moz-range-thumb {
+            pointer-events: auto;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #f97316;
+            cursor: pointer;
+          }
+        `}</style>
         <input
           type="range"
           min={min}
@@ -188,7 +190,7 @@ export default function TourFilter({
             const v = Math.min(Number(e.target.value), maxVal - step);
             set({ budget: [v, maxVal] });
           }}
-          className="pointer-events-auto absolute z-10 h-2 w-full appearance-none bg-transparent"
+          className="range-input z-30"
         />
         <input
           type="range"
@@ -200,13 +202,11 @@ export default function TourFilter({
             const v = Math.max(Number(e.target.value), minVal + step);
             set({ budget: [minVal, v] });
           }}
-          className="pointer-events-auto absolute z-10 h-2 w-full appearance-none bg-transparent"
+          className="range-input z-20"
         />
-        {/* track */}
-        <div className="h-2 w-full rounded-full bg-blue-100 shadow-inner" />
-        {/* active range */}
+        <div className="h-1.5 w-full rounded-full bg-slate-100" />
         <div
-          className="pointer-events-none absolute top-0 h-2 rounded-full bg-blue-500/70 blur-[1px]"
+          className="absolute top-0 h-1.5 rounded-full bg-orange-500"
           style={{
             left: `${((minVal - min) / (max - min)) * 100}%`,
             width: `${((maxVal - minVal) / (max - min)) * 100}%`,
@@ -217,10 +217,12 @@ export default function TourFilter({
       <button
         type="button"
         onClick={onSubmit}
-        className="mt-4 w-full rounded-lg bg-[#ea580c] px-4 py-3 text-center text-sm font-bold uppercase tracking-wide text-white shadow hover:brightness-110"
+        className="mt-2 w-full rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 text-center text-sm font-bold uppercase tracking-wider text-white shadow-lg shadow-orange-500/25 hover:brightness-110 active:scale-[0.98] transition-all"
       >
         Tìm kiếm tour
       </button>
     </aside>
   );
 }
+
+import { FaSearch } from "react-icons/fa";

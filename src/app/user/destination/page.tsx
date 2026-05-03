@@ -10,6 +10,7 @@ import CardHot from "@/components/cards/CardHot";
 import TourFilter, { type TourFilterValue } from "@/components/TourFilter";
 import { useGetTours } from "#/hooks/tours-hook/useTours";
 import { getTours } from "@/lib/tours/tour";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 /* ========= Helpers ========= */
 type DayBucket = "1-4" | "5-8" | "9-12" | "14+";
@@ -128,6 +129,7 @@ const TourSkeleton = () => (
   </div>
 );
 
+
 function DestinationPageContent() {
   const router = useRouter();
   const pathname = usePathname();
@@ -139,15 +141,14 @@ function DestinationPageContent() {
   const destFromUrl = sp.get("destination") || "";
   const fromDateUrl = sp.get("from") || undefined;
   const budgetMinUrl = Number(sp.get("budgetMin") || 0);
-  const budgetMaxUrl = Number(sp.get("budgetMax") || 1_000_000_000);
-  const daysFromUrl = (sp.get("days") || "") as DayBucket | "";
+  const budgetMaxUrl = Number(sp.get("budgetMax") || 100_000_000);
+  const timeFromUrl = sp.get("time") || "";
 
   // UI filter state
   const [filters, setFilters] = useState<TourFilterValue>({
-    from: undefined,
     to: destFromUrl || undefined,
     date: fromDateUrl,
-    days: daysFromUrl,
+    time: timeFromUrl || undefined,
     keyword: qFromUrl,
     budget: [budgetMinUrl, budgetMaxUrl],
   });
@@ -157,8 +158,9 @@ function DestinationPageContent() {
     q: qFromUrl || undefined,
     destination: destFromUrl || undefined,
     from: fromDateUrl,
+    time: timeFromUrl || undefined,
     budgetMin: budgetMinUrl || 0,
-    budgetMax: budgetMaxUrl || 1_000_000_000,
+    budgetMax: budgetMaxUrl || 100_000_000,
   });
 
   const [page, setPage] = useState<number>(initialPage);
@@ -173,65 +175,63 @@ function DestinationPageContent() {
   const currentPage = Math.min(Math.max(1, page), totalPages);
 
   // ===== 3. Lấy danh sách option =====
-  const [fromOptions, setFromOptions] = useState<string[]>([]);
   const [toOptions, setToOptions] = useState<string[]>([]);
+  const [timeOptions, setTimeOptions] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
       try {
         const res = await getTours(1, 200, {});
-        const depSet = new Set<string>();
         const destSet = new Set<string>();
+        const timeSet = new Set<string>();
 
         res.data.forEach((t: any) => {
-          if (t.departure) depSet.add(String(t.departure));
           if (t.destination) destSet.add(String(t.destination));
           else if (t.destinationSlug)
             destSet.add(titleFromSlug(t.destinationSlug));
+          
+          if (t.time) timeSet.add(String(t.time));
         });
 
-        setFromOptions(Array.from(depSet));
-        setToOptions(Array.from(destSet));
+        setToOptions(Array.from(destSet).sort());
+        setTimeOptions(Array.from(timeSet).sort());
       } catch (err) {
         console.error("Lỗi tải options", err);
       }
     })();
   }, []);
 
-  // ===== 4. Lọc theo Số ngày =====
-  const visibleTours = useMemo(() => {
-    const range = bucketToRange(filters.days as DayBucket | "");
+  // ===== 4. Visible Tours (Already filtered by API for most, but keep local logic if needed) =====
+  const visibleTours = tours;
+  const visibleCount = total;
 
-    return tours.filter((t: any) => {
-      // Lọc theo số ngày (nếu có)
-      if (range) {
-        const [minDays, maxDays] = range;
-        const d = getDurationDays(t);
-        if (!d) return false;
-        if (!Number.isFinite(maxDays)) return d >= minDays;
-        return d >= minDays && d <= maxDays;
-      }
-
-      return true;
-    });
-  }, [tours, filters.days]);
-
-  const visibleCount = visibleTours.length;
-
-  // ===== 5. Đồng bộ URL =====
+  // ===== 5. Đồng bộ URL (Cleanup default values) =====
   useEffect(() => {
     const params = new URLSearchParams();
-    params.set("page", String(currentPage));
+    
+    // Chỉ thêm vào URL những gì thực sự thay đổi so với mặc định
+    if (currentPage > 1) params.set("page", String(currentPage));
     if (apiQuery.q) params.set("q", apiQuery.q);
     if (apiQuery.destination) params.set("destination", apiQuery.destination);
     if (apiQuery.from) params.set("from", apiQuery.from);
-    params.set("budgetMin", String(apiQuery.budgetMin ?? 0));
-    params.set("budgetMax", String(apiQuery.budgetMax ?? 1_000_000_000));
-    if (filters.days) params.set("days", String(filters.days));
-    else params.delete("days");
+    if (apiQuery.time) params.set("time", apiQuery.time);
+    
+    if (apiQuery.budgetMin && apiQuery.budgetMin > 0) {
+      params.set("budgetMin", String(apiQuery.budgetMin));
+    }
+    // Chỉ hiện budgetMax nếu người dùng kéo nó xuống thấp hơn mức trần 100tr
+    if (apiQuery.budgetMax && apiQuery.budgetMax < 100_000_000) {
+      params.set("budgetMax", String(apiQuery.budgetMax));
+    }
 
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, currentPage, apiQuery, filters.days]);
+    const qs = params.toString();
+    const url = qs ? `${pathname}?${qs}` : pathname;
+    
+    // Tránh việc push/replace liên tục nếu URL không đổi
+    if (`${pathname}?${sp.toString()}` !== url && sp.toString() !== qs) {
+      router.replace(url, { scroll: false });
+    }
+  }, [router, pathname, currentPage, apiQuery, sp]);
 
   // ===== 6. Pagination =====
   const pageNumbers = useMemo(() => {
@@ -269,8 +269,9 @@ function DestinationPageContent() {
       q: filters.keyword,
       destination: filters.to,
       from: filters.date || undefined,
+      time: filters.time || undefined,
       budgetMin: filters.budget?.[0] ?? 0,
-      budgetMax: filters.budget?.[1] ?? 1_000_000_000,
+      budgetMax: filters.budget?.[1] ?? 100_000_000,
     };
     setApiQuery(nextQuery);
     setPage(1);
@@ -278,7 +279,7 @@ function DestinationPageContent() {
 
   return (
     <main className="relative min-h-screen bg-slate-50 font-sans text-slate-600">
-      {/* ===== HERO HEADER (match trang blog) ===== */}
+      {/* ===== HERO HEADER ===== */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950 pb-20 pt-20 lg:pb-24 lg:pt-24">
         {/* Pattern background */}
         <div
@@ -341,7 +342,7 @@ function DestinationPageContent() {
                   </span>
                 </p>
                 <p className="text-xs uppercase tracking-wide text-blue-200">
-                  phù hợp với bộ lọc hiện tại
+                  phù hợp bộ lọc
                 </p>
               </div>
               <div className="h-10 w-px bg-white/20 hidden sm:block" />
@@ -382,8 +383,8 @@ function DestinationPageContent() {
               value={filters}
               onChange={(v) => setFilters(v)}
               onSubmit={handleSubmitFilter}
-              fromOptions={fromOptions}
               toOptions={toOptions}
+              timeOptions={timeOptions}
             />
           </aside>
 
@@ -437,8 +438,7 @@ function DestinationPageContent() {
                         Không tìm thấy tour phù hợp
                       </h3>
                       <p className="text-sm text-slate-500">
-                        Thử thay đổi điểm đến, ngân sách hoặc ngày khởi hành để
-                        tìm được hành trình phù hợp hơn nhé.
+                        Thử thay đổi bộ lọc để tìm được hành trình phù hợp hơn nhé.
                       </p>
                     </div>
                   ) : (
@@ -487,11 +487,12 @@ function DestinationPageContent() {
                 {!isLoading && totalPages > 1 && (
                   <div className="mt-10 flex items-center justify-center gap-2">
                     <button
-                      className="flex h-10 min-w-[38px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 shadow-sm transition-all hover:border-orange-500 hover:text-orange-600 disabled:opacity-50 disabled:hover:border-slate-200"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:border-orange-500 hover:text-orange-600 disabled:opacity-30 disabled:cursor-not-allowed"
                       disabled={currentPage <= 1}
                       onClick={() => goToPage(currentPage - 1)}
+                      aria-label="Previous page"
                     >
-                      Trước
+                      <FaChevronLeft size={12} />
                     </button>
 
                     {pageNumbers.map((n, idx) =>
@@ -518,11 +519,12 @@ function DestinationPageContent() {
                     )}
 
                     <button
-                      className="flex h-10 min-w-[38px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 shadow-sm transition-all hover:border-orange-500 hover:text-orange-600 disabled:opacity-50 disabled:hover:border-slate-200"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all hover:border-orange-500 hover:text-orange-600 disabled:opacity-30 disabled:cursor-not-allowed"
                       disabled={currentPage >= totalPages}
                       onClick={() => goToPage(currentPage + 1)}
+                      aria-label="Next page"
                     >
-                      Sau
+                      <FaChevronRight size={12} />
                     </button>
                   </div>
                 )}
