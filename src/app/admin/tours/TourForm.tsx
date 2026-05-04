@@ -362,6 +362,22 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
     updateSegmentItem(dayIndex, segmentIndex, itemIndex, "imageUrl", previewUrl);
   };
 
+  const handleSegmentItemUrlChange = (
+    dayIndex: number,
+    segmentIndex: number,
+    itemIndex: number,
+    value: string
+  ) => {
+    // Clear pending file if URL is manually changed
+    const key = `item_image_${dayIndex}_${segmentIndex}_${itemIndex}`;
+    if (pendingFiles[key]) {
+      const newFiles = { ...pendingFiles };
+      delete newFiles[key];
+      setPendingFiles(newFiles);
+    }
+    updateSegmentItem(dayIndex, segmentIndex, itemIndex, "imageUrl", value);
+  };
+
   const timeOfDayLabels: Record<string, string> = {
     morning: "Buổi sáng",
     afternoon: "Buổi chiều",
@@ -707,7 +723,7 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
 
                         {(day.segments || []).length === 0 ? (
                           <p className="text-sm text-slate-400 italic">
-                            Chưa có hoạt động. Nhấn "Thêm buổi" để thêm.
+                            Chưa có hoạt động. Nhấn &quot;Thêm buổi&quot; để thêm.
                           </p>
                         ) : (
                           <div className="space-y-3">
@@ -808,6 +824,17 @@ export default function TourForm({ tourId, mode }: TourFormProps) {
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
                                           </button>
+                                        </div>
+                                        
+                                        {/* Image URL Input */}
+                                        <div className="flex items-center gap-2 ml-4">
+                                          <input
+                                            type="text"
+                                            value={imageUrl}
+                                            onChange={(e) => handleSegmentItemUrlChange(dayIdx, segIdx, itemIdx, e.target.value)}
+                                            className="flex-1 px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs bg-white"
+                                            placeholder="Nhập link ảnh..."
+                                          />
                                         </div>
                                         {imageUrl && (
                                           <div className="ml-4 relative w-32 h-20 rounded overflow-hidden border border-slate-200">
