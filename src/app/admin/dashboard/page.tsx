@@ -7,6 +7,8 @@ import RevenueChart from "./RevenueChart";
 import BookingsChart from "./BookingsChart";
 import TopRevenueTours from "./TopRevenueTours";
 import BookingStatusChart from "./BookingStatusChart";
+import TopPlaceChart from "./TopPlaceChart";
+import DestinationMap from "./DestinationMap";
 
 /* ===== Helpers ===== */
 const formatCurrency = (amount: number) =>
@@ -93,6 +95,7 @@ export default function AdminDashboard() {
     pending: { count: 0, revenue: 0 },
     cancelled: { count: 0, revenue: 0 },
   };
+  const topDestinations = stats?.topDestinations || [];
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-8 md:py-8 dark:bg-slate-950">
@@ -356,6 +359,12 @@ export default function AdminDashboard() {
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <TopRevenueTours data={topRevenueTours} />
           <BookingStatusChart data={bookingStatusStats} />
+        </section>
+
+        {/* ===== TOP DESTINATIONS + MAP ===== */}
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <TopPlaceChart data={topDestinations} />
+          <DestinationMap data={topDestinations} />
         </section>
 
         {/* ===== RECENT BOOKINGS + ONGOING TOURS ===== */}

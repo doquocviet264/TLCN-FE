@@ -27,9 +27,8 @@ ChartJS.register(
 interface MonthlyBookingData {
   month: string;
   monthIndex: number;
-  total: number;
-  confirmed: number;
-  pending: number;
+  count: number;
+  guests: number;
 }
 
 interface BookingsChartProps {
@@ -41,8 +40,8 @@ const BookingsChart: React.FC<BookingsChartProps> = ({ data }) => {
     labels: data.map((item) => item.month),
     datasets: [
       {
-        label: "Tổng booking",
-        data: data.map((item) => item.total),
+        label: "Số booking",
+        data: data.map((item) => item.count),
         borderColor: "rgb(99, 102, 241)",
         backgroundColor: "rgba(99, 102, 241, 0.1)",
         fill: true,
@@ -52,10 +51,11 @@ const BookingsChart: React.FC<BookingsChartProps> = ({ data }) => {
         pointBorderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
+        yAxisID: "y",
       },
       {
-        label: "Đã xác nhận",
-        data: data.map((item) => item.confirmed),
+        label: "Số khách",
+        data: data.map((item) => item.guests),
         borderColor: "rgb(16, 185, 129)",
         backgroundColor: "rgba(16, 185, 129, 0.1)",
         fill: true,
@@ -65,6 +65,7 @@ const BookingsChart: React.FC<BookingsChartProps> = ({ data }) => {
         pointBorderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
+        yAxisID: "y1",
       },
     ],
   };
@@ -106,6 +107,9 @@ const BookingsChart: React.FC<BookingsChartProps> = ({ data }) => {
         },
       },
       y: {
+        type: "linear" as const,
+        display: true,
+        position: "left" as const,
         beginAtZero: true,
         grid: {
           color: "rgba(148, 163, 184, 0.1)",
@@ -117,6 +121,33 @@ const BookingsChart: React.FC<BookingsChartProps> = ({ data }) => {
           },
           stepSize: 1,
         },
+        title: {
+          display: true,
+          text: "Booking",
+          color: "#6366f1",
+          font: { size: 10, weight: "500" as const },
+        },
+      },
+      y1: {
+        type: "linear" as const,
+        display: true,
+        position: "right" as const,
+        beginAtZero: true,
+        grid: {
+          drawOnChartArea: false,
+        },
+        ticks: {
+          color: "#64748b",
+          font: {
+            size: 11,
+          },
+        },
+        title: {
+          display: true,
+          text: "Khách",
+          color: "#10b981",
+          font: { size: 10, weight: "500" as const },
+        },
       },
     },
     interaction: {
@@ -125,10 +156,13 @@ const BookingsChart: React.FC<BookingsChartProps> = ({ data }) => {
     },
   };
 
-  const totalBookings = data.reduce((sum, item) => sum + item.total, 0);
-  const totalConfirmed = data.reduce((sum, item) => sum + item.confirmed, 0);
-  const totalPending = data.reduce((sum, item) => sum + item.pending, 0);
-  const confirmRate = totalBookings > 0 ? ((totalConfirmed / totalBookings) * 100).toFixed(1) : "0";
+  const totalBookings = data.reduce((sum, item) => sum + item.count, 0);
+  const totalGuests = data.reduce((sum, item) => sum + item.guests, 0);
+  const avgGuestsPerBooking = totalBookings > 0 ? (totalGuests / totalBookings).toFixed(1) : "0";
+
+  // Find current month stats
+  const currentMonth = new Date().getMonth();
+  const currentMonthData = data[currentMonth];
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -141,17 +175,17 @@ const BookingsChart: React.FC<BookingsChartProps> = ({ data }) => {
             Booking theo tháng
           </h3>
           <p className="mt-1 text-xs text-slate-500">
-            Tỷ lệ xác nhận: <span className="font-semibold text-emerald-600">{confirmRate}%</span>
+            TB: <span className="font-semibold text-emerald-600">{avgGuestsPerBooking}</span> khách/booking
           </p>
         </div>
         <div className="flex gap-4">
           <div className="text-center">
-            <p className="text-xs text-slate-500">Tổng</p>
-            <p className="text-lg font-bold text-indigo-600">{totalBookings}</p>
+            <p className="text-xs text-slate-500">Tháng này</p>
+            <p className="text-lg font-bold text-indigo-600">{currentMonthData?.count || 0}</p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-slate-500">Xác nhận</p>
-            <p className="text-lg font-bold text-emerald-600">{totalConfirmed}</p>
+            <p className="text-xs text-slate-500">Khách</p>
+            <p className="text-lg font-bold text-emerald-600">{currentMonthData?.guests || 0}</p>
           </div>
         </div>
       </div>
@@ -166,12 +200,12 @@ const BookingsChart: React.FC<BookingsChartProps> = ({ data }) => {
           <p className="text-sm font-semibold text-indigo-600">{totalBookings}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-slate-500">Đã xác nhận</p>
-          <p className="text-sm font-semibold text-emerald-600">{totalConfirmed}</p>
+          <p className="text-xs text-slate-500">Tổng khách</p>
+          <p className="text-sm font-semibold text-emerald-600">{totalGuests}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-slate-500">Chờ xác nhận</p>
-          <p className="text-sm font-semibold text-amber-600">{totalPending}</p>
+          <p className="text-xs text-slate-500">TB/booking</p>
+          <p className="text-sm font-semibold text-purple-600">{avgGuestsPerBooking}</p>
         </div>
       </div>
     </div>
