@@ -1,7 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import useUser from '@/hooks/useUser';
+import { trackClick, trackImpressions, SourceType, ModelType } from '@/utils/tracking';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -16,6 +18,11 @@ interface Tour {
   images: string[];
 }
 
+interface ApiResponse {
+  data: Tour[];
+  model?: ModelType;
+}
+
 interface Props {
   type: 'homepage' | 'similar' | 'post-booking';
   tourId?: string;
@@ -26,19 +33,34 @@ interface Props {
 export default function TourRecommendations({ type, tourId, heading, limit = 4 }: Props) {
   const [tours, setTours] = useState<Tour[]>([]);
   const [loading, setLoading] = useState(true);
+  const [model, setModel] = useState<ModelType | null>(null);
+  const { user } = useUser();
+
+  // Map component type to tracking source
+  const getSource = (): SourceType => {
+    switch (type) {
+      case 'homepage': return 'homepage';
+      case 'similar': return 'similar';
+      case 'post-booking': return 'post_booking';
+      default: return 'direct';
+    }
+  };
 
   useEffect(() => {
     const fetchRec = async () => {
       try {
         let url = '';
         if (type === 'homepage') {
-          url = `${API_BASE}/api/recommendations/homepage?limit=${limit}`;
+          // Include userId for personalization
+          const userId = user?.id || '';
+          url = `${API_BASE}/api/recommendations/homepage?limit=${limit}${userId ? `&userId=${userId}` : ''}`;
         }
         if (type === 'similar' && tourId) {
           url = `${API_BASE}/api/recommendations/similar/${tourId}?limit=${limit}`;
         }
         if (type === 'post-booking' && tourId) {
-          url = `${API_BASE}/api/recommendations/post-booking/${tourId}?limit=${limit}`;
+          const userId = user?.id || '';
+          url = `${API_BASE}/api/recommendations/post-booking/${tourId}?limit=${limit}${userId ? `&userId=${userId}` : ''}`;
         }
 
         if (!url) {
@@ -47,8 +69,22 @@ export default function TourRecommendations({ type, tourId, heading, limit = 4 }
         }
 
         const res = await fetch(url, { credentials: 'include' });
-        const json = await res.json();
+        const json: ApiResponse = await res.json();
+
         setTours(json.data ?? []);
+        setModel(json.model || null);
+
+        // Track impressions when recommendations are displayed
+        if (json.data && json.data.length > 0) {
+          trackImpressions(
+            json.data.map(t => t._id),
+            {
+              userId: user?.id,
+              source: getSource(),
+              model: json.model || null
+            }
+          );
+        }
       } catch (err) {
         console.error('Recommendation fetch error:', err);
         setTours([]);
@@ -58,7 +94,17 @@ export default function TourRecommendations({ type, tourId, heading, limit = 4 }
     };
 
     fetchRec();
-  }, [type, tourId, limit]);
+  }, [type, tourId, limit, user?.id]);
+
+  // Handle tour click with tracking
+  const handleTourClick = useCallback((clickedTourId: string, position: number) => {
+    trackClick(clickedTourId, {
+      userId: user?.id,
+      source: getSource(),
+      model,
+      position
+    });
+  }, [user?.id, model, type]);
 
   if (loading) {
     return (
@@ -103,10 +149,11 @@ export default function TourRecommendations({ type, tourId, heading, limit = 4 }
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {tours.map((tour) => (
+        {tours.map((tour, index) => (
           <Link
             key={tour._id}
             href={`/user/destination/${getSlug(tour)}/${tour._id}`}
+            onClick={() => handleTourClick(tour._id, index)}
             className="group block rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
           >
             {/* Image */}

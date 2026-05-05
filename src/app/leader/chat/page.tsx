@@ -27,24 +27,24 @@ import {
 
 const ROLE_COLORS: Record<string, { bg: string; text: string; bubble: string }> = {
   admin: {
-    bg: "bg-blue-100",
-    text: "text-blue-700",
+    bg: "bg-blue-500/10",
+    text: "text-blue-400",
     bubble: "bg-gradient-to-r from-blue-600 to-blue-700 text-white",
   },
   leader: {
-    bg: "bg-emerald-100",
-    text: "text-emerald-700",
-    bubble: "bg-gradient-to-r from-emerald-600 to-teal-600 text-white",
+    bg: "bg-orange-500/10",
+    text: "text-orange-400",
+    bubble: "bg-gradient-to-r from-orange-500 to-orange-600 text-white",
   },
   user: {
-    bg: "bg-orange-100",
-    text: "text-orange-700",
-    bubble: "bg-white text-slate-800 border border-slate-200",
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    bubble: "bg-white/10 text-white border border-white/10",
   },
   guest: {
-    bg: "bg-slate-100",
-    text: "text-slate-600",
-    bubble: "bg-white text-slate-800 border border-slate-200",
+    bg: "bg-slate-500/10",
+    text: "text-slate-400",
+    bubble: "bg-white/10 text-white border border-white/10",
   },
 };
 
@@ -224,31 +224,31 @@ export default function LeaderChatPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mx-auto mb-4" />
-          <p className="text-slate-600">Đang tải...</p>
+          <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-4" />
+          <p className="text-slate-400">Đang tải...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] lg:h-screen flex">
+    <div className="h-[calc(100vh-3.5rem)] lg:h-screen flex bg-[#0f172a]">
       {/* Sidebar - Tour List */}
       <div
         className={`
           ${selectedTour ? "hidden md:flex" : "flex"}
-          w-full md:w-80 lg:w-96 flex-col border-r border-slate-200 bg-white
+          w-full md:w-80 lg:w-96 flex-col border-r border-white/10 bg-white/5
         `}
       >
         {/* Header */}
-        <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-emerald-600 to-teal-600">
+        <div className="p-4 border-b border-white/10 bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600">
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
             <MessageSquare className="w-5 h-5" />
             Chat nhóm Tour
           </h1>
-          <p className="text-sm text-emerald-100 mt-1">
+          <p className="text-sm text-blue-100 mt-1">
             Liên lạc với khách hàng
           </p>
         </div>
@@ -256,28 +256,28 @@ export default function LeaderChatPage() {
         {/* Tour List */}
         <div className="flex-1 overflow-y-auto">
           {tours.length === 0 ? (
-            <div className="p-8 text-center text-slate-400">
+            <div className="p-8 text-center text-slate-500">
               <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>Chưa có tour nào đang hoạt động</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-white/5">
               {tours.map((tour) => (
                 <button
                   key={tour._id}
                   onClick={() => setSelectedTour(tour)}
-                  className={`w-full p-4 text-left hover:bg-slate-50 transition-colors ${
-                    selectedTour?._id === tour._id ? "bg-emerald-50 border-l-4 border-emerald-500" : ""
+                  className={`w-full p-4 text-left hover:bg-white/5 transition-colors ${
+                    selectedTour?._id === tour._id ? "bg-blue-500/10 border-l-4 border-orange-500" : ""
                   }`}
                 >
-                  <h3 className="font-semibold text-slate-800 truncate">
+                  <h3 className="font-semibold text-white truncate">
                     {tour.title}
                   </h3>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-slate-500">
+                  <div className="flex items-center gap-2 mt-1 text-sm text-slate-400">
                     <MapPin className="w-3.5 h-3.5" />
                     <span className="truncate">{tour.destination}</span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                  <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
                     <Calendar className="w-3 h-3" />
                     <span>
                       {formatDate(tour.startDate)} - {formatDate(tour.endDate)}
@@ -287,10 +287,10 @@ export default function LeaderChatPage() {
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                         tour.status === "in_progress"
-                          ? "bg-emerald-100 text-emerald-700"
+                          ? "bg-emerald-500/10 text-emerald-400"
                           : tour.status === "confirmed"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-slate-100 text-slate-600"
+                          ? "bg-blue-500/10 text-blue-400"
+                          : "bg-slate-500/10 text-slate-400"
                       }`}
                     >
                       {tour.status === "in_progress"
@@ -312,27 +312,27 @@ export default function LeaderChatPage() {
       </div>
 
       {/* Chat Area */}
-      <div className={`${selectedTour ? "flex" : "hidden md:flex"} flex-1 flex-col bg-slate-50`}>
+      <div className={`${selectedTour ? "flex" : "hidden md:flex"} flex-1 flex-col`}>
         {selectedTour ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-slate-200 bg-white flex items-center gap-4">
+            <div className="p-4 border-b border-white/10 bg-white/5 flex items-center gap-4">
               <button
                 onClick={() => setSelectedTour(null)}
-                className="md:hidden p-2 rounded-lg hover:bg-slate-100"
+                className="md:hidden p-2 rounded-lg hover:bg-white/10 text-white"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <div className="flex-1 min-w-0">
-                <h2 className="font-semibold text-slate-800 truncate">
+                <h2 className="font-semibold text-white truncate">
                   {selectedTour.title}
                 </h2>
-                <div className="flex items-center gap-3 text-sm text-slate-500">
+                <div className="flex items-center gap-3 text-sm text-slate-400">
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5" />
                     {selectedTour.destination}
                   </span>
-                  <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                  <span className="flex items-center gap-1 text-orange-400 font-medium">
                     <Users className="w-3.5 h-3.5" />
                     {bookings.length} đơn đặt • {totalGuests} khách
                   </span>
@@ -342,8 +342,8 @@ export default function LeaderChatPage() {
                 onClick={() => setShowParticipants(!showParticipants)}
                 className={`p-2 rounded-lg transition-colors ${
                   showParticipants
-                    ? "bg-emerald-100 text-emerald-600"
-                    : "hover:bg-slate-100 text-slate-500"
+                    ? "bg-orange-500/20 text-orange-400"
+                    : "hover:bg-white/10 text-slate-400"
                 }`}
                 title="Danh sách khách hàng"
               >
@@ -351,7 +351,7 @@ export default function LeaderChatPage() {
               </button>
               <button
                 onClick={() => loadMessages(selectedTour._id)}
-                className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"
+                className="p-2 rounded-lg hover:bg-white/10 text-slate-400"
                 title="Làm mới"
               >
                 <RefreshCw className={`w-5 h-5 ${isLoadingMessages ? "animate-spin" : ""}`} />
@@ -366,10 +366,10 @@ export default function LeaderChatPage() {
               >
                 {isLoadingMessages && messages.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                  <div className="flex flex-col items-center justify-center h-full text-slate-500">
                     <MessageSquare className="w-16 h-16 mb-4 opacity-30" />
                     <p className="text-lg font-medium">Chưa có tin nhắn</p>
                     <p className="text-sm mt-1">Hãy bắt đầu cuộc trò chuyện!</p>
@@ -396,7 +396,7 @@ export default function LeaderChatPage() {
                               >
                                 {ROLE_LABELS[msg.fromRole] || msg.fromRole}
                               </span>
-                              <span className="text-xs text-slate-600 font-medium">
+                              <span className="text-xs text-slate-400 font-medium">
                                 {displayName}
                               </span>
                             </div>
@@ -404,10 +404,10 @@ export default function LeaderChatPage() {
 
                           {/* Message bubble */}
                           <div
-                            className={`rounded-2xl px-4 py-2.5 shadow-sm ${
+                            className={`rounded-2xl px-4 py-2.5 ${
                               isMe
-                                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-br-md"
-                                : "bg-white text-slate-800 border border-slate-200 rounded-bl-md"
+                                ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-br-md shadow-lg shadow-orange-500/25"
+                                : "bg-white/10 text-white border border-white/10 rounded-bl-md"
                             }`}
                           >
                             <p className="whitespace-pre-wrap break-words">
@@ -417,7 +417,7 @@ export default function LeaderChatPage() {
 
                           {/* Time */}
                           <p
-                            className={`text-xs text-slate-400 mt-1 px-1 ${
+                            className={`text-xs text-slate-500 mt-1 px-1 ${
                               isMe ? "text-right" : "text-left"
                             }`}
                           >
@@ -433,28 +433,28 @@ export default function LeaderChatPage() {
 
               {/* Participants Panel */}
               {showParticipants && (
-                <div className="w-72 border-l border-slate-200 bg-white overflow-y-auto">
-                  <div className="p-4 border-b border-slate-100 bg-slate-50">
-                    <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-                      <Users className="w-4 h-4 text-emerald-600" />
+                <div className="w-72 border-l border-white/10 bg-white/5 overflow-y-auto">
+                  <div className="p-4 border-b border-white/10">
+                    <h3 className="font-semibold text-white flex items-center gap-2">
+                      <Users className="w-4 h-4 text-orange-400" />
                       Danh sách khách ({totalGuests} người)
                     </h3>
                   </div>
 
                   {isLoadingBookings ? (
                     <div className="p-4 flex justify-center">
-                      <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                      <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
                     </div>
                   ) : bookings.length === 0 ? (
-                    <div className="p-4 text-center text-slate-400">
+                    <div className="p-4 text-center text-slate-500">
                       <p className="text-sm">Chưa có khách đặt tour</p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-100">
+                    <div className="divide-y divide-white/5">
                       {bookings.map((booking) => (
-                        <div key={booking._id} className="p-3 hover:bg-slate-50">
+                        <div key={booking._id} className="p-3 hover:bg-white/5">
                           <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
                               {booking.customerAvatar ? (
                                 <img
                                   src={booking.customerAvatar}
@@ -462,11 +462,11 @@ export default function LeaderChatPage() {
                                   className="w-10 h-10 rounded-full object-cover"
                                 />
                               ) : (
-                                <User className="w-5 h-5 text-orange-600" />
+                                <User className="w-5 h-5 text-orange-400" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-slate-800 truncate">
+                              <p className="font-medium text-white truncate">
                                 {booking.customerName}
                               </p>
                               <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
@@ -474,13 +474,13 @@ export default function LeaderChatPage() {
                                 {booking.guestCount} khách
                               </p>
                               {booking.customerPhone && (
-                                <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                                   <Phone className="w-3 h-3" />
                                   {booking.customerPhone}
                                 </p>
                               )}
                               {booking.customerEmail && (
-                                <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5 truncate">
+                                <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 truncate">
                                   <Mail className="w-3 h-3" />
                                   {booking.customerEmail}
                                 </p>
@@ -491,10 +491,10 @@ export default function LeaderChatPage() {
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                                 booking.bookingStatus === "c"
-                                  ? "bg-green-100 text-green-700"
+                                  ? "bg-emerald-500/10 text-emerald-400"
                                   : booking.bookingStatus === "p"
-                                  ? "bg-yellow-100 text-yellow-700"
-                                  : "bg-slate-100 text-slate-600"
+                                  ? "bg-amber-500/10 text-amber-400"
+                                  : "bg-slate-500/10 text-slate-400"
                               }`}
                             >
                               {booking.bookingStatus === "c"
@@ -503,7 +503,7 @@ export default function LeaderChatPage() {
                                 ? "Chờ xác nhận"
                                 : booking.bookingStatus}
                             </span>
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[10px] text-slate-500">
                               #{booking.code}
                             </span>
                           </div>
@@ -516,7 +516,7 @@ export default function LeaderChatPage() {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-slate-200 bg-white">
+            <div className="p-4 border-t border-white/10 bg-white/5">
               <div className="flex items-end gap-3">
                 <div className="flex-1 relative">
                   <textarea
@@ -525,14 +525,14 @@ export default function LeaderChatPage() {
                     onKeyPress={handleKeyPress}
                     placeholder="Nhập tin nhắn..."
                     rows={1}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none resize-none transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none resize-none transition-all"
                     style={{ minHeight: "48px", maxHeight: "120px" }}
                   />
                 </div>
                 <button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || isSending}
-                  className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-center shadow-lg shadow-emerald-200 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSending ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -544,9 +544,9 @@ export default function LeaderChatPage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
             <MessageSquare className="w-20 h-20 mb-4 opacity-30" />
-            <p className="text-xl font-medium">Chọn một tour để chat</p>
+            <p className="text-xl font-medium text-slate-400">Chọn một tour để chat</p>
             <p className="text-sm mt-2">
               Liên lạc với khách hàng trong tour của bạn
             </p>
