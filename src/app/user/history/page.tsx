@@ -26,35 +26,35 @@ import Link from "next/link";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import VnpayPayButton from "@/app/user/checkout/VnpayPayButton";
 
-type BookingStatus = "p" | "c" | "x" | "f";
+type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
 const statusMap: Record<
   BookingStatus,
   { label: string; color: string; bg: string; icon: any }
 > = {
-  p: {
+  pending: {
     label: "Chờ thanh toán",
     color: "text-amber-600",
     bg: "bg-amber-50 border-amber-100",
     icon: Clock,
   },
-  c: {
+  confirmed: {
     label: "Đã xác nhận",
     color: "text-emerald-600",
     bg: "bg-emerald-50 border-emerald-100",
     icon: CheckCircle2,
   },
-  x: {
-    label: "Đã hủy",
-    color: "text-red-600",
-    bg: "bg-red-50 border-red-100",
-    icon: XCircle,
-  },
-  f: {
+  completed: {
     label: "Hoàn thành",
     color: "text-blue-600",
     bg: "bg-blue-50 border-blue-100",
     icon: CheckCircle2,
+  },
+  cancelled: {
+    label: "Đã hủy",
+    color: "text-red-600",
+    bg: "bg-red-50 border-red-100",
+    icon: XCircle,
   },
 };
 
@@ -63,10 +63,10 @@ const statusFilters: {
   label: string;
 }[] = [
   { key: "all", label: "Tất cả" },
-  { key: "p", label: "Chờ thanh toán" },
-  { key: "c", label: "Đã xác nhận" },
-  { key: "f", label: "Hoàn thành" },
-  { key: "x", label: "Đã hủy" },
+  { key: "pending", label: "Chờ thanh toán" },
+  { key: "confirmed", label: "Đã xác nhận" },
+  { key: "completed", label: "Hoàn thành" },
+  { key: "cancelled", label: "Đã hủy" },
 ];
 
 function formatDate(dateStr?: string | null) {
@@ -219,7 +219,7 @@ export default function HistoryPage() {
       const start = new Date(b.startDate).getTime();
       const now = Date.now();
       return (
-        start >= now && (b.bookingStatus === "p" || b.bookingStatus === "c")
+        start >= now && (b.bookingStatus === "pending" || b.bookingStatus === "confirmed")
       );
     }).length;
     const totalPaid = bookings.reduce((sum, b) => sum + (b.paidAmount || 0), 0);
@@ -429,7 +429,7 @@ export default function HistoryPage() {
                         </span>
 
                         <div className="flex items-center gap-3">
-                          {booking.bookingStatus === "p" && (
+                          {booking.bookingStatus === "pending" && (
                             <>
                               <button
                                 onClick={() => setCancelTarget(booking)}

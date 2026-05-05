@@ -97,32 +97,32 @@ export default function BookingDetailPage() {
 
   // --- Logic Status ---
   const isPaidFull = (booking.paidAmount || 0) >= booking.totalPrice;
-  const isCancelable = ["p"].includes(booking.bookingStatus); // Chỉ Pending mới huỷ đc
+  const isCancelable = ["pending"].includes(booking.bookingStatus);
 
   const renderStatusBadge = () => {
     switch (booking.bookingStatus) {
-      case "p":
+      case "pending":
         return (
           <span className="flex items-center gap-1.5 bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-sm font-bold border border-amber-200">
             <Clock size={16} /> Chờ xử lý
           </span>
         );
-      case "c":
+      case "confirmed":
         return (
           <span className="flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full text-sm font-bold border border-emerald-200">
             <CheckCircle2 size={16} /> Đã xác nhận
           </span>
         );
-      case "x":
-        return (
-          <span className="flex items-center gap-1.5 bg-red-100 text-red-700 px-3 py-1.5 rounded-full text-sm font-bold border border-red-200">
-            <XCircle size={16} /> Đã hủy
-          </span>
-        );
-      case "f":
+      case "completed":
         return (
           <span className="flex items-center gap-1.5 bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full text-sm font-bold border border-blue-200">
             <CheckCircle2 size={16} /> Hoàn thành
+          </span>
+        );
+      case "cancelled":
+        return (
+          <span className="flex items-center gap-1.5 bg-red-100 text-red-700 px-3 py-1.5 rounded-full text-sm font-bold border border-red-200">
+            <XCircle size={16} /> Đã hủy
           </span>
         );
       default:
@@ -376,7 +376,7 @@ export default function BookingDetailPage() {
               {/* Actions Button */}
               <div className="mt-auto space-y-3">
                 {/* Nút thanh toán tiếp (nếu chưa đủ tiền) */}
-                {booking.bookingStatus === "p" && !isPaidFull && (
+                {booking.bookingStatus === "pending" && !isPaidFull && (
                   <button
                     onClick={() =>
                       router.push(`/user/checkout?bookingCode=${bookingCode}`)

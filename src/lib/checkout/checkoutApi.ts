@@ -23,6 +23,7 @@ export type CreateBookingBody = {
   couponCode?: string | null;
   paymentMethod: PaymentMethod;
   paymentType: "full" | "deposit" | "office";
+  note?: string;
 };
 
 // Backend format (internal use)
@@ -40,7 +41,7 @@ type BackendBookingBody = {
 
 export type CreateBookingResponse = {
   code: string;
-  status: "p" | "c" | "x" | "f";
+  status: "pending" | "confirmed" | "completed" | "cancelled";
   payment?: { redirectUrl?: string | null } | null;
   total?: number;
 };
@@ -81,7 +82,7 @@ export type MyBookingItem = {
   paymentType?: "full" | "deposit" | "office";
   paymentRefs?: PaymentRef[];
 
-  bookingStatus: "p" | "c" | "x" | "f";
+  bookingStatus: "pending" | "confirmed" | "completed" | "cancelled";
   createdAt?: string;
   updatedAt?: string;
 };
@@ -278,11 +279,11 @@ export async function createPaymentForBooking(
 }
 export async function initBookingPayment(
   bookingCode: string,
-  totalPrice: number
+  payFull: boolean = false
 ) {
   const { data } = await axiosInstance.post(
-    "/payment/vnpay/create",
-    { code: bookingCode, amount: totalPrice },
+    "/payment/vnpay",
+    { code: bookingCode, payFull },
     { headers: { "Content-Type": "application/json" } }
   );
   return data;

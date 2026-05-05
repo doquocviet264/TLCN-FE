@@ -80,18 +80,19 @@ export type BookingTab = "all" | "pending" | "upcoming" | "done" | "canceled";
 
 /** Phân loại booking theo tab dùng cho UI lọc */
 export function classifyBooking(b: any): BookingTab {
-  const st = b?.bookingStatus; // 'p' | 'c' | 'x'
-  if (st === "x") return "canceled";
-  if (st === "c") return "done";
-
-  // Nếu đang pending nhưng đã có tiền (cọc) và chưa đến ngày start -> "Sắp khởi hành"
+  const st = b?.bookingStatus;
+  if (st === "cancelled") return "canceled";
+  if (st === "completed") return "done";
+  if (st === "confirmed") {
+    const start = b?.tourId?.startDate || b?.tour?.startDate;
+    const startTime = start ? new Date(start).getTime() : Number.POSITIVE_INFINITY;
+    return startTime > Date.now() ? "upcoming" : "done";
+  }
+  // pending
   const paidSome = Number(b?.paidAmount || 0) > 0 || Boolean(b?.depositPaid);
   const start = b?.tourId?.startDate || b?.tour?.startDate;
-  const startTime = start
-    ? new Date(start).getTime()
-    : Number.POSITIVE_INFINITY;
-  if (st === "p" && paidSome && startTime > Date.now()) return "upcoming";
-
+  const startTime = start ? new Date(start).getTime() : Number.POSITIVE_INFINITY;
+  if (paidSome && startTime > Date.now()) return "upcoming";
   return "pending";
 }
 

@@ -18,7 +18,7 @@ export interface BookingData {
     startDate: string;
     endDate: string;
   };
-  userId: {
+  userId?: {
     _id: string;
     fullName: string;
     username: string;
@@ -29,17 +29,22 @@ export interface BookingData {
   email: string;
   phoneNumber: string;
   address: string;
+  note?: string;
   numAdults: number;
   numChildren: number;
+  priceAdultSnapshot?: number;
+  priceChildSnapshot?: number;
   totalPrice: number;
-  bookingStatus: "p" | "c" | "x"; // p=pending, c=confirmed, x=cancelled
+  voucherCode?: string;
+  discountAmount?: number;
+  bookingStatus: "pending" | "confirmed" | "completed" | "cancelled";
+  cancelReason?: string;
   code: string;
-  depositRate: number;
-  depositAmount: number;
   paidAmount: number;
   depositPaid: boolean;
   paymentMethod: string;
   paymentRefs: PaymentRef[];
+  isAdminCreated?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,9 +52,14 @@ export interface BookingData {
 export interface GetAdminBookingsParams {
   page?: number;
   limit?: number;
-  status?: "p" | "c" | "x";
+  status?: string;
   tourId?: string;
   search?: string;
+  startDate?: string;
+  endDate?: string;
+  paymentStatus?: "unpaid" | "deposited" | "full";
+  customerType?: "member" | "guest";
+  paymentMethod?: string;
 }
 
 export interface BookingsResponse {
@@ -66,15 +76,20 @@ export const getAdminBookings = async (
   params?: GetAdminBookingsParams
 ): Promise<BookingsResponse> => {
   try {
-    const { page = 1, limit = 20, status, tourId, search } = params || {};
-
-    console.log("📊 Fetching admin bookings with params:", {
-      page,
-      limit,
-      status,
-      tourId,
+    const { 
+      page = 1, 
+      limit = 20, 
+      status, 
+      tourId, 
       search,
-    });
+      startDate,
+      endDate,
+      paymentStatus,
+      customerType,
+      paymentMethod
+    } = params || {};
+
+    console.log("📊 Fetching admin bookings with advanced filters:", params);
 
     const queryParams = new URLSearchParams();
     queryParams.append("page", page.toString());
@@ -82,6 +97,11 @@ export const getAdminBookings = async (
     if (status) queryParams.append("status", status);
     if (tourId) queryParams.append("tourId", tourId);
     if (search) queryParams.append("search", search);
+    if (startDate) queryParams.append("startDate", startDate);
+    if (endDate) queryParams.append("endDate", endDate);
+    if (paymentStatus) queryParams.append("paymentStatus", paymentStatus);
+    if (customerType) queryParams.append("customerType", customerType);
+    if (paymentMethod) queryParams.append("paymentMethod", paymentMethod);
 
     const response = await adminApi.get(
       `/admin/bookings?${queryParams.toString()}`
@@ -114,14 +134,14 @@ export const getAdminBookingById = async (id: string): Promise<BookingData> => {
  */
 export const updateBookingStatus = async (
   id: string,
-  status: "c" | "x"
+  status: "confirmed" | "cancelled" | "completed",
+  cancelReason?: string
 ): Promise<BookingData> => {
   try {
-    console.log("🔄 Updating booking status:", id, "->", status);
     const response = await adminApi.patch(`/admin/bookings/${id}/status`, {
       status,
+      cancelReason,
     });
-    console.log("✅ Booking status updated successfully");
     return response.data;
   } catch (error: any) {
     console.error("❌ Failed to update booking status:", error.response?.data);
@@ -156,6 +176,35 @@ export const getAdminBookingByCode = async (
     return response.data;
   } catch (error: any) {
     console.error("❌ Failed to fetch booking:", error.response?.data);
+    throw error;
+  }
+};
+
+/**
+ * Admin: Create a new booking (for walk-in or user)
+ */
+export const adminCreateBooking = async (
+  payload: {
+    tourDepartureId: string;
+    userId?: string | null;
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    address: string;
+    note?: string;
+    numAdults: number;
+    numChildren: number;
+    paymentMethod: string;
+    paidAmount: number;
+  }
+): Promise<{ message: string; booking: BookingData }> => {
+  try {
+    console.log("📝 Admin creating booking:", payload);
+    const response = await adminApi.post(`/admin/bookings`, payload);
+    console.log("✅ Admin booking created successfully");
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Failed to create booking via admin:", error.response?.data);
     throw error;
   }
 };

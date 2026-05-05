@@ -18,6 +18,10 @@ import {
   Banknote,
   ChevronRight,
   Check,
+  Clock,
+  Copy,
+  ExternalLink,
+  FileText,
 } from "lucide-react";
 
 import { useGetTourById, useGetDepartureById } from "#/hooks/tours-hook/useTourDetail";
@@ -63,7 +67,7 @@ const isPhoneVN = (s: string) =>
  * ===========================================================
  */
 type PaymentMethod = CreateBookingBody["paymentMethod"];
-type PaymentType = "office" | "full";
+type PaymentType = "deposit" | "full" | "office";
 
 /* ===========================================================
  * Loading Fallback
@@ -118,11 +122,12 @@ function CheckoutContent() {
     phone: "",
     email: "",
     address: "",
+    note: "",
   });
   const [adults, setAdults] = React.useState(initAdults);
   const [children, setChildren] = React.useState(initChildren);
 
-  const [paymentType, setPaymentType] = React.useState<PaymentType>("office");
+  const [paymentType, setPaymentType] = React.useState<PaymentType>("full");
   const [paymentMethod, setPaymentMethod] =
     React.useState<PaymentMethod>("office-payment");
 
@@ -143,6 +148,13 @@ function CheckoutContent() {
   // Danh sách voucher của user
   const [myVouchers, setMyVouchers] = React.useState<Voucher[]>([]);
   const [loadingMyVouchers, setLoadingMyVouchers] = React.useState(true);
+  
+  /* ---------- Sync Payment Method when Type changes ---------- */
+  React.useEffect(() => {
+    if (paymentType === "deposit" && paymentMethod === "office-payment") {
+      setPaymentMethod("vnpay-payment");
+    }
+  }, [paymentType, paymentMethod]);
 
   /* ---------- Prefill user profile ---------- */
   React.useEffect(() => {
@@ -154,6 +166,7 @@ function CheckoutContent() {
           email: user.email || "",
           phone: user.phone || "",
           address: "",
+          note: "",
         });
         setIsReadOnly(true);
         return;
@@ -166,6 +179,7 @@ function CheckoutContent() {
             email: profile.email || "",
             phone: profile.phone || "",
             address: "",
+            note: "",
           });
           setIsReadOnly(true);
         }
@@ -297,7 +311,10 @@ function CheckoutContent() {
       },
       paymentMethod,
       couponCode: voucher?.code || null,
-      paymentType: paymentType as CreateBookingBody["paymentType"],
+      paymentType: (paymentMethod === "office-payment"
+        ? "office"
+        : paymentType) as CreateBookingBody["paymentType"],
+      note: formData.note?.trim() || undefined,
     };
 
     try {
@@ -311,9 +328,10 @@ function CheckoutContent() {
       // Thanh toán VNPay
       if (paymentMethod === "vnpay-payment") {
         try {
-          const payData = await initBookingPayment(res.code, total);
+          const isFullPayment = paymentType === "full";
+          const payData = await initBookingPayment(res.code, isFullPayment);
           const redirectUrl =
-            payData?.payUrl || payData?.deeplink || payData?.payment?.redirectUrl;
+            payData?.paymentUrl || payData?.payUrl || payData?.deeplink || payData?.payment?.redirectUrl;
 
           if (redirectUrl) {
             // Chuyển hướng đến VNPay để thanh toán
@@ -431,6 +449,9 @@ function CheckoutContent() {
         >
           {/* LEFT COLUMN: INFO */}
           <div className="space-y-6 lg:col-span-8">
+            {/* 0. Tour Information */}
+            <TourInfoSection tour={tour} departure={departure} />
+
             {/* 1. Contact Info */}
             <Card
               title="Thông tin liên lạc"
@@ -481,6 +502,16 @@ function CheckoutContent() {
                   icon={<MapPin size={16} />}
                   error={errors.address}
                 />
+                <TextArea
+                  name="note"
+                  label="Ghi chú"
+                  placeholder="Yêu cầu đặc biệt, lưu ý cho tour..."
+                  value={formData.note}
+                  onChange={(e: any) =>
+                    handleInputChange("note", e.target.value)
+                  }
+                  icon={<FileText size={16} />}
+                />
               </div>
             </Card>
 
@@ -509,12 +540,77 @@ function CheckoutContent() {
               title="Phương thức thanh toán"
               icon={<Banknote size={18} className="text-emerald-600" />}
             >
-              <PaymentMethods
-                value={paymentMethod}
-                onChange={setPaymentMethod}
-                typeValue={paymentType}
-                onTypeChange={setPaymentType}
-              />
+              <div className="mb-8">
+                <p className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
+                  Chọn mức thanh toán
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <label
+                    onClick={() => setPaymentType("deposit")}
+                    className={`relative flex flex-col p-4 rounded-2xl border cursor-pointer transition-all ${
+                      paymentType === "deposit"
+                        ? "border-orange-500 bg-orange-50/30 ring-1 ring-orange-500"
+                        : "border-slate-200 hover:border-orange-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        type="radio"
+                        checked={paymentType === "deposit"}
+                        readOnly
+                        className="w-4 h-4 text-orange-600"
+                      />
+                      <span className="text-sm font-bold text-slate-800">Đặt cọc 50%</span>
+                    </div>
+                    <p className="text-base font-bold text-orange-600">{vnd(totalDisplay / 2)}</p>
+                    <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-wider">Thanh toán trước để giữ chỗ</p>
+                    {paymentType === "deposit" && (
+                      <div className="absolute top-2 right-2">
+                        <Check size={16} className="text-orange-500" />
+                      </div>
+                    )}
+                  </label>
+
+                  <label
+                    onClick={() => setPaymentType("full")}
+                    className={`relative flex flex-col p-4 rounded-2xl border cursor-pointer transition-all ${
+                      paymentType === "full"
+                        ? "border-emerald-500 bg-emerald-50/30 ring-1 ring-emerald-500"
+                        : "border-slate-200 hover:border-emerald-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        type="radio"
+                        checked={paymentType === "full"}
+                        readOnly
+                        className="w-4 h-4 text-emerald-600"
+                      />
+                      <span className="text-sm font-bold text-slate-800">Toàn bộ 100%</span>
+                    </div>
+                    <p className="text-base font-bold text-emerald-600">{vnd(totalDisplay)}</p>
+                    <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-wider">Thanh toán hết một lần</p>
+                    {paymentType === "full" && (
+                      <div className="absolute top-2 right-2">
+                        <Check size={16} className="text-emerald-500" />
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100">
+                <p className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-emerald-500 rounded-full"></span>
+                  Chọn phương thức thanh toán
+                </p>
+                <PaymentMethods
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                  paymentType={paymentType}
+                />
+              </div>
             </Card>
           </div>
 
@@ -599,24 +695,45 @@ function CheckoutContent() {
                 <div className="flex items-end justify-between border-t border-slate-200 pt-4">
                   <div>
                     <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                      Tổng cộng
+                      Tổng giá trị
                     </span>
                     <p className="text-[11px] text-slate-400">
-                      Giá đã bao gồm thuế & phí cơ bản
+                      Đã bao gồm thuế & phí
                     </p>
                   </div>
-                  <span className="text-2xl font-extrabold text-slate-900">
+                  <span className="text-xl font-bold text-slate-900">
                     {vnd(totalDisplay)}
                   </span>
                 </div>
+
+                {/* Amount to Pay Now */}
+                {paymentType === "deposit" && (
+                  <div className="flex items-end justify-between bg-orange-50/50 p-3 rounded-2xl border border-orange-100 mt-2">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-[0.16em] text-orange-700">
+                        Thanh toán ngay (50%)
+                      </span>
+                      <p className="text-[10px] text-orange-600/70 font-medium">
+                        Số còn lại sẽ trả sau
+                      </p>
+                    </div>
+                    <span className="text-lg font-bold text-orange-600">
+                      {vnd(totalDisplay / 2)}
+                    </span>
+                  </div>
+                )}
 
                 <Button
                   type="submit"
                   full
                   disabled={submitting}
-                  className="h-12 text-base"
+                  className="h-12 text-base mt-2"
                 >
-                  {submitting ? "Đang xử lý..." : "Thanh toán ngay"}
+                  {submitting
+                    ? "Đang xử lý..."
+                    : paymentType === "deposit"
+                    ? `Thanh toán cọc ${vnd(totalDisplay / 2)}`
+                    : "Thanh toán ngay"}
                 </Button>
 
                 {errors.submit && (
@@ -768,6 +885,114 @@ function Card({ title, icon, children }: any) {
   );
 }
 
+function TourInfoSection({ tour, departure }: any) {
+  const coverImg =
+    tour?.images?.[0] || tour?.image || tour?.cover || "/hot1.jpg";
+  const pickupAddress = "số 1 Võ Văn Ngân, Thủ Đức, Tp.HCM";
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(pickupAddress);
+    alert("Đã sao chép địa chỉ điểm đón!");
+  };
+
+  const handleMap = () => {
+    const coords = "10.850869557921364,106.77178574194953";
+    const url = `https://www.google.com/maps?q=${coords}`;
+    window.open(url, "_blank");
+  };
+
+  return (
+    <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm shadow-slate-100">
+      <div className="mb-6 flex items-center gap-3">
+        <span className="h-2.5 w-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+        <h2 className="text-xl font-bold text-slate-900">Thông tin tour</h2>
+      </div>
+
+      <div className="space-y-5">
+        {/* Tour Header Box */}
+        <div className="flex gap-5 rounded-3xl border border-slate-100 bg-slate-50/30 p-5">
+          <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl shadow-sm border border-white">
+            <Image
+              src={coverImg}
+              alt={tour?.title || "Tour"}
+              fill
+              className="object-cover"
+            />
+          </div>
+          <div className="flex flex-col justify-center">
+            <h3 className="text-xl font-extrabold text-slate-900 leading-tight mb-2 line-clamp-2">
+              {tour?.title}
+            </h3>
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <span className="text-slate-500">
+                Ngày đi:{" "}
+                <span className="font-bold text-orange-600">
+                  {dmy(departure?.startDate)}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Pickup Info Section */}
+        <div className="rounded-[28px] border border-slate-100 bg-white shadow-sm overflow-hidden">
+          {/* Section Header */}
+          <div className="flex items-center justify-between px-5 py-4">
+            <div className="flex items-center gap-2 rounded-full bg-orange-50 border border-orange-100 px-4 py-1.5 text-xs font-bold text-orange-700">
+              <MapPin size={16} className="text-orange-600" /> Điểm đón khách
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-orange-600 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-orange-200">
+              <Clock size={16} /> 07h30 hoặc 12h30
+            </div>
+          </div>
+
+          {/* Address Box */}
+          <div className="mx-4 mb-4 rounded-2xl border border-slate-100 bg-white p-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                  Địa chỉ điểm đón
+                </p>
+                <p className="text-base font-bold text-slate-800 leading-snug">
+                  {pickupAddress}
+                </p>
+                <p className="text-xs text-slate-400 mt-1.5 font-medium">
+                  Có bãi gửi xe máy
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95 shadow-sm"
+                >
+                  <Copy size={15} /> Copy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMap}
+                  className="flex items-center gap-1.5 rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-orange-700 active:scale-95 shadow-lg shadow-orange-200"
+                >
+                  <ExternalLink size={15} /> Map
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Instruction */}
+          <div className="bg-slate-50/80 px-6 py-3 border-t border-slate-100/50">
+            <p className="text-xs font-medium text-slate-500">
+              Có mặt trước{" "}
+              <span className="font-bold text-slate-700">10–15 phút</span> để
+              làm thủ tục.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Input({ label, icon, error, ...props }: any) {
   const hasError = !!error;
   return (
@@ -828,7 +1053,7 @@ function QuantitySelector({ label, value, onChange, min, price }: any) {
   );
 }
 
-function PaymentMethods({ value, onChange, typeValue, onTypeChange }: any) {
+function PaymentMethods({ value, onChange, paymentType }: any) {
   const methods = [
     {
       id: "office-payment",
@@ -836,6 +1061,7 @@ function PaymentMethods({ value, onChange, typeValue, onTypeChange }: any) {
       name: "Thanh toán tại văn phòng",
       desc: "Giữ chỗ trong 24h, thanh toán sau",
       img: "/pay.png",
+      disabled: paymentType === "deposit",
     },
     {
       id: "vnpay-payment",
@@ -843,6 +1069,7 @@ function PaymentMethods({ value, onChange, typeValue, onTypeChange }: any) {
       name: "Thanh toán VNPay",
       desc: "Thanh toán trực tuyến qua VNPay (QR, thẻ ATM, Visa...)",
       img: "/vnpay.png",
+      disabled: false,
     },
   ];
 
@@ -852,13 +1079,15 @@ function PaymentMethods({ value, onChange, typeValue, onTypeChange }: any) {
         <label
           key={m.id}
           onClick={() => {
+            if (m.disabled) return;
             onChange(m.id);
-            onTypeChange(m.type);
           }}
-          className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
-            value === m.id
-              ? "border-emerald-500 bg-emerald-50/30 ring-1 ring-emerald-500"
-              : "border-slate-200 hover:border-emerald-200 hover:bg-slate-50"
+          className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
+            m.disabled
+              ? "opacity-50 cursor-not-allowed bg-slate-50 grayscale"
+              : value === m.id
+              ? "border-emerald-500 bg-emerald-50/30 ring-1 ring-emerald-500 cursor-pointer"
+              : "border-slate-200 hover:border-emerald-200 hover:bg-slate-50 cursor-pointer"
           }`}
         >
           <input
@@ -866,6 +1095,7 @@ function PaymentMethods({ value, onChange, typeValue, onTypeChange }: any) {
             name="payment"
             className="w-5 h-5 text-emerald-600 focus:ring-emerald-500"
             checked={value === m.id}
+            disabled={m.disabled}
             readOnly
           />
           <div className="w-10 h-10 relative flex-shrink-0">
@@ -883,15 +1113,50 @@ function PaymentMethods({ value, onChange, typeValue, onTypeChange }: any) {
               }}
             />
           </div>
-          <div>
+          <div className="flex-1">
             <p className="font-bold text-slate-800 text-sm">{m.name}</p>
             <p className="text-xs text-slate-500">{m.desc}</p>
+            {m.disabled && (
+              <p className="text-[10px] text-red-500 font-bold mt-1">
+                Không áp dụng cho đặt cọc 50%
+              </p>
+            )}
           </div>
         </label>
       ))}
     </div>
   );
 }
+function TextArea({ label, icon, error, ...props }: any) {
+  const hasError = !!error;
+  return (
+    <div className="md:col-span-2">
+      <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <div className="absolute top-3 left-3 pointer-events-none text-slate-400">
+          {icon}
+        </div>
+        <textarea
+          {...props}
+          rows={3}
+          className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm font-medium text-slate-700 bg-slate-50/50 focus:bg-white outline-none transition-all resize-none ${
+            hasError
+              ? "border-rose-400 focus:ring-2 focus:ring-rose-400"
+              : "border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          }`}
+        />
+      </div>
+      {hasError && (
+        <p className="mt-1 text-xs text-rose-600 flex items-center gap-1">
+          <AlertCircle size={12} /> {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function Button({ children, className = "", ...props }: any) {
   return (
     <button

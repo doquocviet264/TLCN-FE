@@ -18,13 +18,13 @@ export default function VnpayPayButton({
   disabled = false,
   className = "",
   label = "Thanh toán qua VNPay",
-  amount = null, // optional, number in VND
+  payFull = false,
 }: {
   bookingCode: string;
   disabled?: boolean;
   className?: string;
   label?: string;
-  amount?: number | null;
+  payFull?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -40,9 +40,9 @@ export default function VnpayPayButton({
       setLoading(true);
 
       // Call backend to init payment
-      const data = await initBookingPayment(bookingCode, amount || 10000);
+      const data = await initBookingPayment(bookingCode, payFull);
       const redirectUrl =
-        data?.payUrl || data?.deeplink || data?.payment?.redirectUrl || null;
+        data?.paymentUrl || data?.payUrl || data?.deeplink || data?.payment?.redirectUrl || null;
 
       if (redirectUrl) {
         // try open in new tab for better UX and fallback to same-tab
@@ -109,15 +109,6 @@ export default function VnpayPayButton({
         <>
           <CreditCard className="w-4 h-4 mr-2 opacity-95" />
           <span>{label}</span>
-          {typeof amount === "number" && (
-            <span className="ml-3 text-xs font-medium bg-white/10 px-2 py-0.5 rounded-full">
-              {new Intl.NumberFormat("vi-VN", {
-                style: "currency",
-                currency: "VND",
-                maximumFractionDigits: 0,
-              }).format(amount)}
-            </span>
-          )}
         </>
       )}
     </motion.button>

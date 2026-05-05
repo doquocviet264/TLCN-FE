@@ -53,7 +53,7 @@ export default function BookingDetailPage() {
 
   // Update status mutation
   const statusMutation = useMutation({
-    mutationFn: (status: "c" | "x") => updateBookingStatus(id, status),
+    mutationFn: (status: "confirmed" | "cancelled" | "completed") => updateBookingStatus(id, status),
     onSuccess: (data) => {
       setBooking(data);
       queryClient.invalidateQueries({ queryKey: ["adminBookings"] });
@@ -96,13 +96,14 @@ export default function BookingDetailPage() {
     },
   });
 
-  const getStatusBadge = (status: "p" | "c" | "x") => {
-    const statusMap: Record<"p" | "c" | "x", { label: string; color: string }> = {
-      p: { label: "Chờ thanh toán", color: "bg-yellow-100 text-yellow-800" },
-      c: { label: "Đã xác nhận", color: "bg-green-100 text-green-800" },
-      x: { label: "Đã hủy", color: "bg-red-100 text-red-800" },
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { label: string; color: string }> = {
+      pending: { label: "Chờ thanh toán", color: "bg-yellow-100 text-yellow-800" },
+      confirmed: { label: "Đã xác nhận", color: "bg-emerald-100 text-emerald-800" },
+      completed: { label: "Hoàn thành", color: "bg-blue-100 text-blue-800" },
+      cancelled: { label: "Đã hủy", color: "bg-red-100 text-red-800" },
     };
-    const { label, color } = statusMap[status];
+    const { label, color } = statusMap[status] || { label: status, color: "bg-gray-100 text-gray-800" };
     return (
       <span className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${color}`}>
         {label}
@@ -332,7 +333,7 @@ export default function BookingDetailPage() {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-bold text-slate-900 mb-4">Hành động</h2>
                 <div className="space-y-3">
-                  {booking.bookingStatus === "p" && (
+                  {booking.bookingStatus === "pending" && (
                     <>
                       <button
                         onClick={() =>
@@ -341,7 +342,7 @@ export default function BookingDetailPage() {
                             "Bạn có chắc chắn muốn xác nhận đơn đặt tour này?",
                             () => {
                               setActiveAction("confirm");
-                              statusMutation.mutate("c");
+                              statusMutation.mutate("confirmed");
                             }
                           )
                         }
@@ -354,10 +355,10 @@ export default function BookingDetailPage() {
                         onClick={() =>
                           handleConfirmAction(
                             "Hủy đơn đặt tour",
-                            "Bạn có chắc chắn muốn hủy đơn đặt tour này?",
+                            "Bạn có chắc chắn muốn hủy đơn đặt tour này? Slot sẽ được hoàn trả.",
                             () => {
                               setActiveAction("cancel");
-                              statusMutation.mutate("x");
+                              statusMutation.mutate("cancelled");
                             }
                           )
                         }
@@ -370,7 +371,7 @@ export default function BookingDetailPage() {
                   )}
 
                   {/* Nút xác nhận thanh toán - hiện khi còn tiền chưa trả và đơn chưa bị hủy */}
-                  {booking.bookingStatus !== "x" && booking.paidAmount < booking.totalPrice && (
+                  {booking.bookingStatus !== "cancelled" && booking.paidAmount < booking.totalPrice && (
                     <button
                       onClick={() =>
                         handleConfirmAction(
@@ -390,12 +391,12 @@ export default function BookingDetailPage() {
                   )}
 
                   {/* Nút xác nhận đặt cọc - hiện khi chưa đặt cọc */}
-                  {booking.bookingStatus === "p" && !booking.depositPaid && booking.paidAmount === 0 && (
+                  {booking.bookingStatus === "pending" && !booking.depositPaid && booking.paidAmount === 0 && (
                     <button
                       onClick={() =>
                         handleConfirmAction(
                           "Xác nhận đặt cọc",
-                          `Xác nhận khách hàng đã đặt cọc ${formatCurrency(booking.depositAmount || 0)}?`,
+                          `Xác nhận khách hàng đã đặt cọc ${formatCurrency(booking.totalPrice * 0.5)}?`,
                           () => {
                             setActiveAction("deposit");
                             paymentMutation.mutate();
