@@ -33,6 +33,7 @@ export type CardHotProps = {
     current_guests: number;
     priceAdult: number;
   }>;
+  onClick?: () => void;
 };
 
 /* ============== helpers ============== */
@@ -104,6 +105,7 @@ export default function CardHot(props: CardHotProps) {
   return (
     <Link
       href={href}
+      onClick={props.onClick}
       className="
         group flex h-full flex-col overflow-hidden
         rounded-2xl border border-slate-100 bg-white

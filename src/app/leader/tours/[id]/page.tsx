@@ -28,11 +28,11 @@ import {
 } from "@/lib/leader/leaderApi";
 
 const statusColors: Record<string, { bg: string; text: string; label: string }> = {
-  pending: { bg: "bg-yellow-100", text: "text-yellow-700", label: "Chờ xác nhận" },
-  confirmed: { bg: "bg-blue-100", text: "text-blue-700", label: "Đã xác nhận" },
-  in_progress: { bg: "bg-emerald-100", text: "text-emerald-700", label: "Đang diễn ra" },
-  completed: { bg: "bg-slate-100", text: "text-slate-700", label: "Hoàn thành" },
-  closed: { bg: "bg-red-100", text: "text-red-700", label: "Đã đóng" },
+  pending: { bg: "bg-amber-500/10", text: "text-amber-400", label: "Chờ xác nhận" },
+  confirmed: { bg: "bg-blue-500/10", text: "text-blue-400", label: "Đã xác nhận" },
+  in_progress: { bg: "bg-emerald-500/10", text: "text-emerald-400", label: "Đang diễn ra" },
+  completed: { bg: "bg-slate-500/10", text: "text-slate-400", label: "Hoàn thành" },
+  closed: { bg: "bg-red-500/10", text: "text-red-400", label: "Đã đóng" },
 };
 
 const eventTypeIcons: Record<string, any> = {
@@ -185,10 +185,10 @@ export default function TourDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Đang tải thông tin tour...</p>
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-400">Đang tải thông tin tour...</p>
         </div>
       </div>
     );
@@ -196,14 +196,14 @@ export default function TourDetailPage() {
 
   if (!tour) {
     return (
-      <div className="p-8 text-center">
+      <div className="min-h-screen bg-[#0f172a] p-8 text-center">
         <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-slate-800 mb-2">
+        <h2 className="text-xl font-bold text-white mb-2">
           Không tìm thấy tour
         </h2>
         <button
           onClick={() => router.push("/leader/tours")}
-          className="text-emerald-600 hover:underline"
+          className="text-blue-400 hover:underline"
         >
           Quay lại danh sách tour
         </button>
@@ -212,43 +212,41 @@ export default function TourDetailPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
+    <div className="min-h-screen bg-[#0f172a] text-white p-4 md:p-8 space-y-6">
       {/* Back Button */}
       <button
         onClick={() => router.push("/leader/tours")}
-        className="flex items-center gap-2 text-slate-600 hover:text-emerald-600 transition-colors"
+        className="flex items-center gap-2 text-slate-400 hover:text-blue-400 transition-colors"
       >
         <ArrowLeft className="w-5 h-5" />
         <span>Quay lại</span>
       </button>
 
       {/* Tour Header */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 rounded-3xl p-8 relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
               <div
-                className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                  statusColors[tour.status]?.bg
-                } ${statusColors[tour.status]?.text}`}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white`}
               >
                 {statusColors[tour.status]?.label}
               </div>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-3">
+            <h1 className="text-2xl md:text-3xl font-bold mb-3">
               {tour.title}
             </h1>
-            <div className="flex flex-wrap items-center gap-4 text-slate-600">
+            <div className="flex flex-wrap items-center gap-4 text-blue-100">
               <span className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-emerald-500" />
+                <MapPin className="w-5 h-5" />
                 {tour.destination}
               </span>
               <span className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-blue-500" />
+                <Calendar className="w-5 h-5" />
                 {formatDate(tour.startDate)} - {formatDate(tour.endDate)}
               </span>
               <span className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-violet-500" />
+                <Users className="w-5 h-5" />
                 {tour.bookedCount || 0}/{tour.quantity} khách
               </span>
             </div>
@@ -263,7 +261,7 @@ export default function TourDetailPage() {
                     setTimelineForm({ ...timelineForm, eventType: "departed" });
                     setShowTimelineForm(true);
                   }}
-                  className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                  className="px-4 py-2.5 rounded-xl bg-white text-blue-700 font-medium hover:bg-white/90 transition-colors flex items-center gap-2 shadow-lg"
                 >
                   <Plane className="w-5 h-5" />
                   Bắt đầu tour
@@ -275,7 +273,7 @@ export default function TourDetailPage() {
                     setTimelineForm({ ...timelineForm, eventType: "finished" });
                     setShowTimelineForm(true);
                   }}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 text-white font-medium hover:bg-slate-900 transition-colors flex items-center gap-2"
+                  className="px-4 py-2.5 rounded-xl bg-white text-slate-800 font-medium hover:bg-white/90 transition-colors flex items-center gap-2 shadow-lg"
                 >
                   <CheckCircle2 className="w-5 h-5" />
                   Kết thúc tour
@@ -284,16 +282,18 @@ export default function TourDetailPage() {
             </div>
           )}
         </div>
+        <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
+        <div className="absolute -right-5 -bottom-10 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl"></div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
+      <div className="flex gap-2 bg-white/5 p-1 rounded-xl border border-white/10">
         <button
           onClick={() => setActiveTab("timeline")}
           className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
             activeTab === "timeline"
-              ? "bg-white text-emerald-600 shadow-sm"
-              : "text-slate-600 hover:text-slate-800"
+              ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg"
+              : "text-slate-400 hover:text-white hover:bg-white/5"
           }`}
         >
           <Clock className="w-5 h-5" />
@@ -303,8 +303,8 @@ export default function TourDetailPage() {
           onClick={() => setActiveTab("passengers")}
           className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
             activeTab === "passengers"
-              ? "bg-white text-emerald-600 shadow-sm"
-              : "text-slate-600 hover:text-slate-800"
+              ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg"
+              : "text-slate-400 hover:text-white hover:bg-white/5"
           }`}
         >
           <Users className="w-5 h-5" />
@@ -314,8 +314,8 @@ export default function TourDetailPage() {
           onClick={() => setActiveTab("expenses")}
           className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
             activeTab === "expenses"
-              ? "bg-white text-emerald-600 shadow-sm"
-              : "text-slate-600 hover:text-slate-800"
+              ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg"
+              : "text-slate-400 hover:text-white hover:bg-white/5"
           }`}
         >
           <DollarSign className="w-5 h-5" />
@@ -330,7 +330,7 @@ export default function TourDetailPage() {
           {(tour.status === "confirmed" || tour.status === "in_progress") && (
             <button
               onClick={() => setShowTimelineForm(true)}
-              className="w-full py-3 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 hover:border-emerald-400 hover:text-emerald-600 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl border-2 border-dashed border-white/20 text-slate-400 hover:border-blue-500/50 hover:text-blue-400 transition-all flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Thêm sự kiện
@@ -339,14 +339,14 @@ export default function TourDetailPage() {
 
           {/* Timeline Form Modal */}
           {showTimelineForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-white rounded-2xl w-full max-w-md p-6">
-                <h3 className="text-xl font-bold text-slate-800 mb-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+              <div className="bg-slate-800 rounded-2xl w-full max-w-md p-6 border border-white/10">
+                <h3 className="text-xl font-bold text-white mb-4">
                   Thêm sự kiện Timeline
                 </h3>
                 <form onSubmit={handleSubmitTimeline} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
                       Loại sự kiện
                     </label>
                     <select
@@ -357,18 +357,18 @@ export default function TourDetailPage() {
                           eventType: e.target.value as TimelineEvent["eventType"],
                         })
                       }
-                      className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-emerald-500 outline-none"
+                      className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white focus:border-blue-500 outline-none"
                     >
-                      <option value="departed">Xuất phát</option>
-                      <option value="arrived">Đến nơi</option>
-                      <option value="checkpoint">Điểm dừng</option>
-                      <option value="note">Ghi chú</option>
-                      <option value="finished">Kết thúc</option>
+                      <option value="departed" className="bg-slate-800">Xuất phát</option>
+                      <option value="arrived" className="bg-slate-800">Đến nơi</option>
+                      <option value="checkpoint" className="bg-slate-800">Điểm dừng</option>
+                      <option value="note" className="bg-slate-800">Ghi chú</option>
+                      <option value="finished" className="bg-slate-800">Kết thúc</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
                       Địa điểm (tùy chọn)
                     </label>
                     <input
@@ -378,12 +378,12 @@ export default function TourDetailPage() {
                         setTimelineForm({ ...timelineForm, place: e.target.value })
                       }
                       placeholder="VD: Sân bay Nội Bài"
-                      className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-emerald-500 outline-none"
+                      className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
                       Ghi chú (tùy chọn)
                     </label>
                     <textarea
@@ -393,7 +393,7 @@ export default function TourDetailPage() {
                       }
                       placeholder="Thêm ghi chú..."
                       rows={3}
-                      className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-emerald-500 outline-none resize-none"
+                      className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 outline-none resize-none"
                     />
                   </div>
 
@@ -401,14 +401,14 @@ export default function TourDetailPage() {
                     <button
                       type="button"
                       onClick={() => setShowTimelineForm(false)}
-                      className="flex-1 py-2.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                      className="flex-1 py-2.5 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5"
                     >
                       Hủy
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmittingTimeline}
-                      className="flex-1 py-2.5 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white font-medium hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {isSubmittingTimeline ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -424,10 +424,10 @@ export default function TourDetailPage() {
           )}
 
           {/* Timeline List */}
-          <div className="bg-white rounded-xl p-6 border border-slate-100">
+          <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
             {!tour.timeline || tour.timeline.length === 0 ? (
               <div className="text-center py-8">
-                <Clock className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <Clock className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-500">Chưa có sự kiện nào</p>
               </div>
             ) : (
@@ -437,14 +437,14 @@ export default function TourDetailPage() {
                   return (
                     <div
                       key={event._id || index}
-                      className="flex gap-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0"
+                      className="flex gap-4 pb-4 border-b border-white/10 last:border-0 last:pb-0"
                     >
-                      <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                        <IconComponent className="w-5 h-5 text-emerald-600" />
+                      <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                        <IconComponent className="w-5 h-5 text-blue-400" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className="font-semibold text-slate-800">
+                          <span className="font-semibold text-white">
                             {eventTypeLabels[event.eventType] || event.eventType}
                           </span>
                           <span className="text-sm text-slate-500">
@@ -452,7 +452,7 @@ export default function TourDetailPage() {
                           </span>
                         </div>
                         {event.place && (
-                          <p className="text-slate-600 flex items-center gap-1">
+                          <p className="text-slate-400 flex items-center gap-1">
                             <MapPin className="w-4 h-4" />
                             {event.place}
                           </p>
@@ -472,45 +472,45 @@ export default function TourDetailPage() {
 
       {/* Passengers Tab */}
       {activeTab === "passengers" && (
-        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+        <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
           {passengers.length === 0 ? (
             <div className="text-center py-10">
-              <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" />
               <p className="text-slate-500">Chưa có hành khách đặt chỗ</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50">
+                <thead className="bg-white/5">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Mã đặt vé</th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Tên khách</th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-600">SĐT</th>
-                    <th className="px-4 py-3 text-center font-semibold text-slate-600">Người lớn</th>
-                    <th className="px-4 py-3 text-center font-semibold text-slate-600">Trẻ em</th>
-                    <th className="px-4 py-3 text-right font-semibold text-slate-600">Tổng tiền</th>
-                    <th className="px-4 py-3 text-center font-semibold text-slate-600">Trạng thái</th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-400">Mã đặt vé</th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-400">Tên khách</th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-400">SĐT</th>
+                    <th className="px-4 py-3 text-center font-semibold text-slate-400">Người lớn</th>
+                    <th className="px-4 py-3 text-center font-semibold text-slate-400">Trẻ em</th>
+                    <th className="px-4 py-3 text-right font-semibold text-slate-400">Tổng tiền</th>
+                    <th className="px-4 py-3 text-center font-semibold text-slate-400">Trạng thái</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-white/10">
                   {passengers.map((p, i) => {
                     const name = p.userId?.fullName ?? p.fullName ?? "—";
                     const phone = p.userId?.phoneNumber ?? p.phoneNumber ?? "—";
                     return (
-                      <tr key={p._id || i} className="hover:bg-slate-50 transition">
-                        <td className="px-4 py-3 font-mono text-xs text-slate-700">{p.code}</td>
-                        <td className="px-4 py-3 font-medium text-slate-800">{name}</td>
-                        <td className="px-4 py-3 text-slate-600">{phone}</td>
-                        <td className="px-4 py-3 text-center">{p.numAdults}</td>
-                        <td className="px-4 py-3 text-center">{p.numChildren}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-emerald-700">
+                      <tr key={p._id || i} className="hover:bg-white/5 transition">
+                        <td className="px-4 py-3 font-mono text-xs text-slate-400">{p.code}</td>
+                        <td className="px-4 py-3 font-medium text-white">{name}</td>
+                        <td className="px-4 py-3 text-slate-400">{phone}</td>
+                        <td className="px-4 py-3 text-center text-slate-300">{p.numAdults}</td>
+                        <td className="px-4 py-3 text-center text-slate-300">{p.numChildren}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-orange-400">
                           {p.totalPrice?.toLocaleString("vi-VN")} đ
                         </td>
                         <td className="px-4 py-3 text-center">
                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                            p.bookingStatus === "confirmed" ? "bg-green-100 text-green-800" :
-                            p.bookingStatus === "cancelled" ? "bg-red-100 text-red-800" :
-                            "bg-yellow-100 text-yellow-800"
+                            p.bookingStatus === "confirmed" ? "bg-emerald-500/10 text-emerald-400" :
+                            p.bookingStatus === "cancelled" ? "bg-red-500/10 text-red-400" :
+                            "bg-amber-500/10 text-amber-400"
                           }`}>
                             {p.bookingStatus}
                           </span>
@@ -524,6 +524,7 @@ export default function TourDetailPage() {
           )}
         </div>
       )}
+
       {/* Expenses Tab */}
       {activeTab === "expenses" && (
         <div className="space-y-4">
@@ -531,7 +532,7 @@ export default function TourDetailPage() {
           {(tour.status === "confirmed" || tour.status === "in_progress") && (
             <button
               onClick={() => setShowExpenseForm(true)}
-              className="w-full py-3 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 hover:border-emerald-400 hover:text-emerald-600 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl border-2 border-dashed border-white/20 text-slate-400 hover:border-blue-500/50 hover:text-blue-400 transition-all flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Thêm chi phí
@@ -540,14 +541,14 @@ export default function TourDetailPage() {
 
           {/* Expense Form Modal */}
           {showExpenseForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-white rounded-2xl w-full max-w-md p-6">
-                <h3 className="text-xl font-bold text-slate-800 mb-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+              <div className="bg-slate-800 rounded-2xl w-full max-w-md p-6 border border-white/10">
+                <h3 className="text-xl font-bold text-white mb-4">
                   Thêm chi phí phát sinh
                 </h3>
                 <form onSubmit={handleSubmitExpense} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
                       Tên chi phí *
                     </label>
                     <input
@@ -558,12 +559,12 @@ export default function TourDetailPage() {
                       }
                       placeholder="VD: Ăn trưa đoàn"
                       required
-                      className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-emerald-500 outline-none"
+                      className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
                       Số tiền (VNĐ) *
                     </label>
                     <input
@@ -575,12 +576,12 @@ export default function TourDetailPage() {
                       placeholder="VD: 1200000"
                       required
                       min="0"
-                      className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-emerald-500 outline-none"
+                      className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
                       Ghi chú (tùy chọn)
                     </label>
                     <textarea
@@ -590,7 +591,7 @@ export default function TourDetailPage() {
                       }
                       placeholder="Thêm ghi chú..."
                       rows={2}
-                      className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-emerald-500 outline-none resize-none"
+                      className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 outline-none resize-none"
                     />
                   </div>
 
@@ -605,9 +606,9 @@ export default function TourDetailPage() {
                           visibleToCustomers: e.target.checked,
                         })
                       }
-                      className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      className="w-4 h-4 rounded border-slate-600 text-orange-500 focus:ring-orange-500 bg-slate-700"
                     />
-                    <label htmlFor="visibleToCustomers" className="text-sm text-slate-600">
+                    <label htmlFor="visibleToCustomers" className="text-sm text-slate-400">
                       Hiển thị cho khách hàng
                     </label>
                   </div>
@@ -616,14 +617,14 @@ export default function TourDetailPage() {
                     <button
                       type="button"
                       onClick={() => setShowExpenseForm(false)}
-                      className="flex-1 py-2.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                      className="flex-1 py-2.5 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5"
                     >
                       Hủy
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmittingExpense}
-                      className="flex-1 py-2.5 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white font-medium hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {isSubmittingExpense ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -639,10 +640,10 @@ export default function TourDetailPage() {
           )}
 
           {/* Expenses List */}
-          <div className="bg-white rounded-xl p-6 border border-slate-100">
+          <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
             {expenses.length === 0 ? (
               <div className="text-center py-8">
-                <DollarSign className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <DollarSign className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-500">Chưa có chi phí nào</p>
               </div>
             ) : (
@@ -650,16 +651,16 @@ export default function TourDetailPage() {
                 {expenses.map((expense, index) => (
                   <div
                     key={expense._id || index}
-                    className="flex items-center justify-between gap-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0"
+                    className="flex items-center justify-between gap-4 pb-4 border-b border-white/10 last:border-0 last:pb-0"
                   >
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-slate-800">
+                      <h4 className="font-semibold text-white">
                         {expense.title}
                       </h4>
                       {expense.note && (
                         <p className="text-sm text-slate-500 mt-1">{expense.note}</p>
                       )}
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-slate-600 mt-1">
                         {formatDateTime(expense.occurredAt)}
                         {!expense.visibleToCustomers && (
                           <span className="ml-2 text-amber-500">(Ẩn khách)</span>
@@ -667,7 +668,7 @@ export default function TourDetailPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-emerald-600">
+                      <p className="font-bold text-orange-400">
                         {formatCurrency(expense.amount)}
                       </p>
                     </div>
@@ -675,9 +676,9 @@ export default function TourDetailPage() {
                 ))}
 
                 {/* Total */}
-                <div className="pt-4 border-t-2 border-slate-200 flex items-center justify-between">
-                  <span className="font-bold text-slate-800">Tổng cộng:</span>
-                  <span className="text-xl font-bold text-emerald-600">
+                <div className="pt-4 border-t-2 border-white/20 flex items-center justify-between">
+                  <span className="font-bold text-white">Tổng cộng:</span>
+                  <span className="text-xl font-bold text-orange-400">
                     {formatCurrency(
                       expenses.reduce((sum, e) => sum + e.amount, 0)
                     )}

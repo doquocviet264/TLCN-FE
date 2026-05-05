@@ -9,9 +9,7 @@ import SearchBox from "@/components/ui/SearchBox";
 import HomeBanner from "./HomeBanner";
 import ServiceSection from "./ServiceSection";
 import HotDestinations from "./HotDestinations";
-import HotSearchSection from "./HotSearchSection";
 import QNASection from "./QNASection";
-import TourList from "./TourList";
 import BlogSection from "./BlogSection";
 import TourRecommendations from "@/components/TourRecommendations";
 
@@ -68,22 +66,15 @@ export default function UserHomePage() {
           </StaggerItem>
         </StaggerContainer>
       </section>
-      <FadeInWhenVisible delay={0.1}>
-        <HotSearchSection />
-      </FadeInWhenVisible>
-      <FadeInWhenVisible delay={0.1}>
-        <TourList />
-      </FadeInWhenVisible>
 
       {/* Tour gợi ý cá nhân hóa */}
       <FadeInWhenVisible delay={0.1}>
-        <div className="container mx-auto px-4 py-8">
-          <TourRecommendations
-            type="homepage"
-            heading="Tour gợi ý cho bạn"
-            limit={6}
-          />
-        </div>
+        <TourRecommendations
+          type="homepage"
+          heading="TOUR GỢI Ý CHO BẠN"
+          limit={6}
+          showViewAll={true}
+        />
       </FadeInWhenVisible>
 
       <section>
