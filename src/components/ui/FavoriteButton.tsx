@@ -21,19 +21,25 @@ export default function FavoriteButton({
   className = "",
   onToggleSuccess,
 }: FavoriteButtonProps) {
-  const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
+  const [isFavorite, setIsFavorite] = useState(initialIsFavorite || false);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const router = useRouter();
 
-  // If initialIsFavorite is not provided, fetch it
+  // Fetch favorite status from server
   useEffect(() => {
-    if (user && initialIsFavorite === undefined) {
-      checkFavorite(tourId)
-        .then((res) => setIsFavorite(res.isFavorite))
-        .catch(() => {});
-    }
-  }, [user, tourId, initialIsFavorite]);
+    const fetchStatus = async () => {
+      if (!user?.id || !tourId) return;
+      try {
+        const res = await checkFavorite(tourId);
+        setIsFavorite(res.isFavorite);
+      } catch (err) {
+        console.error("Lỗi khi kiểm tra trạng thái yêu thích:", err);
+      }
+    };
+
+    fetchStatus();
+  }, [user?.id, tourId]);
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,23 +47,27 @@ export default function FavoriteButton({
 
     if (!user) {
       toast.error("Vui lòng đăng nhập để lưu tour yêu thích");
-      router.push("/login");
+      router.push("/auth/login");
       return;
     }
 
-    // Optimistic Update
-    setIsFavorite(!isFavorite);
+    const previousState = isFavorite;
+    setIsFavorite(!previousState);
     setLoading(true);
 
     try {
       const res = await toggleFavorite(tourId);
       setIsFavorite(res.isFavorite); // Sync with server
+      if (res.isFavorite) {
+        toast.success("Đã thêm vào yêu thích");
+      } else {
+        toast.success("Đã bỏ yêu thích");
+      }
       if (onToggleSuccess) {
         onToggleSuccess(res.isFavorite);
       }
     } catch (error) {
-      // Revert if failed
-      setIsFavorite(isFavorite);
+      setIsFavorite(previousState); // Revert to old state
       toast.error("Có lỗi xảy ra, vui lòng thử lại sau.");
     } finally {
       setLoading(false);

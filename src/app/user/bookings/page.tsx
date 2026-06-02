@@ -26,6 +26,7 @@ import {
   classifyBooking,
   type BookingTab,
 } from "./_utils";
+import MemoryModal from "@/components/MemoryModal";
 
 /* ---------- Tabs helper ---------- */
 const tabs: { key: BookingTab; label: string }[] = [
@@ -44,6 +45,9 @@ export default function MyBookingsPage() {
   });
 
   const [activeTab, setActiveTab] = React.useState<BookingTab>("all");
+  const [memoryModalOpen, setMemoryModalOpen] = React.useState(false);
+  const [selectedBookingForMemory, setSelectedBookingForMemory] = React.useState<any>(null);
+
   const list: any[] = Array.isArray(data?.data)
     ? data.data
     : Array.isArray(data)
@@ -114,9 +118,34 @@ export default function MyBookingsPage() {
               onCancel={() =>
                 cancelMut.mutate(String(b?.code ?? b?.bookingCode ?? ""))
               }
+              onAddMemory={() => {
+                setSelectedBookingForMemory(b);
+                setMemoryModalOpen(true);
+              }}
             />
           ))}
         </div>
+      )}
+
+      {/* Modal Kỷ niệm */}
+      {memoryModalOpen && selectedBookingForMemory && (
+        <MemoryModal
+          isOpen={memoryModalOpen}
+          onClose={() => {
+            setMemoryModalOpen(false);
+            setSelectedBookingForMemory(null);
+          }}
+          provinceName={
+            selectedBookingForMemory?.tourId?.destination ||
+            selectedBookingForMemory?.tour?.destination ||
+            "Điểm đến"
+          }
+          bookingId={selectedBookingForMemory._id}
+          onSuccess={() => {
+            setMemoryModalOpen(false);
+            setSelectedBookingForMemory(null);
+          }}
+        />
       )}
     </div>
   );
@@ -137,9 +166,11 @@ const pickTourImage = (t: any): string => {
 function BookingRow({
   booking,
   onCancel,
+  onAddMemory,
 }: {
   booking: any;
   onCancel: () => void;
+  onAddMemory?: () => void;
 }) {
   const status = classifyBooking(booking);
   const tour: any =
@@ -159,6 +190,11 @@ function BookingRow({
     ? fmtDate(tour.startDate)
     : "Thời gian linh hoạt";
   const code = String(booking?.code ?? booking?.bookingCode ?? "");
+  const departureStatus =
+    booking?.tourDepartureId?.status ?? booking?.departureStatus ?? tour?.status;
+  const canAddMemory =
+    booking.bookingStatus === "completed" &&
+    ["completed", "closed"].includes(departureStatus);
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -276,6 +312,16 @@ function BookingRow({
                   className="inline-flex items-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
                 >
                   <XCircle size={16} className="mr-2" /> Hủy đơn
+                </button>
+              )}
+
+              {/* Thêm kỷ niệm - nếu đã đi xong */}
+              {canAddMemory && onAddMemory && (
+                <button
+                  onClick={onAddMemory}
+                  className="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                >
+                  Thêm kỷ niệm chuyến đi
                 </button>
               )}
             </div>

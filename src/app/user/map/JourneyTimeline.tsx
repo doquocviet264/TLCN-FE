@@ -10,81 +10,59 @@ import {
   Clock,
   ChevronRight,
   Sparkles,
+  Lock,
+  Globe,
+  Heart
 } from "lucide-react";
-import { checkinApi } from "@/lib/checkin/checkinApi";
+import { travelMemoryApi, TravelMemoryPayload } from "@/lib/checkin/travelMemoryApi";
 import useUser from "#/src/hooks/useUser";
+import { toast } from "react-hot-toast";
 
 interface TimelineItem {
-  id: string;
-  province: string;
-  date: string;
-  type: "tour" | "manual";
-  image?: string;
+  _id: string;
+  provinceName: string;
+  visitedAt: string;
+  caption: string;
+  images: string[];
+  privacy: "private" | "public";
+  source: "manual" | "tour";
+  userId?: {
+    _id: string;
+    fullName: string;
+    avatar: string;
+  };
+  likesCount?: number;
+  isLikedByMe?: boolean;
 }
 
-// Sample images for provinces (you can replace with real data)
-const PROVINCE_IMAGES: Record<string, string> = {
-  "ha noi": "https://images.unsplash.com/photo-1509030450996-dd1a26dda07a?w=400",
-  "ho chi minh": "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=400",
-  "da nang": "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=400",
-  "quang ninh": "https://images.unsplash.com/photo-1528127269322-539801943592?w=400",
-  "lao cai": "https://images.unsplash.com/photo-1570366583862-f91883984fde?w=400",
-  "khanh hoa": "https://images.unsplash.com/photo-1573790387438-4da905039392?w=400",
-  "lam dong": "https://images.unsplash.com/photo-1586595256352-14d4bc5e5fc7?w=400",
-};
-
-const getProvinceImage = (province: string) => {
-  const normalized = province
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  return (
-    PROVINCE_IMAGES[normalized] ||
-    `https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400`
-  );
-};
-
-export default function JourneyTimeline() {
+export default function JourneyTimeline({
+  initialTab = "me",
+  filterProvince,
+}: {
+  initialTab?: "me" | "community";
+  filterProvince?: string;
+}) {
   const { isAuthenticated } = useUser();
+  const [activeTab, setActiveTab] = useState<"me" | "community">(initialTab);
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  useEffect(() => {
     const fetchTimeline = async () => {
       if (!isAuthenticated) return;
+      setLoading(true);
       try {
-        const res = await checkinApi.getUserJourney();
-
-        const items: TimelineItem[] = [];
-
-        // Add tour provinces
-        (res.provinces || []).forEach((p: string, idx: number) => {
-          items.push({
-            id: `tour-${idx}`,
-            province: p,
-            date: new Date(Date.now() - idx * 7 * 24 * 60 * 60 * 1000).toISOString(),
-            type: "tour",
-            image: getProvinceImage(p),
-          });
-        });
-
-        // Add manual provinces
-        (res.manualProvinces || []).forEach((p: string, idx: number) => {
-          items.push({
-            id: `manual-${idx}`,
-            province: p,
-            date: new Date(
-              Date.now() - (items.length + idx) * 5 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            type: "manual",
-            image: getProvinceImage(p),
-          });
-        });
-
-        // Sort by date descending
-        items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        setTimeline(items.slice(0, 10)); // Show last 10 items
+        if (activeTab === "me") {
+          const res = await travelMemoryApi.getMyMemories(filterProvince, 1, 10);
+          setTimeline(res.data || []);
+        } else {
+          const res = await travelMemoryApi.getPublicMemories(filterProvince, 1, 10);
+          setTimeline(res.data || []);
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -93,7 +71,31 @@ export default function JourneyTimeline() {
     };
 
     fetchTimeline();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, activeTab, filterProvince]);
+
+  const handleLike = async (id: string, isLiked: boolean) => {
+    if (!isAuthenticated) return;
+    try {
+      setTimeline(prev => prev.map(item => {
+        if (item._id === id) {
+          return {
+            ...item,
+            isLikedByMe: !isLiked,
+            likesCount: (item.likesCount || 0) + (isLiked ? -1 : 1)
+          };
+        }
+        return item;
+      }));
+      
+      if (isLiked) {
+        await travelMemoryApi.unlikeMemory(id);
+      } else {
+        await travelMemoryApi.likeMemory(id);
+      }
+    } catch (error: any) {
+      toast.error("Có lỗi xảy ra, vui lòng thử lại sau.");
+    }
+  };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -129,14 +131,30 @@ export default function JourneyTimeline() {
   if (timeline.length === 0) {
     return (
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
+        <div className="flex items-center gap-4 border-b border-slate-200 pb-4 mb-6">
+          <button
+            onClick={() => setActiveTab("me")}
+            className={`font-bold transition-colors ${activeTab === "me" ? "text-indigo-600" : "text-slate-500 hover:text-slate-700"}`}
+          >
+            Cá nhân
+          </button>
+          <button
+            onClick={() => setActiveTab("community")}
+            className={`font-bold transition-colors ${activeTab === "community" ? "text-indigo-600" : "text-slate-500 hover:text-slate-700"}`}
+          >
+            Cộng đồng
+          </button>
+        </div>
         <div className="w-20 h-20 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4">
           <MapPin className="w-10 h-10 text-slate-400" />
         </div>
         <h3 className="text-lg font-bold text-slate-800 mb-2">
-          Chưa có hành trình nào
+          {activeTab === "me" ? "Chưa có kỷ niệm nào" : "Chưa có bài đăng nào"}
         </h3>
         <p className="text-slate-500 text-sm">
-          Hãy bắt đầu chinh phục Việt Nam bằng cách check-in địa điểm đầu tiên!
+          {activeTab === "me" 
+            ? "Hãy bắt đầu chinh phục Việt Nam bằng cách lưu lại kỷ niệm tại địa điểm đầu tiên!"
+            : "Hãy là người đầu tiên chia sẻ kỷ niệm tại đây!"}
         </p>
       </div>
     );
@@ -146,36 +164,39 @@ export default function JourneyTimeline() {
     <section className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-indigo-100 rounded-full text-indigo-600">
-            <Clock size={24} />
-          </div>
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold text-slate-800">
-              Dòng thời gian
-            </h2>
-            <p className="text-sm text-slate-500">
-              {timeline.length} địa điểm gần đây
-            </p>
-          </div>
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => setActiveTab("me")}
+            className={`text-lg md:text-xl font-bold pb-1 border-b-2 transition-colors ${activeTab === "me" ? "border-indigo-600 text-slate-800" : "border-transparent text-slate-400 hover:text-slate-600"}`}
+          >
+            Của tôi
+          </button>
+          <button
+            onClick={() => setActiveTab("community")}
+            className={`text-lg md:text-xl font-bold pb-1 border-b-2 transition-colors ${activeTab === "community" ? "border-indigo-600 text-slate-800" : "border-transparent text-slate-400 hover:text-slate-600"}`}
+          >
+            Cộng đồng
+          </button>
         </div>
-        <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1">
-          Xem tất cả <ChevronRight size={16} />
-        </button>
+        {!filterProvince && (
+          <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1">
+            Xem tất cả <ChevronRight size={16} />
+          </button>
+        )}
       </div>
 
       {/* Timeline */}
-      <div className="relative">
+      <div className="relative mt-4">
         {/* Vertical line */}
         <div className="absolute left-[39px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-200 via-emerald-200 to-slate-200" />
 
         <div className="space-y-6">
           {timeline.map((item, index) => {
-            const date = formatDate(item.date);
+            const date = formatDate(item.visitedAt);
 
             return (
               <motion.div
-                key={item.id}
+                key={item._id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -185,7 +206,7 @@ export default function JourneyTimeline() {
                 <div className="flex-shrink-0 w-20 text-center">
                   <div
                     className={`relative z-10 w-12 h-12 mx-auto rounded-xl flex flex-col items-center justify-center shadow-md ${
-                      item.type === "tour"
+                      item.source === "tour"
                         ? "bg-gradient-to-br from-emerald-500 to-teal-500 text-white"
                         : "bg-gradient-to-br from-blue-500 to-indigo-500 text-white"
                     }`}
@@ -205,8 +226,8 @@ export default function JourneyTimeline() {
                     {/* Image */}
                     <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
                       <Image
-                        src={item.image || "/hot1.jpg"}
-                        alt={item.province}
+                        src={(item.images && item.images.length > 0) ? item.images[0] : "/hot1.jpg"}
+                        alt={item.provinceName}
                         fill
                         className="object-cover"
                       />
@@ -217,23 +238,31 @@ export default function JourneyTimeline() {
                     </div>
 
                     {/* Info */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <h4 className="font-bold text-slate-800 truncate">
-                            {item.province}
+                            {item.provinceName}
                           </h4>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center flex-wrap gap-2 mt-1">
+                            {item.userId && activeTab === "community" && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">
+                                {item.userId.avatar && (
+                                  <img src={item.userId.avatar} alt="avatar" className="w-3 h-3 rounded-full object-cover" />
+                                )}
+                                {item.userId.fullName}
+                              </span>
+                            )}
                             <span
                               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                item.type === "tour"
+                                item.source === "tour"
                                   ? "bg-emerald-100 text-emerald-700"
                                   : "bg-blue-100 text-blue-700"
                               }`}
                             >
-                              {item.type === "tour" ? (
+                              {item.source === "tour" ? (
                                 <>
-                                  <Sparkles size={10} /> Qua tour
+                                  <Sparkles size={10} /> Đã xác thực qua tour
                                 </>
                               ) : (
                                 <>
@@ -241,25 +270,56 @@ export default function JourneyTimeline() {
                                 </>
                               )}
                             </span>
+                            {activeTab === "me" && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-200 text-slate-600">
+                                {item.privacy === "public" ? <Globe size={10} /> : <Lock size={10} />}
+                                {item.privacy === "public" ? "Công khai" : "Chỉ mình tôi"}
+                              </span>
+                            )}
                           </div>
                         </div>
-
-                        {item.type === "tour" && (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 rounded-lg text-[10px] font-bold text-amber-700">
-                            🎁 +1 Voucher
-                          </div>
-                        )}
                       </div>
 
-                      <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                        <Calendar size={12} />
-                        {new Date(item.date).toLocaleDateString("vi-VN", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
+                      {item.caption && (
+                        <p className="text-sm text-slate-600 mt-2 italic border-l-2 border-indigo-200 pl-2">
+                          "{item.caption.length > 80 ? item.caption.substring(0, 80) + '...' : item.caption}"
+                        </p>
+                      )}
+
+                      {item.source === "tour" && (!item.images || item.images.length === 0) && activeTab === "me" && (
+                        <div className="mt-2 pt-2 border-t border-slate-100">
+                          <a href="/user/bookings" className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                            Thêm hình ảnh kỷ niệm <ChevronRight size={12}/>
+                          </a>
+                        </div>
+                      )}
+
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-xs text-slate-400 flex items-center gap-1">
+                          <Calendar size={12} />
+                          {new Date(item.visitedAt).toLocaleDateString("vi-VN", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </p>
+                        
+                        {/* Nút Thích */}
+                        {activeTab === "community" && (
+                          <button 
+                            onClick={() => handleLike(item._id, !!item.isLikedByMe)}
+                            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
+                              item.isLikedByMe 
+                                ? "bg-rose-50 text-rose-600" 
+                                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                            }`}
+                          >
+                            <Heart size={14} className={item.isLikedByMe ? "fill-rose-500" : ""} />
+                            {item.likesCount || 0}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

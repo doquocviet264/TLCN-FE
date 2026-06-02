@@ -12,6 +12,7 @@ import { getTours } from "@/lib/tours/tour";
 import { Toast, useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import BookingsTable from "./BookingsTable";
+import AdminPagination from "@/components/admin/AdminPagination";
 
 export default function BookingsPage() {
   const [page, setPage] = useState(1);
@@ -140,19 +141,6 @@ export default function BookingsPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-md p-6 mb-6">
-        <div className="flex items-center justify-between mb-6">
-           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-             <i className="ri-filter-3-line text-orange-500"></i>
-             Bộ lọc nâng cao
-           </h2>
-           <button 
-             onClick={handleReset}
-             className="text-sm text-slate-500 hover:text-orange-600 transition flex items-center gap-1"
-           >
-             <i className="ri-refresh-line"></i> Làm mới
-           </button>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search Input */}
           <div className="lg:col-span-2">
@@ -248,6 +236,17 @@ export default function BookingsPage() {
             </button>
           </div>
         </div>
+
+        {Object.values(activeFilters).some(v => v !== undefined) && (
+          <div className="mt-4 flex justify-end">
+            <button 
+              onClick={handleReset}
+              className="text-xs text-slate-400 hover:text-orange-600 transition flex items-center gap-1.5"
+            >
+              <i className="ri-refresh-line"></i> Làm mới bộ lọc
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Loading State */}
@@ -284,47 +283,13 @@ export default function BookingsPage() {
             </div>
           )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex flex-col md:flex-row items-center justify-between bg-white rounded-2xl shadow-md p-4">
-              <p className="text-slate-600 mb-4 md:mb-0 text-sm">
-                Tổng cộng: <span className="font-bold text-slate-900">{data.total}</span> đơn &nbsp;|&nbsp; Trang{" "}
-                <span className="font-bold text-orange-600">{page}</span> / <span className="font-bold">{totalPages}</span>
-              </p>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition text-sm font-medium"
-                >
-                  ← Trước
-                </button>
-
-                {[...Array(totalPages)].map((_, i) => (
-                  <button
-                    key={i + 1}
-                    onClick={() => setPage(i + 1)}
-                    className={`px-3 py-2 rounded-lg transition text-sm font-medium ${
-                      page === i + 1
-                        ? "bg-orange-500 text-white shadow-sm"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition text-sm font-medium"
-                >
-                  Sau →
-                </button>
-              </div>
-            </div>
-          )}
+          <AdminPagination 
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={data.total}
+            itemsLabel="đơn đặt tour"
+          />
         </div>
       )}
 

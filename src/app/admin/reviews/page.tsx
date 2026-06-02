@@ -7,12 +7,15 @@ import { getAdminReviews, deleteAdminReview, updateAdminReview } from '@/lib/adm
 import { Toast, useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ReviewTable } from './ReviewTable';
+import AdminPagination from '@/components/admin/AdminPagination';
 
 const Page = () => {
   const queryClient = useQueryClient()
   const { toast, showSuccess, showError, hideToast } = useToast()
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; reviewId: string; userName: string }>({
     isOpen: false,
     reviewId: '',
@@ -26,11 +29,13 @@ const Page = () => {
   }>({ isOpen: false, reviewId: '', rating: 5, comment: '' })
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["adminReviews", page, searchTerm],
+    queryKey: ["adminReviews", page, searchTerm, startDate, endDate],
     queryFn: () => getAdminReviews({
       page,
       limit: 20,
-      search: searchTerm || undefined
+      search: searchTerm || undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
     }),
   })
 
@@ -111,23 +116,90 @@ const Page = () => {
         <p className="text-slate-600">Quản lý các bình luận và đánh giá từ khách hàng</p>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="bg-white rounded-2xl shadow-md p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Search Input */}
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo tên người dùng, bình luận..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value)
-                setPage(1)
-              }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-            />
+          <div className="lg:col-span-2">
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Tìm kiếm</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <i className="ri-search-line"></i>
+              </span>
+              <input
+                type="text"
+                placeholder="Tên khách hàng, nội dung đánh giá..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value)
+                  setPage(1)
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent text-sm bg-slate-50 transition outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Date Range */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Từ ngày</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-calendar-line text-lg"></i>
+              </span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value)
+                  setPage(1)
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent text-sm bg-slate-50 transition outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Đến ngày</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-calendar-check-line text-lg"></i>
+              </span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value)
+                  setPage(1)
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent text-sm bg-slate-50 transition outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold text-sm transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+            >
+              <i className="ri-search-line"></i>
+              Tìm kiếm
+            </button>
           </div>
         </div>
+        
+        {(searchTerm || startDate || endDate) && (
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => {
+                setSearchTerm('')
+                setStartDate('')
+                setEndDate('')
+                setPage(1)
+              }}
+              className="text-xs text-slate-400 hover:text-emerald-600 transition flex items-center gap-1.5"
+            >
+              <i className="ri-refresh-line"></i> Làm mới bộ lọc
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -146,46 +218,14 @@ const Page = () => {
             />
           </div>
 
-          {/* Pagination */}
-          <div className="flex flex-col md:flex-row items-center justify-between bg-white rounded-lg shadow-md p-4">
-            <p className="text-slate-600 mb-4 md:mb-0">
-              Tổng cộng: <span className="font-bold text-slate-900">{data?.total}</span> bình luận | Trang{' '}
-              <span className="font-bold text-emerald-600">{page}</span> of{' '}
-              <span className="font-bold">{Math.ceil((data?.total || 0) / 20)}</span>
-            </p>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                ← Trước
-              </button>
-
-              {[...Array(Math.ceil((data?.total || 0) / 20))].map((_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => setPage(i + 1)}
-                  className={`px-3 py-2 rounded-lg transition ${
-                    page === i + 1
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-
-              <button
-                onClick={() => setPage(p => Math.min(Math.ceil((data?.total || 0) / 20), p + 1))}
-                disabled={page >= Math.ceil((data?.total || 0) / 20)}
-                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                Sau →
-              </button>
-            </div>
-          </div>
+          <AdminPagination 
+            currentPage={page}
+            totalPages={Math.ceil((data?.total || 0) / 20)}
+            onPageChange={setPage}
+            totalItems={data?.total}
+            itemsLabel="bình luận"
+            activeColor="emerald"
+          />
         </>
       )}
 

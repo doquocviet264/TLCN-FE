@@ -456,6 +456,7 @@ function DestinationPageContent() {
                           className="h-full"
                         >
                           <CardHot
+                            id={id}
                             image={pickTourImage(t)}
                             title={t.title}
                             href={`/user/destination/${slug}/${id}`}

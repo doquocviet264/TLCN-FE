@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Star,
+  Filter,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -443,7 +444,7 @@ export default function HistoryPage() {
                           #{booking.code}
                         </span>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                           {booking.bookingStatus === "pending" && (
                             <>
                               <button
@@ -453,14 +454,33 @@ export default function HistoryPage() {
                               >
                                 Huỷ tour
                               </button>
-                              {/* Nút thanh toán VNPay */}
-                              <div className="scale-95">
+                              <div className="scale-95 flex items-center gap-2">
                                 <VnpayPayButton
                                   bookingCode={booking.code}
-                                  label="Thanh toán"
+                                  label="Cọc 50%"
+                                  payFull={false}
+                                />
+                                <VnpayPayButton
+                                  bookingCode={booking.code}
+                                  label="Toàn bộ 100%"
+                                  payFull={true}
                                 />
                               </div>
                             </>
+                          )}
+                          {booking.bookingStatus === "confirmed" && booking.paidAmount < booking.totalPrice && (
+                            <div className="scale-95">
+                              <VnpayPayButton
+                                bookingCode={booking.code}
+                                label="Thanh toán phần còn lại"
+                                payFull={false}
+                              />
+                            </div>
+                          )}
+                          {booking.paymentMethod === "office-payment" && booking.paidAmount === 0 && (
+                            <span className="text-xs text-orange-600 font-medium px-2 py-1 bg-orange-50 rounded-lg border border-orange-100">
+                              (Thanh toán tại văn phòng)
+                            </span>
                           )}
                           <Link
                             href={`/user/bookings/${booking.code}`}

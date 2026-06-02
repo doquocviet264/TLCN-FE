@@ -12,6 +12,22 @@ interface CheckinPayload {
   imgList?: string[];
 }
 
+export interface JourneyProgress {
+  provinceName: string;
+  source: "manual" | "tour" | "both";
+  unlockedAt?: string;
+  memoryCount?: number;
+  completedTourCount?: number;
+}
+
+export interface FullJourneyResponse {
+  fromBookings: string[];
+  fromManualCheckins: string[];
+  bookingDetails?: any[];
+  progress?: JourneyProgress[];
+  total?: number;
+}
+
 export const checkinApi = {
   // 1. Lấy lịch sử check-in
   getUserCheckins: async () => {
@@ -50,7 +66,7 @@ export const checkinApi = {
   // 3. Lấy dữ liệu tô màu Map
   getUserJourney: async () => {
     const token = localStorage.getItem("accessToken");
-    const res = await axios.get(`${API_URL}/checkins/journey`, {
+    const res = await axios.get(`${API_URL}/checkin/journey`, {
       headers: {
         ...(token && { Authorization: `Bearer ${token}` }),
       },
@@ -67,7 +83,7 @@ export const checkinApi = {
       note: `Khám phá ${provinceName} qua Bản đồ hành trình`,
     };
 
-    const res = await axios.post(`${API_URL}/checkins`, payload, {
+    const res = await axios.post(`${API_URL}/checkin`, payload, {
       headers: {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -79,7 +95,7 @@ export const checkinApi = {
   // 5. Lấy danh sách Voucher (Đã tách ra ngoài)
   getMyVouchers: async () => {
     const token = localStorage.getItem("accessToken");
-    const res = await axios.get(`${API_URL}/checkins/vouchers`, {
+    const res = await axios.get(`${API_URL}/checkin/vouchers`, {
       headers: {
         ...(token && { Authorization: `Bearer ${token}` }),
       },
@@ -97,7 +113,7 @@ export const checkinApi = {
     };
 
     // Gọi cùng API /checkins nhưng với type khác để phân biệt
-    const res = await axios.post(`${API_URL}/checkins`, payload, {
+    const res = await axios.post(`${API_URL}/checkin`, payload, {
       headers: {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -126,14 +142,10 @@ export const checkinApi = {
   },
 
   // 8. Lấy tất cả dữ liệu hành trình (kết hợp booking + manual)
-  getFullJourney: async (): Promise<{
-    fromBookings: string[];      // Tỉnh từ booking đã hoàn thành (tự động)
-    fromManualCheckins: string[]; // Tỉnh tự đánh dấu (thủ công)
-    bookingDetails?: any[];       // Chi tiết các booking
-  }> => {
+  getFullJourney: async (): Promise<FullJourneyResponse> => {
     const token = localStorage.getItem("accessToken");
     try {
-      const res = await axios.get(`${API_URL}/checkins/full-journey`, {
+      const res = await axios.get(`${API_URL}/checkin/full-journey`, {
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),
         },
@@ -144,7 +156,7 @@ export const checkinApi = {
       console.log("API full-journey chưa có, gọi riêng từng API");
       try {
         const [journeyRes, bookingRes] = await Promise.all([
-          axios.get(`${API_URL}/checkins/journey`, {
+          axios.get(`${API_URL}/checkin/journey`, {
             headers: { ...(token && { Authorization: `Bearer ${token}` }) },
           }).catch(() => ({ data: { provinces: [] } })),
           axios.get(`${API_URL}/bookings/me`, {
@@ -155,7 +167,7 @@ export const checkinApi = {
 
         // Lấy tỉnh từ booking đã hoàn thành (status = 'f' hoặc 'c')
         const completedBookings = (bookingRes.data.data || []).filter(
-          (b: any) => b.bookingStatus === 'f' || b.bookingStatus === 'c'
+          (b: any) => b.bookingStatus === "completed"
         );
 
         // Lấy destination từ tour của mỗi booking

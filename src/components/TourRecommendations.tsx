@@ -197,6 +197,7 @@ export default function TourRecommendations({
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {tours.map((tour, index) => {
             const cardProps = {
+              id: tour._id,
               image: tour.images?.[0] || "",
               title: tour.title,
               badgeText: tour.discountPercent

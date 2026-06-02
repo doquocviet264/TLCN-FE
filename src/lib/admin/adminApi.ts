@@ -356,7 +356,7 @@ export async function createDepartureAdmin(tourId: string, payload: DepartureInp
 }
 
 /** Liệt kê các lịch khởi hành của 1 Tour */
-export async function listDeparturesAdmin(tourId: string, params?: { status?: string; page?: number; limit?: number }) {
+export async function listDeparturesAdmin(tourId: string, params?: { status?: string; startDate?: string; endDate?: string; page?: number; limit?: number }) {
   const { data } = await adminApi.get<{ total: number; page: number; limit: number; data: DepartureResponse[] }>(
     `/admin/tours/${tourId}/departures`,
     { params }

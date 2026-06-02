@@ -19,17 +19,20 @@ import {
   Users,
   Clock,
   Ticket,
+  Activity,
 } from "lucide-react";
 
 import VietnamJourneyMap from "@/components/VietnamJourneyMap";
 import JourneyStats from "./JourneyStats";
-import Achievements from "./Achievements";
 import JourneyTimeline from "./JourneyTimeline";
+import Collections from "./Collections";
 import CheckinAccordion from "./CheckinAccordion";
+import Achievements from "./Achievements";
 import useUser from "#/src/hooks/useUser";
 
 import CardHot from "@/components/cards/CardHot";
 import { getTours } from "@/lib/tours/tour";
+import { journeyApi } from "@/lib/checkin/journeyApi";
 
 /* ================= Helpers ================= */
 const slugify = (s: string) =>
@@ -120,7 +123,7 @@ export default function UserHomeMapPage() {
   const [tours, setTours] = useState<any[]>([]);
   const [tourLoading, setTourLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "map" | "timeline" | "achievements"
+    "map" | "timeline" | "achievements" | "collections" | "newsfeed"
   >("map");
 
   /* ================= Fetch tours ================= */
@@ -128,10 +131,18 @@ export default function UserHomeMapPage() {
     const fetchTours = async () => {
       try {
         setTourLoading(true);
-        const res = await getTours(1, 8, {}); // Lấy nhiều hơn để còn lọc
+        const suggestionRes = await journeyApi.getTourSuggestions();
+        if (suggestionRes.data?.length) {
+          setTours(suggestionRes.data);
+          return;
+        }
+
+        const res = await getTours(1, 8, {});
         setTours(res.data || []);
       } catch (error) {
         console.error("Lỗi tải tour:", error);
+        const res = await getTours(1, 8, {});
+        setTours(res.data || []);
       } finally {
         setTourLoading(false);
       }
@@ -497,6 +508,8 @@ export default function UserHomeMapPage() {
             { key: "map", label: "Bản đồ", icon: MapIcon },
             { key: "timeline", label: "Dòng thời gian", icon: Clock },
             { key: "achievements", label: "Thành tựu", icon: Trophy },
+            { key: "collections", label: "Bộ sưu tập", icon: Sparkles },
+            { key: "newsfeed", label: "Bảng tin", icon: Activity },
           ].map((tab) => {
             const active = activeTab === tab.key;
             return (
@@ -549,6 +562,28 @@ export default function UserHomeMapPage() {
               exit={{ opacity: 0, y: -16 }}
             >
               <Achievements />
+            </motion.div>
+          )}
+
+          {activeTab === "collections" && (
+            <motion.div
+              key="collections"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+            >
+              <Collections />
+            </motion.div>
+          )}
+
+          {activeTab === "newsfeed" && (
+            <motion.div
+              key="newsfeed"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+            >
+              <JourneyTimeline initialTab="community" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -621,6 +656,7 @@ export default function UserHomeMapPage() {
                     whileHover={{ y: -4 }}
                   >
                     <CardHot
+                      id={id}
                       image={pickTourImage(t)}
                       title={t.title}
                       href={`/user/destination/${slug}/${id}`}

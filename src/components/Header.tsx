@@ -12,6 +12,8 @@ import {
   BookOpen,
   Menu,
   X,
+  Heart,
+  Star,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import NotificationBell from "@/components/NotificationBell";
@@ -62,6 +64,8 @@ export default function Header() {
       setUserEmail(u.email || "");
       setPoints(u.points || 0);
       setUserId(u.id);
+      const setUser = useAuthStore.getState().setUser;
+      setUser(u as any);
       debugTokenAndUser.logUserInfoDisplay("Header.loadProfile[display]", {
         fullName: u.fullName,
         email: u.email,
@@ -155,6 +159,8 @@ export default function Header() {
   const dropdownItems = [
     { name: "Hồ sơ cá nhân", href: "/user/profile", icon: User },
     { name: "Lịch sử đặt tour", href: "/user/history", icon: History },
+    { name: "Tour yêu thích", href: "/user/favorites", icon: Heart },
+    { name: "Đánh giá của tôi", href: "/user/reviews", icon: Star },
     { name: "Blog của tôi", href: "/user/blog", icon: BookOpen },
     { name: "Vouchers", href: "/user/vouchers", icon: BookOpen },
   ];
@@ -229,9 +235,9 @@ export default function Header() {
               <Image
                 src={avatarUrl}
                 alt="Avatar"
-                width={32}
-                height={32}
-                className="rounded-full object-cover"
+                width={40}
+                height={40}
+                className="w-10 h-10 rounded-full object-cover"
               />
               <span className="text-gray-800 font-medium text-sm truncate max-w-[120px]">
                 {fullName}

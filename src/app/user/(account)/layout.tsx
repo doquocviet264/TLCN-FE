@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "#/stores/auth";
 import { authApi } from "@/lib/auth/authApi"; // Đảm bảo đường dẫn này đúng
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -20,6 +20,7 @@ import {
   Wallet,
   Ticket,
   Award,
+  Heart,
 } from "lucide-react"; // Dùng icon của lucide-react
 
 // Kiểu dữ liệu
@@ -33,6 +34,8 @@ type UserProfile = {
 // Component Sidebar (Menu bên trái)
 function UserSidebar({ user }: { user: UserProfile | null }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get("tab");
   const router = useRouter();
   const resetAuth = useAuthStore((s) => s.resetAuth);
 
@@ -46,6 +49,8 @@ function UserSidebar({ user }: { user: UserProfile | null }) {
   const navItems = [
     { name: "Đặt chỗ của tôi", href: "/user/history", icon: List },
     { name: "Mã giảm giá", href: "/user/vouchers", icon: Ticket },
+    { name: "Đánh giá của tôi", href: "/user/reviews", icon: Star },
+    { name: "Tour yêu thích", href: "/user/favorites", icon: Heart },
     { name: "Điểm tích lũy", href: "/user/score", icon: Award },
     { name: "Thông tin hành khách", href: "/user/passengers", icon: Users },
     { name: "Cài đặt thông báo", href: "/user/notifications", icon: Bell },
@@ -55,13 +60,15 @@ function UserSidebar({ user }: { user: UserProfile | null }) {
   return (
     <aside className="w-64 flex-shrink-0 border-r border-gray-200 bg-white shadow-sm">
       <div className="p-4 flex items-center gap-3 border-b border-gray-200">
-        <Image
-          src={user?.avatar || "/Image.svg"}
-          alt="Avatar"
-          width={40}
-          height={40}
-          className="rounded-full bg-gray-200"
-        />
+        <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-gray-100 flex-shrink-0">
+          <Image
+            src={user?.avatar || "/Image.svg"}
+            alt="Avatar"
+            width={44}
+            height={44}
+            className="w-full h-full object-cover"
+          />
+        </div>
         <div>
           <h4 className="font-semibold text-gray-900">
             {user?.fullName || "User"}
@@ -78,7 +85,15 @@ function UserSidebar({ user }: { user: UserProfile | null }) {
       {/* Menu Navigation */}
       <nav className="flex flex-col p-4 space-y-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          let isActive = false;
+          if (item.href.includes("?tab=")) {
+            const tabName = item.href.split("?tab=")[1];
+            isActive = pathname === "/user/profile" && currentTab === tabName;
+          } else if (item.href === "/user/profile") {
+            isActive = pathname === "/user/profile" && currentTab !== "favorites";
+          } else {
+            isActive = pathname === item.href;
+          }
           return (
             <Link
               key={item.name}

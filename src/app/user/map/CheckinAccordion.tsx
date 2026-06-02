@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import DestinationCard from "@/components/cards/DestinationCard";
 import { FiMinus, FiPlus, FiCheckCircle  } from "react-icons/fi";
-import { checkinApi } from "@/lib/checkin/checkinApi";
+import { travelMemoryApi } from "@/lib/checkin/travelMemoryApi";
 
 type Ward = {
   _id: string;
@@ -46,23 +46,20 @@ const CheckinAccordion = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const checkins = await checkinApi.getUserCheckins();
+        const res = await travelMemoryApi.getMyMemories(undefined, 1, 50);
+        const memories = res.data || [];
         const groupMap: Record<string, any> = {};
 
-        checkins.forEach((c: any) => {
-          // Logic group như cũ
-          const wardName =
-            typeof c.placeId.ward === "object"
-              ? c.placeId.ward.name
-              : c.placeId.ward || "Khác";
-          if (!groupMap[wardName])
-            groupMap[wardName] = { group: wardName, destinations: [] };
+        memories.forEach((memory: any) => {
+          const provinceName = memory.provinceName || "Khác";
+          if (!groupMap[provinceName])
+            groupMap[provinceName] = { group: provinceName, destinations: [] };
 
-          groupMap[wardName].destinations.push({
-            title: c.placeId.name,
-            location: c.placeId.address || "",
-            distance: "—",
-            image: c.placeId.images?.[0] || "/hot-destination.svg",
+          groupMap[provinceName].destinations.push({
+            title: memory.caption || `Kỷ niệm tại ${provinceName}`,
+            location: new Date(memory.visitedAt).toLocaleDateString("vi-VN"),
+            distance: memory.source === "tour" ? "Qua tour AHH" : "Tự đánh dấu",
+            image: memory.images?.[0] || "/hot-destination.svg",
           });
         });
 

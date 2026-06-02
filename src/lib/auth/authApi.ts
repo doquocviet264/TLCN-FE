@@ -10,6 +10,24 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+// Thêm interceptor để xử lý lỗi 401 tập trung cho authApi
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      if (typeof window !== "undefined") {
+        // Nếu URL chứa /admin thì redirect về admin login, ngược lại về user login
+        if (window.location.pathname.startsWith("/admin")) {
+          window.location.href = "/admin/login";
+        } else {
+          window.location.href = "/login";
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 type VerifyOtpPayload =
   | { otp: string; email: string }
   | { otp: string; phone: string };
@@ -157,6 +175,7 @@ export const authApi = {
     return {
       id: u._id ?? u.id ?? null,
       fullName,
+      username: u.username || "",
       email: u.email ?? "",
       phone: u.phone ?? u.phoneNumber ?? "",
       gender: u.gender ?? undefined,

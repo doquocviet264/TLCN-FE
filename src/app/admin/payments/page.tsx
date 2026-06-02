@@ -7,6 +7,7 @@ import { getAdminBookings, updateBookingPaymentStatus } from "@/lib/admin/adminB
 import { BookingData } from "@/lib/admin/adminBookingApi";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import AdminPagination from "@/components/admin/AdminPagination";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -35,7 +36,9 @@ export default function PaymentManagementPage() {
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | "p" | "c" | "x">("");
-  const [paymentFilter, setPaymentFilter] = useState<"" | "paid" | "unpaid" | "partial">("");
+  const [paymentFilter, setPaymentFilter] = useState<"" | "full" | "unpaid" | "deposited">("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
@@ -48,13 +51,16 @@ export default function PaymentManagementPage() {
   }>({ isOpen: false, title: "", message: "", action: () => {}, type: "warning" });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["adminPayments", page, searchTerm, statusFilter],
+    queryKey: ["adminPayments", page, searchTerm, statusFilter, paymentFilter, startDate, endDate],
     queryFn: () =>
       getAdminBookings({
         page,
         limit: 20,
         search: searchTerm || undefined,
         status: statusFilter || undefined,
+        paymentStatus: paymentFilter || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
       }),
   });
 
@@ -89,23 +95,7 @@ export default function PaymentManagementPage() {
     });
   };
 
-  // Filter bookings based on payment status  
-  const bookingsData = (data as any)?.data || [];
-  const filteredBookings: BookingData[] = bookingsData.filter((booking: BookingData) => {
-    if (!paymentFilter) return true;
-    const paymentStatus = getPaymentStatus(booking);
-    
-    switch (paymentFilter) {
-      case "paid":
-        return paymentStatus.isPaid;
-      case "unpaid":
-        return paymentStatus.isUnpaid;
-      case "partial":
-        return paymentStatus.isPartialPaid;
-      default:
-        return true;
-    }
-  });
+  const filteredBookings: BookingData[] = (data as any)?.data || [];
 
   if (error) {
     return (
@@ -129,65 +119,118 @@ export default function PaymentManagementPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="bg-white rounded-2xl shadow-md p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Search Input */}
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo mã booking, tên khách hàng, email..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-            />
+          <div className="lg:col-span-2">
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Tìm kiếm</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <i className="ri-search-line"></i>
+              </span>
+              <input
+                type="text"
+                placeholder="Booking code, khách hàng, email..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent text-sm bg-slate-50 transition outline-none"
+              />
+            </div>
           </div>
 
-          {/* Booking Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value as any);
-              setPage(1);
-            }}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="p">Chờ xác nhận</option>
-            <option value="c">Đã xác nhận</option>
-            <option value="x">Đã hủy</option>
-          </select>
-
           {/* Payment Status Filter */}
-          <select
-            value={paymentFilter}
-            onChange={(e) => {
-              setPaymentFilter(e.target.value as any);
-              setPage(1);
-            }}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-          >
-            <option value="">Tất cả thanh toán</option>
-            <option value="unpaid">Chưa thanh toán</option>
-            <option value="partial">Thanh toán một phần</option>
-            <option value="paid">Đã thanh toán đủ</option>
-          </select>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Thanh toán</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-bank-card-line text-lg"></i>
+              </span>
+              <select
+                value={paymentFilter}
+                onChange={(e) => {
+                  setPaymentFilter(e.target.value as any);
+                  setPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent text-sm bg-slate-50 transition appearance-none outline-none"
+              >
+                <option value="">Tất cả thanh toán</option>
+                <option value="unpaid">Chưa thanh toán</option>
+                <option value="deposited">Thanh toán một phần</option>
+                <option value="full">Đã thanh toán đủ</option>
+              </select>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-arrow-down-s-line"></i>
+              </span>
+            </div>
+          </div>
 
-          {/* Reset Filters */}
-          <button
-            onClick={() => {
-              setSearchTerm("");
-              setStatusFilter("");
-              setPaymentFilter("");
-              setPage(1);
-            }}
-            className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition"
-          >
-            Đặt lại
-          </button>
+          {/* Date Range */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Từ ngày</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-calendar-line text-lg"></i>
+              </span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent text-sm bg-slate-50 transition outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Đến ngày</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-calendar-check-line text-lg"></i>
+              </span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent text-sm bg-slate-50 transition outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold text-sm transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+            >
+              <i className="ri-search-line"></i>
+              Tìm kiếm
+            </button>
+          </div>
         </div>
+
+        {(searchTerm || paymentFilter || startDate || endDate) && (
+          <div className="mt-4 flex justify-end">
+            <button 
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("");
+                setPaymentFilter("");
+                setStartDate("");
+                setEndDate("");
+                setPage(1);
+              }}
+              className="text-xs text-slate-400 hover:text-emerald-600 transition flex items-center gap-1.5"
+            >
+              <i className="ri-refresh-line"></i> Làm mới bộ lọc
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -307,48 +350,14 @@ export default function PaymentManagementPage() {
             </div>
           </div>
 
-          {/* Footer Info & Pagination */}
-          <div className="flex flex-col md:flex-row items-center justify-between bg-white rounded-lg shadow-md p-4">
-            <p className="text-slate-600 mb-4 md:mb-0">
-              Tổng cộng: <span className="font-bold text-slate-900">{data.total}</span> booking |
-              Trang <span className="font-bold text-emerald-600">{page}</span> of{" "}
-              <span className="font-bold">{Math.ceil((data.total || 0) / (data.limit || 20))}</span>
-            </p>
-
-            {/* Pagination Controls */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                ← Trước
-              </button>
-
-              {/* Page Numbers */}
-              {[...Array(Math.ceil((data.total || 0) / (data.limit || 20)) || 1)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => setPage(i + 1)}
-                  className={`px-3 py-2 rounded-lg transition ${
-                    page === i + 1
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-
-              <button
-                onClick={() => setPage((p) => Math.min(Math.ceil((data.total || 0) / (data.limit || 20)) || 1, p + 1))}
-                disabled={page === Math.ceil((data.total || 0) / (data.limit || 20))}
-                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                Sau →
-              </button>
-            </div>
-          </div>
+          <AdminPagination 
+            currentPage={page}
+            totalPages={Math.ceil((data.total || 0) / (data.limit || 20))}
+            onPageChange={setPage}
+            totalItems={data.total}
+            itemsLabel="booking"
+            activeColor="emerald"
+          />
         </>
       )}
 

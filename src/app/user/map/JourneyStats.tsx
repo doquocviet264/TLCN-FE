@@ -140,15 +140,34 @@ export default function JourneyStats() {
     const fetchStats = async () => {
       if (!isAuthenticated) return;
       try {
-        const res = await checkinApi.getUserJourney();
-        const provinces = res.provinces || [];
-        const manualProvinces = res.manualProvinces || [];
+        const res = await checkinApi.getFullJourney();
+        const progress = res.progress || [];
+        const tourProvinces = new Set<string>();
+        const manualProvinces = new Set<string>();
+
+        if (progress.length > 0) {
+          progress.forEach((p) => {
+            if (p.source === "tour" || p.source === "both") {
+              tourProvinces.add(p.provinceName);
+            }
+            if (p.source === "manual" || p.source === "both") {
+              manualProvinces.add(p.provinceName);
+            }
+          });
+        } else {
+          (res.fromBookings || []).forEach((p) => tourProvinces.add(p));
+          (res.fromManualCheckins || []).forEach((p) => manualProvinces.add(p));
+        }
+
+        const totalProvinces = progress.length
+          ? progress.length
+          : new Set([...tourProvinces, ...manualProvinces]).size;
 
         setStats({
-          totalProvinces: provinces.length + manualProvinces.length,
-          manualProvinces: manualProvinces.length,
-          tourProvinces: provinces.length,
-          totalVouchers: provinces.length, // Mỗi check-in qua tour = 1 voucher
+          totalProvinces,
+          manualProvinces: manualProvinces.size,
+          tourProvinces: tourProvinces.size,
+          totalVouchers: tourProvinces.size,
           streak: Math.floor(Math.random() * 7) + 1, // Demo streak
         });
       } catch (error) {

@@ -167,8 +167,9 @@ export default function Achievements() {
     const fetchData = async () => {
       if (!isAuthenticated) return;
       try {
-        const res = await checkinApi.getUserJourney();
-        const total = (res.provinces?.length || 0) + (res.manualProvinces?.length || 0);
+        const res = await checkinApi.getFullJourney();
+        const total = res.progress?.length
+          ?? new Set([...(res.fromBookings || []), ...(res.fromManualCheckins || [])]).size;
         setProvincesCount(total);
 
         // Calculate unlocked achievements

@@ -2,553 +2,463 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  MessageSquare,
-  Send,
-  Loader2,
-  Users,
-  MapPin,
-  Calendar,
-  ChevronLeft,
-  RefreshCw,
-  Phone,
-  Mail,
-  User,
-  ChevronRight,
+  MessageSquare, Send, Loader2, Users, MapPin, Calendar,
+  ChevronLeft, RefreshCw, Phone, Mail, User, Search, X, CheckCheck,
 } from "lucide-react";
 import {
-  leaderToursApi,
-  leaderChatApi,
-  leaderBookingApi,
-  LeaderTour,
-  ChatMessage,
-  TourBooking,
-  leaderAuthApi,
+  leaderToursApi, leaderChatApi, leaderBookingApi,
+  LeaderTour, ChatMessage, TourBooking, leaderAuthApi,
 } from "@/lib/leader/leaderApi";
 
-const ROLE_COLORS: Record<string, { bg: string; text: string; bubble: string }> = {
-  admin: {
-    bg: "bg-blue-500/10",
-    text: "text-blue-400",
-    bubble: "bg-gradient-to-r from-blue-600 to-blue-700 text-white",
-  },
-  leader: {
-    bg: "bg-orange-500/10",
-    text: "text-orange-400",
-    bubble: "bg-gradient-to-r from-orange-500 to-orange-600 text-white",
-  },
-  user: {
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-400",
-    bubble: "bg-white/10 text-white border border-white/10",
-  },
-  guest: {
-    bg: "bg-slate-500/10",
-    text: "text-slate-400",
-    bubble: "bg-white/10 text-white border border-white/10",
-  },
+const ROLE_CFG: Record<string, any> = {
+  admin:  { badge: "bg-blue-100 text-blue-700 border-blue-200",   bubble: "bg-blue-600 text-white",                       label: "Admin" },
+  leader: { badge: "bg-orange-100 text-orange-700 border-orange-200", bubble: "bg-gradient-to-br from-orange-500 to-orange-600 text-white", label: "Leader" },
+  user:   { badge: "bg-emerald-100 text-emerald-700 border-emerald-200", bubble: "bg-white border border-slate-200 text-slate-800 shadow-sm", label: "Khách hàng" },
+  guest:  { badge: "bg-slate-100 text-slate-600 border-slate-200",   bubble: "bg-white border border-slate-200 text-slate-800 shadow-sm", label: "Khách" },
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
-  leader: "Leader",
-  user: "Khách hàng",
-  guest: "Khách",
+const BOOKING_STATUS_CFG: Record<string, { label: string; className: string }> = {
+  pending:   { label: "Chờ thanh toán", className: "bg-amber-100 text-amber-700" },
+  confirmed: { label: "Xác nhận", className: "bg-emerald-100 text-emerald-700" },
+  completed: { label: "Hoàn thành", className: "bg-blue-100 text-blue-700" },
+  cancelled: { label: "Hủy", className: "bg-red-100 text-red-700" },
+  p:         { label: "Chờ", className: "bg-amber-100 text-amber-700" },
+  c:         { label: "Xác nhận", className: "bg-emerald-100 text-emerald-700" },
+  x:         { label: "Hủy", className: "bg-red-100 text-red-700" },
 };
 
-function formatChatTime(dateStr?: string): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  const now = new Date();
-  const isToday =
-    d.getDate() === now.getDate() &&
-    d.getMonth() === now.getMonth() &&
-    d.getFullYear() === now.getFullYear();
+function fmtTime(d?: string) {
+  if (!d) return "";
+  const dt = new Date(d), now = new Date();
+  const isToday = dt.toDateString() === now.toDateString();
+  return isToday
+    ? dt.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+    : dt.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
 
-  if (isToday) {
-    return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-  }
-
-  return d.toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
 }
 
 export default function LeaderChatPage() {
-  const [tours, setTours] = useState<LeaderTour[]>([]);
-  const [selectedTour, setSelectedTour] = useState<LeaderTour | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [bookings, setBookings] = useState<TourBooking[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [leader, setLeader] = useState<any>(null);
-  const [showParticipants, setShowParticipants] = useState(false);
+  const [tours,       setTours]      = useState<LeaderTour[]>([]);
+  const [filteredT,   setFilteredT]  = useState<LeaderTour[]>([]);
+  const [tourSearch,  setTSearch]    = useState("");
+  const [selected,    setSelected]   = useState<LeaderTour | null>(null);
+  const [messages,    setMessages]   = useState<ChatMessage[]>([]);
+  const [bookings,    setBookings]   = useState<TourBooking[]>([]);
+  const [newMsg,      setNewMsg]     = useState("");
+  const [isLoading,   setLoading]    = useState(true);
+  const [loadingMsgs, setLoadMsgs]   = useState(false);
+  const [loadingBks,  setLoadBks]    = useState(false);
+  const [sending,     setSending]    = useState(false);
+  const [leader,      setLeader]     = useState<any>(null);
+  const [showPart,    setShowPart]   = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const endRef  = useRef<HTMLDivElement>(null);
+  const taRef   = useRef<HTMLTextAreaElement>(null);
 
-  // Build a map of userId -> customerName for quick lookup
-  const userNameMap = useCallback(() => {
-    const map: Record<string, string> = {};
-    bookings.forEach((b) => {
-      if (b.userId) {
-        map[b.userId] = b.customerName;
-      }
-    });
-    return map;
+  const nameMap = useCallback(() => {
+    const m: Record<string, string> = {};
+    bookings.forEach(b => { if (b.userId) m[b.userId] = b.customerName; });
+    return m;
   }, [bookings]);
 
-  // Load tours
   useEffect(() => {
-    const fetchData = async () => {
+    (async () => {
       try {
-        const storedLeader = leaderAuthApi.getStoredLeader();
-        setLeader(storedLeader);
-
-        const toursData = await leaderToursApi.getMyTours();
-        // Filter only active tours (not completed/closed)
-        const activeTours = toursData.filter(
-          (t) => t.status !== "completed" && t.status !== "closed"
-        );
-        setTours(activeTours);
-      } catch (err) {
-        console.error("Error loading tours:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  // Load messages when tour selected
-  const loadMessages = useCallback(async (tourId: string) => {
-    setIsLoadingMessages(true);
-    try {
-      const res = await leaderChatApi.getTourMessages(tourId);
-      setMessages(res.data || []);
-    } catch (err) {
-      console.error("Error loading messages:", err);
-    } finally {
-      setIsLoadingMessages(false);
-    }
-  }, []);
-
-  // Load bookings when tour selected
-  const loadBookings = useCallback(async (tourId: string) => {
-    setIsLoadingBookings(true);
-    try {
-      const res = await leaderBookingApi.getTourBookings(tourId);
-      setBookings(res.data || []);
-    } catch (err) {
-      console.error("Error loading bookings:", err);
-    } finally {
-      setIsLoadingBookings(false);
-    }
+        const sl = leaderAuthApi.getStoredLeader(); setLeader(sl);
+        const td = await leaderToursApi.getMyTours();
+        const ac = td.filter(t => t.status !== "completed" && t.status !== "closed");
+        setTours(ac); setFilteredT(ac);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    })();
   }, []);
 
   useEffect(() => {
-    if (selectedTour) {
-      loadMessages(selectedTour._id);
-      loadBookings(selectedTour._id);
-    }
-  }, [selectedTour, loadMessages, loadBookings]);
+    if (!tourSearch.trim()) { setFilteredT(tours); return; }
+    const lo = tourSearch.toLowerCase();
+    setFilteredT(tours.filter(t => t.title.toLowerCase().includes(lo)||t.destination.toLowerCase().includes(lo)));
+  }, [tourSearch, tours]);
 
-  // Auto scroll to bottom
+  const loadMsgs = useCallback(async (id: string) => {
+    setLoadMsgs(true);
+    try { const r = await leaderChatApi.getTourMessages(id); setMessages(r.data||[]); }
+    catch (e) { console.error(e); }
+    finally { setLoadMsgs(false); }
+  }, []);
+
+  const loadBks = useCallback(async (id: string) => {
+    setLoadBks(true);
+    try { const r = await leaderBookingApi.getTourBookings(id); setBookings(r.data||[]); }
+    catch (e) { console.error(e); }
+    finally { setLoadBks(false); }
+  }, []);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (selected) { loadMsgs(selected._id); loadBks(selected._id); }
+  }, [selected, loadMsgs, loadBks]);
 
-  // Auto refresh messages every 10 seconds
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
   useEffect(() => {
-    if (!selectedTour) return;
+    if (!selected) return;
+    const iv = setInterval(() => loadMsgs(selected._id), 10000);
+    return () => clearInterval(iv);
+  }, [selected, loadMsgs]);
 
-    const interval = setInterval(() => {
-      loadMessages(selectedTour._id);
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [selectedTour, loadMessages]);
-
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedTour || isSending) return;
-
-    setIsSending(true);
+  const sendMsg = async () => {
+    if (!newMsg.trim() || !selected || sending) return;
+    setSending(true);
     try {
-      const res = await leaderChatApi.sendTourMessage(selectedTour._id, newMessage.trim());
-      setMessages((prev) => [...prev, res.data]);
-      setNewMessage("");
-    } catch (err) {
-      console.error("Error sending message:", err);
-    } finally {
-      setIsSending(false);
-    }
+      const r = await leaderChatApi.sendTourMessage(selected._id, newMsg.trim());
+      setMessages(p => [...p, r.data]); setNewMsg("");
+      if (taRef.current) taRef.current.style.height = "auto";
+    } catch (e) { console.error(e); }
+    finally { setSending(false); }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-    });
+  const handleTA = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewMsg(e.target.value);
+    e.target.style.height = "auto";
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
   };
 
-  // Get display name for a message
-  const getDisplayName = (msg: ChatMessage) => {
-    // If message has name, use it
-    if (msg.name) return msg.name;
-
-    // Try to find name from bookings
-    const nameMap = userNameMap();
-    if (msg.fromId && nameMap[msg.fromId]) {
-      return nameMap[msg.fromId];
-    }
-
-    // Fallback
-    return ROLE_LABELS[msg.fromRole] || "Khách hàng";
+  const getName = (m: ChatMessage) => {
+    if (m.name) return m.name;
+    const nm = nameMap(); if (m.fromId && nm[m.fromId]) return nm[m.fromId];
+    return ROLE_CFG[m.fromRole]?.label || "Khách hàng";
   };
 
-  // Calculate total guests
-  const totalGuests = bookings.reduce((sum, b) => sum + (b.guestCount || 1), 0);
+  const initials = (name: string) => name?.split(" ").map(n=>n[0]).slice(-2).join("").toUpperCase() || "?";
+  const totalGuests = bookings.reduce((s, b) => s + (b.guestCount||1), 0);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-slate-400">Đang tải...</p>
+  if (isLoading) return (
+    <div className="h-screen flex items-center justify-center bg-slate-100">
+      <div className="text-center">
+        <div className="relative w-14 h-14 mx-auto mb-3">
+          <div className="absolute inset-0 rounded-full border-4 border-orange-100" />
+          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-orange-500 animate-spin" />
         </div>
+        <p className="text-slate-500 text-sm">Đang tải...</p>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const STATUS_LABEL: Record<string, string> = {
+    in_progress: "Đang diễn ra", confirmed: "Đã xác nhận", pending: "Chờ xác nhận",
+  };
+  const STATUS_COLOR: Record<string, string> = {
+    in_progress: "bg-emerald-100 text-emerald-700",
+    confirmed: "bg-blue-100 text-blue-700",
+    pending: "bg-amber-100 text-amber-700",
+  };
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] lg:h-screen flex bg-[#0f172a]">
-      {/* Sidebar - Tour List */}
-      <div
-        className={`
-          ${selectedTour ? "hidden md:flex" : "flex"}
-          w-full md:w-80 lg:w-96 flex-col border-r border-white/10 bg-white/5
-        `}
-      >
+    <div className="h-[calc(100vh-56px)] lg:h-screen flex bg-slate-100 overflow-hidden">
+
+      {/* ── Tour list panel ── */}
+      <div className={`${selected?"hidden md:flex":"flex"}
+        w-full md:w-80 lg:w-96 flex-col bg-white border-r border-slate-200 shadow-sm`}>
+
         {/* Header */}
-        <div className="p-4 border-b border-white/10 bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600">
-          <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            Chat nhóm Tour
-          </h1>
-          <p className="text-sm text-blue-100 mt-1">
-            Liên lạc với khách hàng
-          </p>
+        <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-blue-900 to-blue-800">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-orange-300" />
+            </div>
+            <div>
+              <h1 className="font-bold text-white text-base">Chat nhóm</h1>
+              <p className="text-xs text-blue-200/70">{tours.length} tour đang hoạt động</p>
+            </div>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-300/60" />
+            <input type="text" placeholder="Tìm tour..."
+              value={tourSearch} onChange={e => setTSearch(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 rounded-xl bg-white/10 border border-white/20
+                text-white placeholder-blue-300/50 text-sm focus:outline-none focus:bg-white/15 transition-all" />
+            {tourSearch && (
+              <button onClick={() => setTSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-300/60 hover:text-white">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Tour List */}
+        {/* Tour list */}
         <div className="flex-1 overflow-y-auto">
-          {tours.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">
-              <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>Chưa có tour nào đang hoạt động</p>
+          {filteredT.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 p-8 text-center">
+              <MessageSquare className="w-10 h-10 mb-2 opacity-30" />
+              <p className="text-sm font-medium">{tourSearch ? "Không tìm thấy tour" : "Chưa có tour hoạt động"}</p>
+              {tourSearch && <button onClick={() => setTSearch("")} className="mt-1.5 text-xs text-orange-500 hover:underline">Xóa tìm kiếm</button>}
             </div>
           ) : (
-            <div className="divide-y divide-white/5">
-              {tours.map((tour) => (
-                <button
-                  key={tour._id}
-                  onClick={() => setSelectedTour(tour)}
-                  className={`w-full p-4 text-left hover:bg-white/5 transition-colors ${
-                    selectedTour?._id === tour._id ? "bg-blue-500/10 border-l-4 border-orange-500" : ""
-                  }`}
-                >
-                  <h3 className="font-semibold text-white truncate">
-                    {tour.title}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-slate-400">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span className="truncate">{tour.destination}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
-                    <Calendar className="w-3 h-3" />
-                    <span>
-                      {formatDate(tour.startDate)} - {formatDate(tour.endDate)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        tour.status === "in_progress"
-                          ? "bg-emerald-500/10 text-emerald-400"
-                          : tour.status === "confirmed"
-                          ? "bg-blue-500/10 text-blue-400"
-                          : "bg-slate-500/10 text-slate-400"
-                      }`}
-                    >
-                      {tour.status === "in_progress"
-                        ? "Đang diễn ra"
-                        : tour.status === "confirmed"
-                        ? "Đã xác nhận"
-                        : tour.status}
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-slate-500">
-                      <Users className="w-3 h-3" />
-                      {tour.bookedCount || 0}/{tour.quantity}
-                    </span>
-                  </div>
-                </button>
-              ))}
+            <div className="divide-y divide-slate-100">
+              {filteredT.map(tour => {
+                const isSel = selected?._id === tour._id;
+                return (
+                  <button key={tour._id} onClick={() => setSelected(tour)}
+                    className={`w-full p-4 text-left transition-all group relative
+                      border-l-[3px]
+                      ${isSel
+                        ? "bg-orange-50 border-l-orange-500"
+                        : "border-l-transparent hover:bg-slate-50"}`}>
+                    <div className="flex items-start gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-base
+                        ${isSel
+                          ? "bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-md shadow-orange-500/20"
+                          : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"}`}>
+                        ✈
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className={`font-semibold truncate text-sm
+                          ${isSel ? "text-orange-700" : "text-slate-700 group-hover:text-slate-900"}`}>
+                          {tour.title}
+                        </h3>
+                        <p className="flex items-center gap-1 text-xs text-slate-400 mt-0.5 truncate">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />{tour.destination}
+                        </p>
+                        <p className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
+                          <Calendar className="w-3 h-3 flex-shrink-0" />
+                          {fmtDate(tour.startDate)} – {fmtDate(tour.endDate)}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full
+                            ${STATUS_COLOR[tour.status]||"bg-slate-100 text-slate-600"}`}>
+                            {STATUS_LABEL[tour.status]||tour.status}
+                          </span>
+                          <span className="flex items-center gap-0.5 text-[10px] text-slate-400">
+                            <Users className="w-2.5 h-2.5" />{tour.bookedCount||0}/{tour.quantity}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
 
-      {/* Chat Area */}
-      <div className={`${selectedTour ? "flex" : "hidden md:flex"} flex-1 flex-col`}>
-        {selectedTour ? (
+      {/* ── Chat area ── */}
+      <div className={`${selected?"flex":"hidden md:flex"} flex-1 flex-col min-w-0 bg-slate-50`}>
+        {selected ? (
           <>
-            {/* Chat Header */}
-            <div className="p-4 border-b border-white/10 bg-white/5 flex items-center gap-4">
-              <button
-                onClick={() => setSelectedTour(null)}
-                className="md:hidden p-2 rounded-lg hover:bg-white/10 text-white"
-              >
+            {/* Chat header */}
+            <div className="flex items-center gap-3 px-4 py-3.5 bg-white border-b border-slate-200 shadow-sm flex-shrink-0">
+              <button onClick={() => setSelected(null)}
+                className="md:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-all">
                 <ChevronLeft className="w-5 h-5" />
               </button>
+              <div className="w-10 h-10 rounded-xl bg-orange-100 border border-orange-200
+                flex items-center justify-center flex-shrink-0">
+                <MessageSquare className="w-5 h-5 text-orange-600" />
+              </div>
               <div className="flex-1 min-w-0">
-                <h2 className="font-semibold text-white truncate">
-                  {selectedTour.title}
-                </h2>
-                <div className="flex items-center gap-3 text-sm text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5" />
-                    {selectedTour.destination}
-                  </span>
-                  <span className="flex items-center gap-1 text-orange-400 font-medium">
-                    <Users className="w-3.5 h-3.5" />
-                    {bookings.length} đơn đặt • {totalGuests} khách
+                <h2 className="font-semibold text-slate-800 truncate text-sm">{selected.title}</h2>
+                <div className="flex items-center gap-3 text-xs text-slate-500">
+                  <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{selected.destination}</span>
+                  <span className="flex items-center gap-1 text-orange-600 font-medium">
+                    <Users className="w-3 h-3" />{bookings.length} đơn · {totalGuests} khách
                   </span>
                 </div>
               </div>
-              <button
-                onClick={() => setShowParticipants(!showParticipants)}
-                className={`p-2 rounded-lg transition-colors ${
-                  showParticipants
-                    ? "bg-orange-500/20 text-orange-400"
-                    : "hover:bg-white/10 text-slate-400"
-                }`}
-                title="Danh sách khách hàng"
-              >
-                <Users className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => loadMessages(selectedTour._id)}
-                className="p-2 rounded-lg hover:bg-white/10 text-slate-400"
-                title="Làm mới"
-              >
-                <RefreshCw className={`w-5 h-5 ${isLoadingMessages ? "animate-spin" : ""}`} />
-              </button>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button onClick={() => setShowPart(!showPart)}
+                  className={`p-2.5 rounded-xl transition-all
+                    ${showPart?"bg-orange-100 text-orange-600":"hover:bg-slate-100 text-slate-500"}`}>
+                  <Users className="w-5 h-5" />
+                </button>
+                <button onClick={() => loadMsgs(selected._id)}
+                  className="p-2.5 rounded-xl hover:bg-slate-100 text-slate-500 transition-all">
+                  <RefreshCw className={`w-5 h-5 ${loadingMsgs?"animate-spin":""}`} />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 flex overflow-hidden">
               {/* Messages */}
-              <div
-                ref={chatContainerRef}
-                className="flex-1 overflow-y-auto p-4 space-y-4"
-              >
-                {isLoadingMessages && messages.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                  </div>
-                ) : messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                    <MessageSquare className="w-16 h-16 mb-4 opacity-30" />
-                    <p className="text-lg font-medium">Chưa có tin nhắn</p>
-                    <p className="text-sm mt-1">Hãy bắt đầu cuộc trò chuyện!</p>
-                  </div>
-                ) : (
-                  messages.map((msg) => {
-                    const isMe = msg.fromRole === "leader" && msg.fromId === leader?.id;
-                    const roleColors = ROLE_COLORS[msg.fromRole] || ROLE_COLORS.user;
-                    const displayName = getDisplayName(msg);
-
-                    return (
-                      <div
-                        key={msg._id}
-                        className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-                      >
-                        <div
-                          className={`max-w-[75%] ${isMe ? "order-2" : "order-1"}`}
-                        >
-                          {/* Sender info */}
-                          {!isMe && (
-                            <div className="flex items-center gap-2 mb-1 px-1">
-                              <span
-                                className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleColors.bg} ${roleColors.text}`}
-                              >
-                                {ROLE_LABELS[msg.fromRole] || msg.fromRole}
-                              </span>
-                              <span className="text-xs text-slate-400 font-medium">
-                                {displayName}
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Message bubble */}
-                          <div
-                            className={`rounded-2xl px-4 py-2.5 ${
-                              isMe
-                                ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-br-md shadow-lg shadow-orange-500/25"
-                                : "bg-white/10 text-white border border-white/10 rounded-bl-md"
-                            }`}
-                          >
-                            <p className="whitespace-pre-wrap break-words">
-                              {msg.content}
-                            </p>
-                          </div>
-
-                          {/* Time */}
-                          <p
-                            className={`text-xs text-slate-500 mt-1 px-1 ${
-                              isMe ? "text-right" : "text-left"
-                            }`}
-                          >
-                            {formatChatTime(msg.createdAt)}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Participants Panel */}
-              {showParticipants && (
-                <div className="w-72 border-l border-white/10 bg-white/5 overflow-y-auto">
-                  <div className="p-4 border-b border-white/10">
-                    <h3 className="font-semibold text-white flex items-center gap-2">
-                      <Users className="w-4 h-4 text-orange-400" />
-                      Danh sách khách ({totalGuests} người)
-                    </h3>
-                  </div>
-
-                  {isLoadingBookings ? (
-                    <div className="p-4 flex justify-center">
-                      <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  {loadingMsgs && messages.length===0 ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="w-7 h-7 animate-spin text-orange-500" />
                     </div>
-                  ) : bookings.length === 0 ? (
-                    <div className="p-4 text-center text-slate-500">
-                      <p className="text-sm">Chưa có khách đặt tour</p>
+                  ) : messages.length===0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                      <div className="w-16 h-16 bg-slate-200 rounded-2xl flex items-center justify-center mb-3">
+                        <MessageSquare className="w-8 h-8 opacity-40" />
+                      </div>
+                      <p className="font-semibold text-slate-500">Chưa có tin nhắn</p>
+                      <p className="text-sm mt-1">Hãy bắt đầu cuộc trò chuyện!</p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-white/5">
-                      {bookings.map((booking) => (
-                        <div key={booking._id} className="p-3 hover:bg-white/5">
-                          <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                              {booking.customerAvatar ? (
-                                <img
-                                  src={booking.customerAvatar}
-                                  alt=""
-                                  className="w-10 h-10 rounded-full object-cover"
-                                />
-                              ) : (
-                                <User className="w-5 h-5 text-orange-400" />
+                    <>
+                      {messages.map((msg, idx) => {
+                        const isMe = msg.fromRole==="leader" && msg.fromId===leader?.id;
+                        const rc   = ROLE_CFG[msg.fromRole] || ROLE_CFG.user;
+                        const name = getName(msg);
+                        const isFirst = idx===0 || messages[idx-1].fromId!==msg.fromId;
+                        const isLast  = idx===messages.length-1 || messages[idx+1].fromId!==msg.fromId;
+                        return (
+                          <div key={msg._id}
+                            className={`flex ${isMe?"justify-end":"justify-start"} ${isFirst?"mt-3":"mt-0.5"}`}>
+                            {!isMe && (
+                              <div className={`w-7 h-7 rounded-full flex-shrink-0 mr-2 self-end
+                                bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500
+                                ${isLast?"visible":"invisible"}`}>
+                                {initials(name)}
+                              </div>
+                            )}
+                            <div className={`max-w-[70%] flex flex-col ${isMe?"items-end":"items-start"}`}>
+                              {!isMe && isFirst && (
+                                <div className="flex items-center gap-1.5 mb-1 px-1">
+                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${rc.badge}`}>
+                                    {ROLE_CFG[msg.fromRole]?.label||msg.fromRole}
+                                  </span>
+                                  <span className="text-xs text-slate-500">{name}</span>
+                                </div>
                               )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-white truncate">
-                                {booking.customerName}
-                              </p>
-                              <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                                <Users className="w-3 h-3" />
-                                {booking.guestCount} khách
-                              </p>
-                              {booking.customerPhone && (
-                                <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                                  <Phone className="w-3 h-3" />
-                                  {booking.customerPhone}
-                                </p>
-                              )}
-                              {booking.customerEmail && (
-                                <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 truncate">
-                                  <Mail className="w-3 h-3" />
-                                  {booking.customerEmail}
-                                </p>
+                              <div className={`px-3.5 py-2 text-sm leading-relaxed break-words
+                                rounded-2xl ${isMe
+                                  ? `${rc.bubble} rounded-br-md shadow-md`
+                                  : `${rc.bubble} rounded-bl-md`}`}>
+                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                              </div>
+                              {isLast && (
+                                <div className={`flex items-center gap-1 mt-1 px-1 text-[10px] text-slate-400
+                                  ${isMe?"justify-end":"justify-start"}`}>
+                                  <span>{fmtTime(msg.createdAt)}</span>
+                                  {isMe && <CheckCheck className="w-3 h-3 text-blue-400" />}
+                                </div>
                               )}
                             </div>
                           </div>
-                          <div className="mt-2 flex items-center gap-2">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                booking.bookingStatus === "c"
-                                  ? "bg-emerald-500/10 text-emerald-400"
-                                  : booking.bookingStatus === "p"
-                                  ? "bg-amber-500/10 text-amber-400"
-                                  : "bg-slate-500/10 text-slate-400"
-                              }`}
-                            >
-                              {booking.bookingStatus === "c"
-                                ? "Đã xác nhận"
-                                : booking.bookingStatus === "p"
-                                ? "Chờ xác nhận"
-                                : booking.bookingStatus}
-                            </span>
-                            <span className="text-[10px] text-slate-500">
-                              #{booking.code}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        );
+                      })}
+                      <div ref={endRef} />
+                    </>
                   )}
+                </div>
+
+                {/* Input */}
+                <div className="p-4 bg-white border-t border-slate-200 flex-shrink-0">
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <textarea ref={taRef} value={newMsg} onChange={handleTA} onKeyDown={handleKey}
+                        placeholder="Nhập tin nhắn... (Enter gửi, Shift+Enter xuống dòng)"
+                        rows={1}
+                        className="w-full px-4 py-3 rounded-2xl bg-slate-100 border border-slate-200 text-slate-800
+                          placeholder-slate-400 text-sm
+                          focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20
+                          resize-none transition-all"
+                        style={{ minHeight: "44px", maxHeight: "120px" }} />
+                    </div>
+                    <button onClick={sendMsg} disabled={!newMsg.trim()||sending}
+                      className="flex-shrink-0 w-11 h-11 rounded-2xl
+                        bg-gradient-to-br from-orange-500 to-orange-600 text-white
+                        flex items-center justify-center shadow-md shadow-orange-500/20
+                        hover:shadow-orange-500/30 hover:scale-105 active:scale-95
+                        disabled:opacity-50 disabled:scale-100
+                        transition-all duration-200">
+                      {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400 text-center mt-2">
+                    Enter gửi · Shift+Enter xuống dòng · Tự làm mới mỗi 10 giây
+                  </p>
+                </div>
+              </div>
+
+              {/* Participants panel */}
+              {showPart && (
+                <div className="w-72 border-l border-slate-200 bg-white flex flex-col flex-shrink-0 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 bg-slate-50">
+                    <h3 className="font-semibold text-slate-700 text-sm flex items-center gap-2">
+                      <Users className="w-4 h-4 text-orange-500" />
+                      Danh sách khách
+                      <span className="bg-orange-100 text-orange-700 text-xs px-1.5 py-0.5 rounded-full font-bold">
+                        {totalGuests}
+                      </span>
+                    </h3>
+                    <button onClick={() => setShowPart(false)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-all">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {loadingBks ? (
+                      <div className="flex justify-center p-8"><Loader2 className="w-5 h-5 animate-spin text-orange-500" /></div>
+                    ) : bookings.length===0 ? (
+                      <div className="text-center p-8 text-slate-400">
+                        <User className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">Chưa có khách đặt tour</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-100">
+                        {bookings.map(bk => {
+                          const init = bk.customerName?.split(" ").map((n:string)=>n[0]).slice(-2).join("").toUpperCase()||"?";
+                          return (
+                            <div key={bk._id} className="p-4 hover:bg-slate-50 transition-colors">
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-orange-100 border border-orange-200
+                                  flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                  {bk.customerAvatar
+                                    ? <img src={bk.customerAvatar} alt="" className="w-full h-full object-cover" />
+                                    : <span className="font-bold text-orange-700 text-sm">{init}</span>}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-slate-800 text-sm truncate">{bk.customerName}</p>
+                                  <div className="mt-1 space-y-0.5">
+                                    {bk.customerPhone && (
+                                      <p className="flex items-center gap-1.5 text-xs text-slate-500">
+                                        <Phone className="w-3 h-3" />{bk.customerPhone}
+                                      </p>
+                                    )}
+                                    {bk.customerEmail && (
+                                      <p className="flex items-center gap-1.5 text-xs text-slate-500 truncate">
+                                        <Mail className="w-3 h-3 flex-shrink-0" />{bk.customerEmail}
+                                      </p>
+                                    )}
+                                    <p className="flex items-center gap-1.5 text-xs text-slate-500">
+                                      <Users className="w-3 h-3" />{bk.guestCount||1} khách
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${BOOKING_STATUS_CFG[bk.bookingStatus]?.className || "bg-slate-100 text-slate-600"}`}>
+                                      {BOOKING_STATUS_CFG[bk.bookingStatus]?.label || bk.bookingStatus}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-mono">#{bk.code}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* Input */}
-            <div className="p-4 border-t border-white/10 bg-white/5">
-              <div className="flex items-end gap-3">
-                <div className="flex-1 relative">
-                  <textarea
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Nhập tin nhắn..."
-                    rows={1}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none resize-none transition-all"
-                    style={{ minHeight: "48px", maxHeight: "120px" }}
-                  />
-                </div>
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!newMessage.trim() || isSending}
-                  className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/25 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSending ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
-            <MessageSquare className="w-20 h-20 mb-4 opacity-30" />
-            <p className="text-xl font-medium text-slate-400">Chọn một tour để chat</p>
-            <p className="text-sm mt-2">
-              Liên lạc với khách hàng trong tour của bạn
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
+            <div className="w-20 h-20 bg-slate-200 rounded-2xl flex items-center justify-center mb-5">
+              <MessageSquare className="w-10 h-10 opacity-40" />
+            </div>
+            <h2 className="text-lg font-semibold text-slate-600 mb-2">Chọn một tour để chat</h2>
+            <p className="text-sm text-center max-w-xs text-slate-400">
+              Liên lạc trực tiếp với khách hàng và thành viên trong nhóm tour
             </p>
           </div>
         )}

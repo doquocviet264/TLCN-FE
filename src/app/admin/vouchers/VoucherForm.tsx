@@ -280,7 +280,7 @@ export default function VoucherForm({ initialData, onSubmit, isPending, title }:
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Giới hạn lượt dùng mỗi User <span className="text-red-500">*</span>
+                  Giới hạn lượt dùng mỗi tài khoản <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"

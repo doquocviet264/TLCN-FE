@@ -24,6 +24,8 @@ export type GetAdminReviewsParams = {
   minRating?: number;
   maxRating?: number;
   search?: string; // Tìm theo user name hoặc comment
+  startDate?: string;
+  endDate?: string;
 };
 
 /** Response từ API */

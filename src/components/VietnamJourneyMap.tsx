@@ -4,19 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import {
-  FaTimes,
-  FaMapMarkerAlt,
-  FaSearchPlus,
-  FaSearchMinus,
-  FaRedo,
-  FaCheck,
-  FaGift,
-} from "react-icons/fa";
+import { FaCheck, FaTimes, FaMapMarkerAlt, FaGift, FaHeart, FaSearchPlus, FaSearchMinus, FaRedo } from "react-icons/fa";
+import { travelMemoryApi } from "@/lib/checkin/travelMemoryApi";
 import { checkinApi } from "@/lib/checkin/checkinApi";
 import { useAuthStore } from "#/stores/auth";
 import { toast } from "react-hot-toast";
 import { VIETNAM_PATHS, MAP_VIEWBOX } from "./VietnamMapPaths"; // Import file data
+import MemoryModal from "./MemoryModal";
 
 const COLORS = {
   BOOKING_VISITED: "#10b981", // Xanh ngọc - đã đi qua tour đặt trên web (TỰ ĐỘNG)
@@ -24,6 +18,114 @@ const COLORS = {
   LOCKED: "#e5e7eb", // Xám - chưa đi
   HOVER: "#fcd34d", // Vàng - đang hover
   STROKE: "#ffffff",
+  ARCHIPELAGO: "#f59e0b",
+  ARCHIPELAGO_LABEL: "#b45309",
+};
+
+const MERGED_PROVINCE_ALIASES: Record<string, string> = {
+  "ha giang": "tuyen quang",
+};
+
+const MERGED_PROVINCE_LABELS: Record<string, string> = {
+  "tuyen quang": "Tuyên Quang (gồm Hà Giang)",
+};
+
+const normalizeProvince = (provinceName: string) =>
+  provinceName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const getMergedProvinceKey = (provinceName: string) => {
+  const normalized = normalizeProvince(provinceName);
+  return MERGED_PROVINCE_ALIASES[normalized] || normalized;
+};
+
+const getProvinceLabel = (provinceName: string) => {
+  const mergedKey = getMergedProvinceKey(provinceName);
+  return MERGED_PROVINCE_LABELS[mergedKey] || provinceName;
+};
+
+const ARCHIPELAGO_SOURCE_PROVINCES = new Set(["VN21", "VN25"]);
+const ARCHIPELAGO_MIN_X = 520;
+const SPRATLY_MIN_Y = 850;
+
+const splitSvgSubpaths = (pathData: string) =>
+  pathData.match(/[Mm][^Mm]*/g) || [pathData];
+
+const getSubpathBounds = (pathData: string) => {
+  const numbers = pathData.match(/-?\d+(?:\.\d+)?/g)?.map(Number) || [];
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+
+  for (let i = 0; i < numbers.length - 1; i += 2) {
+    maxX = Math.max(maxX, numbers[i]);
+    minY = Math.min(minY, numbers[i + 1]);
+  }
+
+  return { maxX, minY };
+};
+
+const isArchipelagoSubpath = (provinceId: string, subpath: string) => {
+  if (!ARCHIPELAGO_SOURCE_PROVINCES.has(provinceId)) return false;
+
+  const bounds = getSubpathBounds(subpath);
+
+  if (provinceId === "VN21") return bounds.maxX >= ARCHIPELAGO_MIN_X;
+  if (provinceId === "VN25") {
+    return bounds.maxX >= ARCHIPELAGO_MIN_X || bounds.minY >= SPRATLY_MIN_Y;
+  }
+
+  return false;
+};
+
+const getProvincePathData = (provinceId: string, pathData: string) => {
+  if (!ARCHIPELAGO_SOURCE_PROVINCES.has(provinceId)) return pathData;
+
+  return splitSvgSubpaths(pathData)
+    .filter((subpath) => !isArchipelagoSubpath(provinceId, subpath))
+    .join("");
+};
+
+const ARCHIPELAGO_PATHS = VIETNAM_PATHS.flatMap((province) =>
+  splitSvgSubpaths(province.d)
+    .filter((subpath) => isArchipelagoSubpath(province.id, subpath))
+    .map((d, index) => ({
+      id: `${province.id}-archipelago-${index}`,
+      d,
+    }))
+);
+
+const ARCHIPELAGO_LABELS = [
+  { id: "hoang-sa", label: "Quần đảo Hoàng Sa", x: 704, y: 427 },
+  { id: "truong-sa", label: "Quần đảo Trường Sa", x: 754, y: 858 },
+];
+
+const MANUAL_STORAGE_KEY = "ahh_manual_provinces";
+
+const getStoredManualProvinces = (): Set<string> => {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const stored = localStorage.getItem(MANUAL_STORAGE_KEY);
+    if (stored) {
+      const arr = JSON.parse(stored);
+      return new Set(arr.map((p: string) => getMergedProvinceKey(p)));
+    }
+  } catch (e) {
+    console.error("Error reading manual provinces:", e);
+  }
+  return new Set();
+};
+
+const saveManualProvince = (provinceName: string) => {
+  try {
+    const current = getStoredManualProvinces();
+    current.add(getMergedProvinceKey(provinceName));
+    localStorage.setItem(MANUAL_STORAGE_KEY, JSON.stringify(Array.from(current)));
+  } catch (e) {
+    console.error("Error saving manual province:", e);
+  }
 };
 
 export default function VietnamJourneyMap() {
@@ -35,6 +137,39 @@ export default function VietnamJourneyMap() {
   const [bookingProvinces, setBookingProvinces] = useState<Set<string>>(
     new Set()
   );
+  const [provinceProgress, setProvinceProgress] = useState<Record<string, any>>({});
+  
+  const [popupTab, setPopupTab] = useState<"me" | "community">("me");
+  const [communityMemories, setCommunityMemories] = useState<any[]>([]);
+  const [loadingCommunity, setLoadingCommunity] = useState(false);
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+  const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(
+    null
+  );
+
+  useEffect(() => {
+    if (selectedProvince && popupTab === "community") {
+      setLoadingCommunity(true);
+      travelMemoryApi.getPublicMemories(getProvinceLabel(selectedProvince), 1, 10)
+        .then(res => setCommunityMemories(res.data || []))
+        .catch(err => console.error(err))
+        .finally(() => setLoadingCommunity(false));
+    }
+  }, [selectedProvince, popupTab]);
+
+  const handlePopupLike = async (id: string, isLiked: boolean) => {
+    try {
+      setCommunityMemories(prev => prev.map(m => m._id === id ? {
+        ...m,
+        isLikedByMe: !isLiked,
+        likesCount: (m.likesCount || 0) + (isLiked ? -1 : 1)
+      } : m));
+      if (isLiked) await travelMemoryApi.unlikeMemory(id);
+      else await travelMemoryApi.likeMemory(id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
   // Tỉnh tự đánh dấu - đi ngoài web này (THỦ CÔNG - xanh dương)
   const [manualProvinces, setManualProvinces] = useState<Set<string>>(
     new Set()
@@ -47,49 +182,11 @@ export default function VietnamJourneyMap() {
     null
   );
 
-  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
-  const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(
-    null
-  );
   const [showManualSuccess, setShowManualSuccess] = useState(false);
+  const [isMemoryModalOpen, setIsMemoryModalOpen] = useState(false);
 
   const [isDragging, setIsDragging] = useState(false);
   const [lastPos, setLastPos] = useState<{ x: number; y: number } | null>(null);
-
-  // Normalize string helper
-  const normalize = (str: string) =>
-    str
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim();
-
-  // Helper: Lưu/lấy manual provinces từ localStorage
-  const MANUAL_STORAGE_KEY = "ahh_manual_provinces";
-
-  const getStoredManualProvinces = (): Set<string> => {
-    if (typeof window === "undefined") return new Set();
-    try {
-      const stored = localStorage.getItem(MANUAL_STORAGE_KEY);
-      if (stored) {
-        const arr = JSON.parse(stored);
-        return new Set(arr.map((p: string) => normalize(p)));
-      }
-    } catch (e) {
-      console.error("Error reading manual provinces:", e);
-    }
-    return new Set();
-  };
-
-  const saveManualProvince = (provinceName: string) => {
-    try {
-      const current = getStoredManualProvinces();
-      current.add(normalize(provinceName));
-      localStorage.setItem(MANUAL_STORAGE_KEY, JSON.stringify(Array.from(current)));
-    } catch (e) {
-      console.error("Error saving manual province:", e);
-    }
-  };
 
   // 1. FETCH DATA - Lấy dữ liệu hành trình từ 2 nguồn
   useEffect(() => {
@@ -104,24 +201,38 @@ export default function VietnamJourneyMap() {
         const fromBookingsSet = new Set<string>();
         if (res.fromBookings && Array.isArray(res.fromBookings)) {
           res.fromBookings.forEach((p: string) => {
-            fromBookingsSet.add(normalize(p));
+            fromBookingsSet.add(getMergedProvinceKey(p));
           });
         }
 
         // Tỉnh từ manual check-in (THỦ CÔNG - user đi ngoài web)
         const fromManualSet = new Set<string>();
-        if (res.fromManualCheckins && Array.isArray(res.fromManualCheckins)) {
-          res.fromManualCheckins.forEach((p: string) => {
-            fromManualSet.add(normalize(p));
+        const progressByKey: Record<string, any> = {};
+        
+        // Phase 1 API returns `progress` array
+        if (res.progress && Array.isArray(res.progress)) {
+          res.progress.forEach((p: any) => {
+            progressByKey[getMergedProvinceKey(p.provinceName)] = p;
+            if (p.source === "tour" || p.source === "both") {
+              fromBookingsSet.add(getMergedProvinceKey(p.provinceName));
+            }
+            if (p.source === "manual" || p.source === "both") {
+              fromManualSet.add(getMergedProvinceKey(p.provinceName));
+            }
           });
+        } else {
+          // Fallback cho API cũ
+          if (res.fromManualCheckins && Array.isArray(res.fromManualCheckins)) {
+            res.fromManualCheckins.forEach((p: string) => {
+              fromManualSet.add(getMergedProvinceKey(p));
+            });
+          }
         }
 
         // Kết hợp với localStorage (fallback nếu API chưa sync)
-        const storedManual = getStoredManualProvinces();
-        storedManual.forEach((p) => fromManualSet.add(p));
-
         setBookingProvinces(fromBookingsSet);
         setManualProvinces(fromManualSet);
+        setProvinceProgress(progressByKey);
 
         console.log("Từ booking (tự động):", Array.from(fromBookingsSet));
         console.log("Tự đánh dấu (thủ công):", Array.from(fromManualSet));
@@ -130,6 +241,7 @@ export default function VietnamJourneyMap() {
         // Fallback: chỉ lấy từ localStorage
         const storedManual = getStoredManualProvinces();
         setManualProvinces(storedManual);
+        setProvinceProgress({});
       }
     };
 
@@ -154,7 +266,7 @@ export default function VietnamJourneyMap() {
       // Gọi API đánh dấu thủ công (nếu có)
       try {
         await checkinApi.manualMarkProvince(selectedProvince);
-      } catch (apiError) {
+      } catch {
         // Nếu API lỗi, vẫn lưu local
         console.log("API manual mark không available, lưu local");
       }
@@ -164,7 +276,7 @@ export default function VietnamJourneyMap() {
 
       // Tô màu xanh dương cho tỉnh đánh dấu thủ công
       setManualProvinces((prev) =>
-        new Set(prev).add(normalize(selectedProvince))
+        new Set(prev).add(getMergedProvinceKey(selectedProvince))
       );
 
       // Bắn pháo hoa nhẹ
@@ -199,10 +311,18 @@ export default function VietnamJourneyMap() {
   const handlePathClick = (e: React.MouseEvent, title: string) => {
     e.stopPropagation();
     setSelectedProvince(title);
+    setPopupTab("me");
     const x = Math.min(e.clientX, window.innerWidth - 320);
     const y = Math.min(e.clientY, window.innerHeight - 250);
     setPopupPos({ x, y });
   };
+
+  const selectedProvinceKey = selectedProvince
+    ? getMergedProvinceKey(selectedProvince)
+    : "";
+  const selectedProgress = selectedProvinceKey
+    ? provinceProgress[selectedProvinceKey]
+    : undefined;
 
   return (
     <section className="w-full max-w-5xl mx-auto px-4 mt-8 select-none">
@@ -282,10 +402,11 @@ export default function VietnamJourneyMap() {
           >
             <g id="vietnam-provinces">
               {VIETNAM_PATHS.map((p) => {
-                const normalizedTitle = normalize(p.title);
+                const normalizedTitle = getMergedProvinceKey(p.title);
+                const provinceLabel = getProvinceLabel(p.title);
                 const isFromBooking = bookingProvinces.has(normalizedTitle);
                 const isManual = manualProvinces.has(normalizedTitle);
-                const isHovered = hoveredName === p.title;
+                const isHovered = hoveredName === provinceLabel;
                 const isSelected = selectedProvince === p.title;
 
                 // Xác định màu fill - ưu tiên: selected > hover > booking > manual > locked
@@ -304,17 +425,50 @@ export default function VietnamJourneyMap() {
                 return (
                   <path
                     key={p.id}
-                    d={p.d}
+                    d={getProvincePathData(p.id, p.d)}
                     fill={getFillColor()}
                     stroke={COLORS.STROKE}
                     strokeWidth={0.5}
                     className="transition-all duration-200 cursor-pointer"
-                    onMouseEnter={() => setHoveredName(p.title)}
+                    onMouseEnter={() => setHoveredName(provinceLabel)}
                     onMouseLeave={() => setHoveredName(null)}
                     onClick={(e) => handlePathClick(e, p.title)}
                   />
                 );
               })}
+            </g>
+            <g
+              id="vietnam-archipelagos"
+              pointerEvents="none"
+              aria-hidden="true"
+              className="select-none"
+            >
+              {ARCHIPELAGO_PATHS.map((path) => (
+                <path
+                  key={path.id}
+                  d={path.d}
+                  fill={COLORS.ARCHIPELAGO}
+                  stroke={COLORS.STROKE}
+                  strokeWidth={0.7}
+                  opacity={0.92}
+                />
+              ))}
+              {ARCHIPELAGO_LABELS.map((item) => (
+                <text
+                  key={item.id}
+                  x={item.x}
+                  y={item.y}
+                  fill={COLORS.ARCHIPELAGO_LABEL}
+                  stroke={COLORS.STROKE}
+                  strokeWidth={3}
+                  paintOrder="stroke"
+                  fontSize={15}
+                  fontWeight={700}
+                  letterSpacing={0}
+                >
+                  {item.label}
+                </text>
+              ))}
             </g>
           </svg>
         </div>
@@ -345,76 +499,171 @@ export default function VietnamJourneyMap() {
               >
                 <FaTimes />
               </button>
-              <div className="flex flex-col items-center text-center">
+              
+              <div className="flex flex-col items-center w-full">
+                {/* Tabs */}
+                <div className="flex w-full mb-4 bg-slate-100 rounded-lg p-1">
+                  <button
+                    className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-all ${
+                      popupTab === "me" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                    }`}
+                    onClick={() => setPopupTab("me")}
+                  >
+                    Của tôi
+                  </button>
+                  <button
+                    className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-all ${
+                      popupTab === "community" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                    }`}
+                    onClick={() => setPopupTab("community")}
+                  >
+                    Cộng đồng
+                  </button>
+                </div>
+
                 <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 mb-3">
                   <FaMapMarkerAlt size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-slate-800">
-                  {selectedProvince}
+                <h3 className="text-xl font-bold text-slate-800 text-center">
+                  {getProvinceLabel(selectedProvince)}
                 </h3>
+                {selectedProgress && (
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {selectedProgress.memoryCount || 0} kỷ niệm đã lưu
+                  </p>
+                )}
 
-                {/* Đã đi qua tour trên web (TỰ ĐỘNG) */}
-                {bookingProvinces.has(normalize(selectedProvince)) ? (
-                  <div className="mt-3 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-bold flex items-center gap-2">
-                    <FaCheck className="text-emerald-500" />
-                    Đã đi qua tour trên web
+                {popupTab === "me" ? (
+                  <div className="flex flex-col items-center text-center w-full">
+                    {/* Status Badges */}
+                {bookingProvinces.has(getMergedProvinceKey(selectedProvince)) ? (
+                  <div className="mt-3 px-4 py-3 bg-emerald-100/50 text-emerald-700 rounded-lg text-sm font-bold flex flex-col items-center gap-2 w-full">
+                    <div className="flex items-center gap-2">
+                      <FaCheck className="text-emerald-500" />
+                      Đã xác thực qua tour AHH Travel
+                    </div>
+                    {/* Province Stamp */}
+                    <div className="mt-2 w-full max-w-[220px] border-[3px] border-emerald-500/60 border-dashed rounded-lg p-2 text-center transform -rotate-3 bg-emerald-50/50 relative overflow-hidden shadow-sm">
+                      <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+                      <div className="absolute -right-4 -bottom-4 opacity-10">
+                        <FaMapMarkerAlt size={40} className="text-emerald-600" />
+                      </div>
+                      <p className="text-[13px] uppercase tracking-[0.15em] font-black text-emerald-600 mb-0.5 relative z-10">
+                        Đã chinh phục
+                      </p>
+                      <p className="text-[9px] text-emerald-600/70 font-semibold uppercase relative z-10">
+                        Xác thực: Tour AHH Travel
+                      </p>
+                    </div>
                   </div>
-                ) : manualProvinces.has(normalize(selectedProvince)) ? (
-                  /* Đã tự đánh dấu (THỦ CÔNG) */
-                  <div className="mt-3 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold flex items-center gap-2">
-                    <FaCheck className="text-blue-500" />
-                    Đã tự đánh dấu
+                ) : manualProvinces.has(getMergedProvinceKey(selectedProvince)) ? (
+                  <div className="mt-3 px-4 py-3 bg-blue-100/50 text-blue-700 rounded-lg text-sm font-bold flex flex-col items-center gap-2 w-full">
+                    <div className="flex items-center gap-2">
+                      <FaCheck className="text-blue-500" />
+                      Đã tự đánh dấu
+                    </div>
+                    {/* Province Stamp */}
+                    <div className="mt-2 w-full max-w-[220px] border-[3px] border-blue-500/60 border-dashed rounded-lg p-2 text-center transform rotate-2 bg-blue-50/50 relative overflow-hidden shadow-sm">
+                      <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+                      <div className="absolute -right-4 -bottom-4 opacity-10">
+                        <FaCheck size={40} className="text-blue-600" />
+                      </div>
+                      <p className="text-[13px] uppercase tracking-[0.15em] font-black text-blue-600 mb-0.5 relative z-10">
+                        Đã ghé thăm
+                      </p>
+                      <p className="text-[9px] text-blue-600/70 font-semibold uppercase relative z-10">
+                        Nguồn: Tự đánh dấu
+                      </p>
+                    </div>
                   </div>
                 ) : (
-                  /* Chưa đi - cho phép đánh dấu thủ công */
                   <>
                     <p className="text-sm text-slate-500 my-3">
                       Bạn đã từng đến {selectedProvince} ngoài website này?
                     </p>
-
-                    {/* Nút Đánh dấu thủ công */}
-                    <button
-                      onClick={handleManualMark}
-                      disabled={isLoadingAction}
-                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      <FaCheck />
-                      {isLoadingAction ? "Đang xử lý..." : "Đánh dấu đã đến"}
-                    </button>
-
-                    <p className="text-xs text-slate-400 mt-3 italic">
-                      * Đánh dấu cho các địa điểm bạn đã đến mà không qua tour của chúng tôi
-                    </p>
-
-                    <div className="my-3 flex items-center gap-2">
-                      <div className="flex-1 h-px bg-slate-200"></div>
-                      <span className="text-xs text-slate-400">hoặc</span>
-                      <div className="flex-1 h-px bg-slate-200"></div>
-                    </div>
-
-                    {/* Nút Xem tour */}
-                    <button
-                      onClick={handleViewTours}
-                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold shadow-lg active:scale-95 flex items-center justify-center gap-2"
-                    >
-                      <FaGift />
-                      Xem tour tại {selectedProvince}
-                    </button>
-
-                    <p className="text-xs text-slate-400 mt-2 italic">
-                      * Đặt tour và hoàn thành sẽ tự động đánh dấu
-                    </p>
                   </>
                 )}
 
+                <div className="mt-4 w-full space-y-2">
+                  <button
+                    onClick={() => setIsMemoryModalOpen(true)}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <FaCheck />
+                    Thêm kỷ niệm
+                  </button>
+
+                  {!(bookingProvinces.has(getMergedProvinceKey(selectedProvince)) || manualProvinces.has(getMergedProvinceKey(selectedProvince))) && (
+                    <>
+                      <div className="my-3 flex items-center gap-2">
+                        <div className="flex-1 h-px bg-slate-200"></div>
+                        <span className="text-xs text-slate-400">hoặc</span>
+                        <div className="flex-1 h-px bg-slate-200"></div>
+                      </div>
+                      <button
+                        onClick={handleViewTours}
+                        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        <FaGift />
+                        Xem tour tại {selectedProvince}
+                      </button>
+                      <p className="text-xs text-slate-400 mt-2 italic">
+                        * Đặt tour và hoàn thành sẽ tự động đánh dấu
+                      </p>
+                    </>
+                  )}
+                </div>
+
                 {/* Link xem tour (cho tỉnh đã đánh dấu) */}
-                {(bookingProvinces.has(normalize(selectedProvince)) || manualProvinces.has(normalize(selectedProvince))) && (
+                {(bookingProvinces.has(getMergedProvinceKey(selectedProvince)) || manualProvinces.has(getMergedProvinceKey(selectedProvince))) && (
                   <button
                     onClick={handleViewTours}
                     className="mt-4 text-sm text-indigo-600 hover:text-indigo-800 font-medium underline"
                   >
                     Xem các tour tại {selectedProvince}
                   </button>
+                )}
+                  </div>
+                ) : (
+                  <div className="w-full mt-4 flex flex-col gap-3 max-h-80 overflow-y-auto pr-1 text-left custom-scrollbar">
+                    {loadingCommunity ? (
+                      <p className="text-xs text-center text-slate-400 my-4">Đang tải...</p>
+                    ) : communityMemories.length === 0 ? (
+                      <p className="text-xs text-center text-slate-400 my-4">Chưa có bài đăng công khai nào tại đây.</p>
+                    ) : (
+                      communityMemories.map(m => (
+                        <div key={m._id} className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col gap-2">
+                           <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-2">
+                               {m.userId?.avatar ? (
+                                 <img src={m.userId.avatar} className="w-6 h-6 rounded-full object-cover" />
+                               ) : (
+                                 <div className="w-6 h-6 rounded-full bg-slate-200"></div>
+                               )}
+                               <span className="text-xs font-bold text-slate-700">{m.userId?.fullName || "Người dùng"}</span>
+                             </div>
+                             <span className="text-[10px] text-slate-400">{new Date(m.visitedAt).toLocaleDateString("vi-VN")}</span>
+                           </div>
+                           
+                           {m.images && m.images.length > 0 && (
+                             <img src={m.images[0]} className="w-full h-24 object-cover rounded-lg" />
+                           )}
+                           
+                           {m.caption && <p className="text-xs text-slate-600 line-clamp-2">"{m.caption}"</p>}
+                           
+                           <div className="flex items-center justify-between mt-1">
+                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${m.source === "tour" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+                               {m.source === "tour" ? "Qua tour AHH" : "Tự đánh dấu"}
+                             </span>
+                             
+                             <button onClick={() => handlePopupLike(m._id, !!m.isLikedByMe)} className={`flex items-center gap-1 text-[10px] font-bold transition-transform active:scale-90 ${m.isLikedByMe ? "text-rose-500" : "text-slate-400 hover:text-slate-600"}`}>
+                               <FaHeart /> {m.likesCount || 0}
+                             </button>
+                           </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             </motion.div>
@@ -441,6 +690,41 @@ export default function VietnamJourneyMap() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal Kỷ Niệm */}
+      {selectedProvince && (
+        <MemoryModal
+          isOpen={isMemoryModalOpen}
+          onClose={() => setIsMemoryModalOpen(false)}
+          provinceName={selectedProvince}
+          onSuccess={(provinceUnlocked) => {
+            const key = getMergedProvinceKey(selectedProvince);
+            setProvinceProgress((prev) => {
+              const current = prev[key] || {};
+              const currentSource = current.source || "manual";
+              return {
+                ...prev,
+                [key]: {
+                  ...current,
+                  provinceName: selectedProvince,
+                  source: currentSource === "tour" ? "both" : currentSource,
+                  memoryCount: (current.memoryCount || 0) + 1,
+                },
+              };
+            });
+            setManualProvinces((prev) => new Set(prev).add(key));
+            if (provinceUnlocked) {
+              (confetti as any)({
+                particleCount: 80,
+                spread: 50,
+                origin: { y: 0.6 },
+                colors: ["#3b82f6", "#60a5fa", "#93c5fd"],
+              });
+            }
+            setSelectedProvince(null);
+          }}
+        />
+      )}
     </section>
   );
 }

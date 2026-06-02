@@ -14,7 +14,7 @@ import {
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-950 text-slate-400 text-sm font-sans">
+    <footer className="bg-blue-900 text-blue-200 text-sm font-sans">
       {/* Phần nội dung chính */}
       <div className="w-full max-w-7xl mx-auto px-4 py-12 lg:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
@@ -31,25 +31,25 @@ export default function Footer() {
             <div className="flex gap-4 pt-2">
               <a
                 href="#"
-                className="h-8 w-8 flex items-center justify-center rounded-full bg-slate-800 text-white hover:bg-blue-600 transition-colors"
+                className="h-8 w-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
               >
                 <Facebook size={16} />
               </a>
               <a
                 href="#"
-                className="h-8 w-8 flex items-center justify-center rounded-full bg-slate-800 text-white hover:bg-sky-500 transition-colors"
+                className="h-8 w-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
               >
                 <Twitter size={16} />
               </a>
               <a
                 href="#"
-                className="h-8 w-8 flex items-center justify-center rounded-full bg-slate-800 text-white hover:bg-pink-600 transition-colors"
+                className="h-8 w-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
               >
                 <Instagram size={16} />
               </a>
               <a
                 href="#"
-                className="h-8 w-8 flex items-center justify-center rounded-full bg-slate-800 text-white hover:bg-red-600 transition-colors"
+                className="h-8 w-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
               >
                 <Youtube size={16} />
               </a>
@@ -171,10 +171,10 @@ export default function Footer() {
         </div>
 
         {/* Dòng kẻ phân cách */}
-        <div className="border-t border-slate-800 my-8"></div>
+        <div className="border-t border-white/10 my-8"></div>
 
         {/* Phần dưới cùng (Copyright & Payment) */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-blue-200/70">
           <p>© {new Date().getFullYear()} AHH Travel. All rights reserved.</p>
 
           <div className="flex flex-wrap justify-center gap-4">

@@ -48,19 +48,24 @@ export default function AdminTourDetail() {
     enabled: !!tourId,
   });
 
+  // ─── State: Bộ lọc ───────────────────────────────────────────
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [startDateFilter, setStartDateFilter] = useState<string>("");
+  const [endDateFilter, setEndDateFilter] = useState<string>("");
+
   // ─── Departures ───────────────────────────────────────────────
   const { data: depData, isLoading: depLoading } = useQuery({
-    queryKey: ["adminDepartures", tourId],
-    queryFn: () => listDeparturesAdmin(tourId, { limit: 100 }),
+    queryKey: ["adminDepartures", tourId, statusFilter, startDateFilter, endDateFilter],
+    queryFn: () => listDeparturesAdmin(tourId, { 
+      limit: 100, 
+      status: statusFilter || undefined,
+      startDate: startDateFilter || undefined,
+      endDate: endDateFilter || undefined,
+    }),
     enabled: !!tourId,
   });
   const departures: DepartureResponse[] = depData?.data ?? [];
-
-  // ─── State: Bộ lọc trạng thái ─────────────────────────────────
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const filteredDeps = statusFilter
-    ? departures.filter(d => d.status === statusFilter)
-    : departures;
+  const filteredDeps = departures; // Dữ liệu đã được lọc từ backend
 
   // ─── Leaders (để gán) ─────────────────────────────────────────
   const { data: leadersResp } = useQuery({
@@ -99,7 +104,7 @@ export default function AdminTourDetail() {
 
   const { data: passengersResp, isLoading: passengersLoading } = useQuery({
     queryKey: ["adminDeparturePassengers", passengerModal.departureId],
-    queryFn: () => getAdminBookings({ tourId: passengerModal.departureId, limit: 100 }),
+    queryFn: () => getAdminBookings({ departureId: passengerModal.departureId, limit: 100 }),
     enabled: passengerModal.open && !!passengerModal.departureId,
   });
   const passengers: BookingData[] = passengersResp?.data ?? [];
@@ -217,100 +222,122 @@ export default function AdminTourDetail() {
 
       {/* Passenger List Modal */}
       {passengerModal.open && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] shadow-2xl flex flex-col">
-            <div className="p-6 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl">
+        <div className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-300">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">
-                  👥 Danh sách hành khách
+                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <i className="ri-team-fill text-orange-500"></i>
+                  Danh sách hành khách
                 </h3>
-                <p className="text-sm text-slate-500 mt-1">Lịch khởi hành: <span className="font-semibold text-orange-600">{passengerModal.label}</span></p>
+                <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
+                  <i className="ri-calendar-event-line text-slate-400"></i>
+                  Lịch khởi hành: <span className="font-bold text-orange-600">{passengerModal.label}</span>
+                </p>
               </div>
               <button 
                 onClick={() => setPassengerModal(m => ({ ...m, open: false }))}
-                className="p-2 hover:bg-slate-200 rounded-full transition"
+                className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-full transition-colors"
               >
                 <i className="ri-close-line text-2xl" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto p-6">
+            {/* Modal Content */}
+            <div className="flex-1 overflow-auto p-6 bg-slate-50/50">
               {passengersLoading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                   <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
-                   <div className="text-slate-500">Đang tải danh sách...</div>
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                   <div className="animate-spin w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full shadow-lg shadow-orange-500/20" />
+                   <div className="text-slate-500 font-medium animate-pulse">Đang tải danh sách...</div>
                 </div>
               ) : passengers.length === 0 ? (
-                <div className="text-center py-20">
-                  <div className="text-5xl mb-4 text-slate-300">🎫</div>
-                  <p className="text-slate-500">Chưa có khách hàng nào đặt lịch này.</p>
+                <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-200">
+                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i className="ri-ticket-2-line text-4xl text-slate-300"></i>
+                  </div>
+                  <p className="text-slate-500 font-medium">Chưa có khách hàng nào đặt lịch này.</p>
                 </div>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-100 sticky top-0 text-slate-600">
-                    <tr>
-                      <th className="px-4 py-3 text-left">Mã đơn</th>
-                      <th className="px-4 py-3 text-left">Khách hàng</th>
-                      <th className="px-4 py-3 text-center">Người lớn</th>
-                      <th className="px-4 py-3 text-center">Trẻ em</th>
-                      <th className="px-4 py-3 text-left">Số điện thoại</th>
-                      <th className="px-4 py-3 text-left">Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {passengers.map(bk => (
-                      <tr key={bk._id} className="hover:bg-slate-50 transition">
-                        <td className="px-4 py-4 font-mono font-bold text-blue-600">{bk.code}</td>
-                        <td className="px-4 py-4">
-                          <div className="font-semibold text-slate-800">{bk.fullName}</div>
-                          <div className="text-xs text-slate-500">{bk.email}</div>
-                        </td>
-                        <td className="px-4 py-4 text-center font-medium">{bk.numAdults}</td>
-                        <td className="px-4 py-4 text-center font-medium">{bk.numChildren}</td>
-                        <td className="px-4 py-4 text-slate-700">{bk.phoneNumber}</td>
-                        <td className="px-4 py-4">
-                          <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${
-                            bk.bookingStatus === 'c' ? 'bg-green-100 text-green-700' :
-                            bk.bookingStatus === 'x' ? 'bg-red-100 text-red-700' :
-                            'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {bk.bookingStatus === 'c' ? 'Đã xác nhận' : bk.bookingStatus === 'x' ? 'Đã hủy' : 'Chờ xử lý'}
-                          </span>
-                        </td>
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 font-bold uppercase text-[11px] tracking-wider">
+                        <th className="px-6 py-4 text-left">Mã đơn</th>
+                        <th className="px-6 py-4 text-left">Khách hàng</th>
+                        <th className="px-6 py-4 text-center">Người lớn</th>
+                        <th className="px-6 py-4 text-center">Trẻ em</th>
+                        <th className="px-6 py-4 text-left">Số điện thoại</th>
+                        <th className="px-6 py-4 text-left">Trạng thái</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {passengers.map(bk => (
+                        <tr key={bk._id} className="hover:bg-slate-50/80 transition-colors group">
+                          <td className="px-6 py-4 font-mono font-bold text-blue-600 group-hover:text-blue-700">
+                            {bk.code}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-slate-800">{bk.fullName}</div>
+                            <div className="text-xs text-slate-400 mt-0.5">{bk.email}</div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-bold">
+                              {bk.numAdults}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-bold">
+                              {bk.numChildren}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-slate-600 font-medium">
+                            {bk.phoneNumber}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight ${
+                              bk.bookingStatus === 'confirmed' || bk.bookingStatus === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                              bk.bookingStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
+                              'bg-amber-100 text-amber-700'
+                            }`}>
+                              <i className={`ri-${
+                                bk.bookingStatus === 'confirmed' || bk.bookingStatus === 'completed' ? 'checkbox-circle' :
+                                bk.bookingStatus === 'cancelled' ? 'close-circle' : 'time'
+                              }-line mr-1`}></i>
+                              {bk.bookingStatus === 'confirmed' ? 'Đã xác nhận' : 
+                               bk.bookingStatus === 'completed' ? 'Hoàn thành' :
+                               bk.bookingStatus === 'cancelled' ? 'Đã hủy' : 'Chờ xử lý'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
 
-            <div className="p-6 border-t bg-slate-50 flex justify-end gap-3 rounded-b-2xl">
-              <div className="mr-auto flex gap-6 text-sm">
-                <div className="flex flex-col">
-                  <span className="text-slate-500">Tổng khách</span>
-                  <span className="font-bold text-lg text-slate-900">
+            <div className="p-6 border-t border-slate-100 bg-white flex flex-col md:flex-row justify-start items-center gap-4">
+              <div className="flex flex-wrap gap-4 w-full md:w-auto">
+                <div className="bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-100 min-w-[120px]">
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Tổng khách</span>
+                  <span className="text-xl font-black text-slate-900">
                     {passengers.reduce((acc, curr) => acc + (curr.numAdults || 0) + (curr.numChildren || 0), 0)}
                   </span>
                 </div>
-                <div className="flex flex-col">
-                   <span className="text-slate-500">Tổng người lớn</span>
-                   <span className="font-bold text-lg text-slate-900">
+                <div className="bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-100 min-w-[120px]">
+                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Người lớn</span>
+                   <span className="text-xl font-black text-slate-900">
                     {passengers.reduce((acc, curr) => acc + (curr.numAdults || 0), 0)}
                   </span>
                 </div>
-                <div className="flex flex-col">
-                   <span className="text-slate-500">Tổng trẻ em</span>
-                   <span className="font-bold text-lg text-slate-900">
+                <div className="bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-100 min-w-[120px]">
+                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Trẻ em</span>
+                   <span className="text-xl font-black text-slate-900">
                     {passengers.reduce((acc, curr) => acc + (curr.numChildren || 0), 0)}
                   </span>
                 </div>
               </div>
-              <button 
-                onClick={() => setPassengerModal(m => ({ ...m, open: false }))}
-                className="px-6 py-2 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-900 transition"
-              >
-                Đóng
-              </button>
             </div>
           </div>
         </div>
@@ -318,37 +345,67 @@ export default function AdminTourDetail() {
 
       {/* Assign Leader Modal */}
       {assignModal.open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">
-              👮 Phân công Leader
-            </h3>
-            <select
-              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-sky-500"
-              value={assignModal.leaderId}
-              onChange={e => setAssignModal(m => ({ ...m, leaderId: e.target.value }))}
-            >
-              <option value="">-- Gỡ Leader --</option>
-              {leaders.map((l: any) => (
-                <option key={l._id} value={l._id}>
-                  {l.fullName} ({l.username}) – {l.phoneNumber}
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-3">
-              <button
-                className="flex-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg py-2.5 font-medium transition"
-                onClick={() => assignMut.mutate({ id: assignModal.departureId, leaderId: assignModal.leaderId || null })}
-                disabled={assignMut.isPending}
-              >
-                {assignMut.isPending ? "Đang lưu..." : "Lưu"}
-              </button>
-              <button
-                className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg py-2.5 font-medium transition"
-                onClick={() => setAssignModal(m => ({ ...m, open: false }))}
-              >
-                Hủy
-              </button>
+        <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center text-xl">
+                <i className="ri-user-star-fill"></i>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">
+                  Phân công Leader
+                </h3>
+                <p className="text-sm text-slate-500">Chọn người điều hành cho chuyến đi</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">
+                  Chọn Leader
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <i className="ri-user-search-line text-lg"></i>
+                  </span>
+                  <select
+                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-sky-400 focus:border-transparent text-sm bg-slate-50 transition appearance-none outline-none font-medium text-slate-700"
+                    value={assignModal.leaderId}
+                    onChange={e => setAssignModal(m => ({ ...m, leaderId: e.target.value }))}
+                  >
+                    <option value="">-- Gỡ Leader hiện tại --</option>
+                    {leaders.map((l: any) => (
+                      <option key={l._id} value={l._id}>
+                        {l.fullName} ({l.username})
+                      </option>
+                    ))}
+                  </select>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <i className="ri-arrow-down-s-line"></i>
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  className="flex-1 bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-700 hover:to-sky-800 text-white rounded-2xl py-3.5 font-bold transition shadow-lg shadow-sky-500/25 active:scale-95 disabled:opacity-50"
+                  onClick={() => assignMut.mutate({ id: assignModal.departureId, leaderId: assignModal.leaderId || null })}
+                  disabled={assignMut.isPending}
+                >
+                  {assignMut.isPending ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                      Đang lưu...
+                    </div>
+                  ) : "Lưu thay đổi"}
+                </button>
+                <button
+                  className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl py-3.5 font-bold transition active:scale-95"
+                  onClick={() => setAssignModal(m => ({ ...m, open: false }))}
+                >
+                  Hủy bỏ
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -373,48 +430,122 @@ export default function AdminTourDetail() {
         </div>
 
         {/* Tour Info Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
           {[
-            { label: "Giá người lớn", value: fmtVND(tour.priceAdult) },
-            { label: "Giá trẻ em",   value: fmtVND(tour.priceChild) },
-            { label: "Số lịch KH",   value: String(departures.length) },
-            { label: "Đang diễn ra", value: String(departures.filter(d => d.status === "in_progress").length) },
+            { label: "Giá người lớn", value: fmtVND(tour.priceAdult), icon: "ri-user-smile-line", color: "text-blue-500", bg: "bg-blue-50" },
+            { label: "Giá trẻ em",   value: fmtVND(tour.priceChild), icon: "ri-user-heart-line", color: "text-rose-500", bg: "bg-rose-50" },
+            { label: "Số lịch KH",   value: String(departures.length), icon: "ri-calendar-event-line", color: "text-orange-500", bg: "bg-orange-50" },
+            { label: "Đang diễn ra", value: String(departures.filter(d => d.status === "in_progress").length), icon: "ri-pulse-line", color: "text-emerald-500", bg: "bg-emerald-50" },
           ].map(card => (
-            <div key={card.label} className="bg-white rounded-lg shadow-md p-4">
-              <div className="text-xs text-slate-500 mb-1">{card.label}</div>
-              <div className="text-xl font-bold text-slate-900">{card.value}</div>
+            <div key={card.label} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 transition-all hover:shadow-md group">
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 ${card.bg} ${card.color} rounded-xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform`}>
+                  <i className={card.icon}></i>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">{card.label}</div>
+                  <div className="text-xl font-black text-slate-900">{card.value}</div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Bộ lọc trạng thái */}
-        <div className="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end">
-            <div className="w-full md:w-56">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
                 Trạng thái
               </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); }}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-              >
-                <option value="">Tất cả trạng thái</option>
-                <option value="pending">Chờ xác nhận</option>
-                <option value="confirmed">Đã xác nhận</option>
-                <option value="in_progress">Đang diễn ra</option>
-                <option value="completed">Hoàn thành</option>
-                <option value="closed">Đã đóng</option>
-              </select>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  <i className="ri-toggle-line text-lg"></i>
+                </span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => { setStatusFilter(e.target.value); }}
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-slate-50 transition appearance-none outline-none"
+                >
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="pending">Chờ xác nhận</option>
+                  <option value="confirmed">Đã xác nhận</option>
+                  <option value="in_progress">Đang diễn ra</option>
+                  <option value="completed">Hoàn thành</option>
+                  <option value="closed">Đã đóng</option>
+                </select>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  <i className="ri-arrow-down-s-line"></i>
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
+                Từ ngày
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  <i className="ri-calendar-line text-lg"></i>
+                </span>
+                <input
+                  type="date"
+                  value={startDateFilter}
+                  onChange={(e) => setStartDateFilter(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-slate-50 transition outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
+                Đến ngày
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  <i className="ri-calendar-check-line text-lg"></i>
+                </span>
+                <input
+                  type="date"
+                  value={endDateFilter}
+                  onChange={(e) => setEndDateFilter(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-slate-50 transition outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-end">
+               <button
+                 className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-bold text-sm transition shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
+               >
+                 <i className="ri-search-line"></i>
+                 Tìm kiếm
+               </button>
             </div>
           </div>
+
+          {(statusFilter || startDateFilter || endDateFilter) && (
+            <div className="mt-4 flex justify-end">
+              <button 
+                onClick={() => {
+                  setStatusFilter("");
+                  setStartDateFilter("");
+                  setEndDateFilter("");
+                }}
+                className="text-xs text-slate-400 hover:text-orange-600 transition flex items-center gap-1.5"
+              >
+                <i className="ri-refresh-line"></i> Làm mới bộ lọc
+              </button>
+            </div>
+          )}
         </div>
 
         {/* BẢNG LỊCH KHỞI HÀNH */}
-        <div className="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <i className="ri-calendar-event-fill text-orange-500 text-xl"></i>
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 mb-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-xl font-black text-slate-900 flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center">
+                <i className="ri-calendar-event-fill text-xl"></i>
+              </div>
               Danh Sách Lịch Khởi Hành
             </h2>
             <button

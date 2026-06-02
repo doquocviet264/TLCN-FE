@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminVouchers } from "@/lib/admin/adminVoucherApi";
 import VoucherTable from "./VoucherTable";
+import AdminPagination from "@/components/admin/AdminPagination";
 
 export default function AdminVouchersPage() {
   const router = useRouter();
@@ -50,42 +51,83 @@ export default function AdminVouchersPage() {
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 md:p-6 mb-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+      {/* Filters Section */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-slate-100">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Search Input */}
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
               Tìm kiếm
             </label>
-            <input
-              type="text"
-              placeholder="Mã voucher, tên chiến dịch..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-search-line text-lg"></i>
+              </span>
+              <input
+                type="text"
+                placeholder="Mã voucher, tên chiến dịch..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-slate-50 transition outline-none"
+              />
+            </div>
           </div>
-          <div className="w-full md:w-64">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+
+          {/* Status Filter */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
               Trạng thái
             </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as any);
-                setPage(1);
-              }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-coupon-line text-lg"></i>
+              </span>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as any);
+                  setPage(1);
+                }}
+                className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-slate-50 transition appearance-none outline-none"
+              >
+                <option value="">Tất cả trạng thái</option>
+                <option value="active">Đang kích hoạt</option>
+                <option value="inactive">Đã ngừng</option>
+              </select>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-arrow-down-s-line"></i>
+              </span>
+            </div>
+          </div>
+
+          {/* Search Button */}
+          <div className="flex items-end">
+            <button
+              className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-bold text-sm transition shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
             >
-              <option value="">Tất cả trạng thái</option>
-              <option value="active">Đang kích hoạt</option>
-              <option value="inactive">Đã ngừng</option>
-            </select>
+              <i className="ri-search-line"></i>
+              Tìm kiếm
+            </button>
           </div>
         </div>
+
+        {(searchTerm || statusFilter) && (
+          <div className="mt-4 flex justify-end">
+            <button 
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("");
+                setPage(1);
+              }}
+              className="text-xs text-slate-400 hover:text-orange-600 transition flex items-center gap-1.5"
+            >
+              <i className="ri-refresh-line"></i> Làm mới bộ lọc
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Data Table */}
@@ -102,38 +144,13 @@ export default function AdminVouchersPage() {
         <>
           <VoucherTable vouchers={vouchers} />
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-6 flex justify-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                <i className="ri-arrow-left-s-line"></i>
-              </button>
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i + 1)}
-                  className={`w-10 h-10 rounded-lg font-medium transition ${
-                    page === i + 1
-                      ? "bg-orange-600 text-white"
-                      : "border border-slate-300 text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                <i className="ri-arrow-right-s-line"></i>
-              </button>
-            </div>
-          )}
+          <AdminPagination 
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={data?.total}
+            itemsLabel="vouchers"
+          />
         </>
       )}
     </div>

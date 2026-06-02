@@ -11,6 +11,7 @@ import ServiceSection from "./ServiceSection";
 import HotDestinations from "./HotDestinations";
 import QNASection from "./QNASection";
 import BlogSection from "./BlogSection";
+import VoucherEventsSection from "./VoucherEventsSection";
 import TourRecommendations from "@/components/TourRecommendations";
 
 export default function UserHomePage() {
@@ -68,6 +69,10 @@ export default function UserHomePage() {
       </section>
 
       {/* Tour gợi ý cá nhân hóa */}
+      <FadeInWhenVisible delay={0.1}>
+        <VoucherEventsSection />
+      </FadeInWhenVisible>
+
       <FadeInWhenVisible delay={0.1}>
         <TourRecommendations
           type="homepage"

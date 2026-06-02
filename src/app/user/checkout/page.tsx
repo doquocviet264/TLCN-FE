@@ -219,7 +219,7 @@ function CheckoutContent() {
 
   /* ---------- Validation ---------- */
   const validateField = (name: keyof typeof formData, value: string) => {
-    if (name !== "address" && !value.trim()) return "Vui lòng không để trống.";
+    if (name !== "address" && name !== "note" && !value.trim()) return "Vui lòng không để trống.";
     if (name === "email" && !isEmail(value)) return "Email không hợp lệ.";
     if (name === "phone" && !isPhoneVN(value))
       return "Số điện thoại không hợp lệ.";
@@ -889,8 +889,7 @@ function TourInfoSection({ tour, departure }: any) {
   };
 
   const handleMap = () => {
-    const coords = "10.850869557921364,106.77178574194953";
-    const url = `https://www.google.com/maps?q=${coords}`;
+    const url = "https://maps.app.goo.gl/buEiZ2sKJy2mTDFq9";
     window.open(url, "_blank");
   };
 
@@ -1150,7 +1149,7 @@ function TextArea({ label, icon, error, ...props }: any) {
   );
 }
 
-function Button({ children, className = "", ...props }: any) {
+function Button({ children, className = "", full, ...props }: any) {
   return (
     <button
       {...props}

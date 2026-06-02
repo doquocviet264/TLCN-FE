@@ -31,6 +31,7 @@ import {
 } from "@/lib/notification/notificationApi";
 import { Toast, useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import AdminPagination from "@/components/admin/AdminPagination";
 
 const TYPE_COLORS: Record<NotificationType, { bg: string; text: string }> = {
   system: { bg: "bg-slate-100", text: "text-slate-600" },
@@ -447,36 +448,13 @@ export default function AdminNotificationsPage() {
               </tbody>
             </table>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-                <p className="text-sm text-slate-500">
-                  Hiển thị {(page - 1) * limit + 1} -{" "}
-                  {Math.min(page * limit, total)} / {total} thông báo
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Trước
-                  </button>
-                  <span className="px-3 text-sm text-slate-600">
-                    {page} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Sau
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
+            <AdminPagination 
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              totalItems={total}
+              itemsLabel="thông báo"
+            />
           </>
         )}
       </div>

@@ -32,8 +32,47 @@ export interface VoucherListResponse {
   limit: number;
 }
 
+export interface PublicVoucher {
+  _id: string;
+  code: string;
+  name: string;
+  description?: string;
+  image?: string;
+  discountType: "percent" | "fixed";
+  discountValue: number;
+  maxDiscount?: number | null;
+  minOrderValue?: number;
+  validFrom: string;
+  validUntil: string;
+  usageLimit?: number | null;
+  usedCount?: number;
+  userUsageLimit?: number;
+  applicableTours?: Array<{
+    _id: string;
+    title: string;
+    code?: string;
+    images?: string[];
+    price?: number;
+    priceAdult?: number;
+  }>;
+  status: "active" | "inactive";
+  createdAt: string;
+  updatedAt?: string;
+}
+
 // ==================== USER API ====================
 export const voucherApi = {
+  getPublicVouchers: async (limit = 6): Promise<PublicVoucher[]> => {
+    const res = await axios.get(`${API_URL}/vouchers/public?limit=${limit}`);
+    const payload = res.data;
+    return payload.data || payload || [];
+  },
+
+  getPublicVoucherById: async (id: string): Promise<PublicVoucher> => {
+    const res = await axios.get(`${API_URL}/vouchers/public/${id}`);
+    return res.data.data || res.data;
+  },
+
   // Lấy danh sách voucher của user
   getMyVouchers: async (status?: string): Promise<Voucher[]> => {
     const token = getUserToken();

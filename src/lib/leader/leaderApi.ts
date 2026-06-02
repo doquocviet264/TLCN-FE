@@ -83,10 +83,12 @@ export interface LeaderDeparture {
   endDate: string;
   status: "pending" | "confirmed" | "in_progress" | "completed" | "closed";
   min_guests: number;
+  max_guests: number;
   current_guests: number;
   priceAdult?: number;
   priceChild?: number;
   timeline?: TimelineEvent[];
+  leaderReport?: LeaderReport | null;
   leaderId?: string;
 }
 
@@ -114,8 +116,21 @@ export interface Expense {
   amount: number;
   occurredAt: string;
   note?: string;
+  receiptImages?: string[];
   visibleToCustomers: boolean;
+  status?: "pending" | "approved" | "rejected";
+  reviewNote?: string;
   addedBy?: string;
+}
+
+export interface LeaderReport {
+  summary: string;
+  incidents?: string;
+  expenseNote?: string;
+  noShowBookingIds?: string[];
+  status?: "submitted" | "reviewed";
+  submittedAt?: string;
+  reviewNote?: string;
 }
 
 export interface Passenger {
@@ -132,6 +147,8 @@ export interface Passenger {
   paidAmount: number;
   depositPaid: boolean;
   createdAt: string;
+  note?: string;
+  isPresent?: boolean;
 }
 
 // ======= CHAT API =======
@@ -220,7 +237,7 @@ export const leaderToursApi = {
       ...d,
       title:       d.tourId?.title ?? "Tour",
       destination: d.tourId?.destination ?? "",
-      quantity:    d.min_guests,
+      quantity:    d.max_guests || d.min_guests,
       bookedCount: d.current_guests,
     } as LeaderTour));
   },
@@ -233,7 +250,7 @@ export const leaderToursApi = {
       ...d,
       title:       d.tourId?.title ?? "Tour",
       destination: d.tourId?.destination ?? "",
-      quantity:    d.min_guests,
+      quantity:    d.max_guests || d.min_guests,
       bookedCount: d.current_guests,
     } as LeaderTour;
   },
@@ -242,6 +259,12 @@ export const leaderToursApi = {
   getPassengers: async (departureId: string) => {
     const res = await leaderAxios.get(`/leader/departures/${departureId}/passengers`);
     return res.data as { total: number; data: Passenger[] };
+  },
+
+  // Điểm danh
+  updateBookingCheckin: async (departureId: string, bookingId: string, isPresent: boolean) => {
+    const res = await leaderAxios.patch(`/leader/departures/${departureId}/bookings/${bookingId}/checkin`, { isPresent });
+    return res.data;
   },
 
   // Thêm sự kiện timeline
@@ -265,6 +288,7 @@ export const leaderToursApi = {
       title: string;
       amount: number;
       note?: string;
+      receiptImages?: string[];
       visibleToCustomers?: boolean;
     }
   ) => {
@@ -276,5 +300,18 @@ export const leaderToursApi = {
   getTourExpenses: async (departureId: string) => {
     const res = await leaderAxios.get(`/leader/departures/${departureId}/expenses`);
     return res.data as { total: number; count: number; data: Expense[] };
+  },
+
+  submitReport: async (
+    departureId: string,
+    report: {
+      summary: string;
+      incidents?: string;
+      expenseNote?: string;
+      noShowBookingIds?: string[];
+    }
+  ) => {
+    const res = await leaderAxios.patch(`/leader/departures/${departureId}/report`, report);
+    return res.data as { message: string; report: LeaderReport; departure: LeaderDeparture };
   },
 };

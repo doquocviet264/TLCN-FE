@@ -144,7 +144,7 @@ export default function AdminCreateBookingPage() {
 
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Tìm kiếm Tour Template <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Tìm kiếm Tên tour <span className="text-red-500">*</span></label>
                   <select
                     value={selectedTourId}
                     onChange={(e) => {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminLeaders } from "@/lib/admin/adminLeaderApi";
 import LeadersTable from "./LeadersTable";
+import AdminPagination from "@/components/admin/AdminPagination";
 
 export default function AdminLeadersPage() {
   const [page, setPage] = useState(1);
@@ -31,45 +32,83 @@ export default function AdminLeadersPage() {
         <p className="text-slate-600">Quản lý thông tin các lãnh đạo tour du lịch</p>
       </div>
 
-      {/* Controls */}
-      <div className="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+      {/* Filters Section */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-slate-100">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Search Input */}
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
               Tìm kiếm
             </label>
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo tên, email, username, điện thoại..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-search-line text-lg"></i>
+              </span>
+              <input
+                type="text"
+                placeholder="Tên, email, username, điện thoại..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-slate-50 transition outline-none"
+              />
+            </div>
           </div>
 
           {/* Status Filter */}
-          <div className="w-full md:w-48">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
               Trạng thái
             </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as "all" | "active" | "inactive");
-                setPage(1);
-              }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-user-star-line text-lg"></i>
+              </span>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as "all" | "active" | "inactive");
+                  setPage(1);
+                }}
+                className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-slate-50 transition appearance-none outline-none"
+              >
+                <option value="all">Tất cả trạng thái</option>
+                <option value="active">Hoạt động</option>
+                <option value="inactive">Vô hiệu</option>
+              </select>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-arrow-down-s-line"></i>
+              </span>
+            </div>
+          </div>
+
+          {/* Search Button */}
+          <div className="flex items-end">
+            <button
+              className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-bold text-sm transition shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
             >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="active">Hoạt động</option>
-              <option value="inactive">Vô hiệu</option>
-            </select>
+              <i className="ri-search-line"></i>
+              Tìm kiếm
+            </button>
           </div>
         </div>
+
+        {(searchTerm || statusFilter !== "all") && (
+          <div className="mt-4 flex justify-end">
+            <button 
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("all");
+                setPage(1);
+              }}
+              className="text-xs text-slate-400 hover:text-orange-600 transition flex items-center gap-1.5"
+            >
+              <i className="ri-refresh-line"></i> Làm mới bộ lọc
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -94,50 +133,13 @@ export default function AdminLeadersPage() {
             <LeadersTable leaders={data.data} />
           </div>
 
-          {/* Footer Info & Pagination */}
-          <div className="flex flex-col md:flex-row items-center justify-between bg-white rounded-lg shadow-md p-4">
-            <p className="text-slate-600 mb-4 md:mb-0">
-              Tổng cộng: <span className="font-bold text-slate-900">{data.total}</span> lãnh đạo |
-              Trang <span className="font-bold text-orange-600">{page}</span> của{" "}
-              <span className="font-bold">{Math.ceil(data.total / data.limit)}</span>
-            </p>
-
-            {/* Pagination Controls */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                ← Trước
-              </button>
-
-              {/* Page Numbers */}
-              {[...Array(Math.ceil(data.total / data.limit))].map((_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => setPage(i + 1)}
-                  className={`px-3 py-2 rounded-lg transition ${
-                    page === i + 1
-                      ? "bg-orange-500 text-white"
-                      : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-
-              <button
-                onClick={() =>
-                  setPage((p) => Math.min(Math.ceil(data.total / data.limit), p + 1))
-                }
-                disabled={page === Math.ceil(data.total / data.limit)}
-                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                Sau →
-              </button>
-            </div>
-          </div>
+          <AdminPagination 
+            currentPage={page}
+            totalPages={Math.ceil(data.total / data.limit)}
+            onPageChange={setPage}
+            totalItems={data.total}
+            itemsLabel="lãnh đạo"
+          />
         </>
       )}
     </div>

@@ -6,6 +6,7 @@ import { getAllToursAdmin, deleteTourAdmin, getTourTimesAdmin } from '@/lib/admi
 import { Toast, useToast } from '@/components/ui/Toast';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import Link from "next/link";
+import AdminPagination from '@/components/admin/AdminPagination';
 
 // Format VND currency
 const formatVND = (amount: number) => {
@@ -138,91 +139,99 @@ const Page = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl shadow-md p-4 md:p-6 mb-6">
-        <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Tìm kiếm & Bộ lọc</p>
-        <div className="flex flex-col md:flex-row gap-3">
+      <div className="bg-white rounded-2xl shadow-md p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search Input */}
-          <div className="flex-1 relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              <i className="ri-search-line text-lg"></i>
-            </span>
-            <input
-              id="admin-tour-search"
-              type="text"
-              placeholder="Tìm theo tên tour, điểm đến..."
-              value={inputSearch}
-              onChange={(e) => setInputSearch(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm"
-            />
+          <div className="lg:col-span-1">
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Tìm kiếm</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-search-line text-lg"></i>
+              </span>
+              <input
+                id="admin-tour-search"
+                type="text"
+                placeholder="Tên tour, điểm đến..."
+                value={inputSearch}
+                onChange={(e) => setInputSearch(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-slate-50 transition"
+              />
+            </div>
           </div>
 
           {/* Time Dropdown */}
-          <div className="relative md:w-56">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              <i className="ri-time-line text-lg"></i>
-            </span>
-            <select
-              id="admin-tour-time-filter"
-              value={inputTime}
-              onChange={(e) => setInputTime(e.target.value)}
-              className="w-full appearance-none pl-10 pr-8 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-white"
-            >
-              <option value="">-- Thời gian tour --</option>
-              {timeOptions.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              <i className="ri-arrow-down-s-line text-lg"></i>
-            </span>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Thời gian</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-time-line text-lg"></i>
+              </span>
+              <select
+                id="admin-tour-time-filter"
+                value={inputTime}
+                onChange={(e) => setInputTime(e.target.value)}
+                className="w-full appearance-none pl-10 pr-8 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-slate-50 transition"
+              >
+                <option value="">-- Tất cả --</option>
+                {timeOptions.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-arrow-down-s-line text-lg"></i>
+              </span>
+            </div>
           </div>
 
           {/* Status Dropdown */}
-          <div className="relative md:w-48">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              <i className="ri-toggle-line text-lg"></i>
-            </span>
-            <select
-              id="admin-tour-status-filter"
-              value={inputStatus}
-              onChange={(e) => setInputStatus(e.target.value)}
-              className="w-full appearance-none pl-10 pr-8 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-white"
-            >
-              <option value="">-- Tất cả trạng thái --</option>
-              <option value="active">Hoạt động</option>
-              <option value="hidden">Ẩn</option>
-              <option value="paused">Tạm ngưng</option>
-              <option value="deleted">Đã xóa</option>
-            </select>
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              <i className="ri-arrow-down-s-line text-lg"></i>
-            </span>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Trạng thái</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-toggle-line text-lg"></i>
+              </span>
+              <select
+                id="admin-tour-status-filter"
+                value={inputStatus}
+                onChange={(e) => setInputStatus(e.target.value)}
+                className="w-full appearance-none pl-10 pr-8 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm bg-slate-50 transition"
+              >
+                <option value="">-- Tất cả --</option>
+                <option value="active">Hoạt động</option>
+                <option value="hidden">Ẩn</option>
+                <option value="paused">Tạm ngưng</option>
+                <option value="deleted">Đã xóa</option>
+              </select>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <i className="ri-arrow-down-s-line text-lg"></i>
+              </span>
+            </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex gap-2 flex-shrink-0">
+          {/* Search Button */}
+          <div className="flex items-end">
             <button
               id="admin-tour-search-btn"
               onClick={handleSearch}
-              className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-sm transition shadow-sm shadow-orange-300 flex items-center gap-2"
+              className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl font-bold text-sm transition shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
             >
               <i className="ri-search-line"></i>
               Tìm kiếm
             </button>
-            {hasActiveFilter && (
-              <button
-                id="admin-tour-clear-btn"
-                onClick={handleClearFilters}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-medium text-sm transition flex items-center gap-1.5"
-                title="Xóa bộ lọc"
-              >
-                <i className="ri-close-circle-line"></i>
-                Xóa lọc
-              </button>
-            )}
           </div>
         </div>
+        {hasActiveFilter && (
+          <div className="mt-4 flex justify-end">
+            <button
+              id="admin-tour-clear-btn"
+              onClick={handleClearFilters}
+              className="text-xs text-slate-400 hover:text-orange-600 transition flex items-center gap-1.5"
+            >
+              <i className="ri-refresh-line"></i> Làm mới bộ lọc
+            </button>
+          </div>
+        )}
 
         {/* Active filter tags */}
         {hasActiveFilter && (
@@ -281,7 +290,7 @@ const Page = () => {
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Tour Template</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Tên tour</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Điểm đến</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Thời gian</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Giá cơ sở</th>
@@ -343,7 +352,7 @@ const Page = () => {
                           <Link
                             href={`/admin/tours/edit/${tour._id}`}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                            title="Sửa tour template"
+                            title="Sửa tên tour"
                           >
                             <i className="ri-pencil-line text-lg"></i>
                           </Link>
@@ -352,7 +361,7 @@ const Page = () => {
                           <button
                             onClick={() => setConfirmDialog({
                               isOpen: true,
-                              title: "Xóa tour template",
+                              title: "Xóa tên tour",
                               message: `Xóa tour "${tour.title}"? Hành động này không thể hoàn tác.`,
                               action: () => deleteMutation.mutate(tour._id),
                               type: "danger"
@@ -372,45 +381,13 @@ const Page = () => {
             </div>
           </div>
 
-          {/* Pagination */}
-          <div className="flex flex-col md:flex-row items-center justify-between bg-white rounded-xl shadow-sm p-4 gap-3">
-            <p className="text-slate-600 text-sm">
-              Tổng: <span className="font-bold text-slate-900">{total}</span> tours &nbsp;|&nbsp; Trang{' '}
-              <span className="font-bold text-orange-600">{page}</span> / <span className="font-bold">{totalPages}</span>
-            </p>
-
-            <div className="flex gap-2 flex-wrap justify-center">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition text-sm"
-              >
-                ← Trước
-              </button>
-
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => setPage(i + 1)}
-                  className={`px-3 py-2 rounded-lg transition text-sm font-medium ${
-                    page === i + 1
-                      ? 'bg-orange-500 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition text-sm"
-              >
-                Sau →
-              </button>
-            </div>
-          </div>
+          <AdminPagination 
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={total}
+            itemsLabel="tours"
+          />
         </>
       )}
 

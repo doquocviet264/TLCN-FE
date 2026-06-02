@@ -79,6 +79,7 @@ const HotSearchSection = () => {
         const startDateRaw = (t as any).startDate ?? (t as any).start_date;
 
         return {
+          id,
           title: t.title,
           image,
           href,
